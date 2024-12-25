@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tips Docker et Docker Compose</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 16px;
+            text-align: left;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tips Docker et Docker Compose</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Action</th>
+                <th>Commande</th>
+                <th>Exemple</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Démarrer le projet</td>
+                <td><code>docker-compose up --build</code></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Arrêter et nettoyer tout</td>
+                <td><code>docker ps -q | xargs -r docker stop && docker system prune -a --volumes -f</code></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Entrer dans un conteneur</td>
+                <td><code>docker exec -it &lt;container_name&gt; sh</code></td>
+                <td><code>docker exec -it django sh</code></td>
+            </tr>
+            <tr>
+                <td>Afficher les logs d’un conteneur</td>
+                <td><code>docker logs -f &lt;container_name&gt;</code></td>
+                <td><code>docker logs -f django</code></td>
+            </tr>
+            <tr>
+                <td>Lister tous les conteneurs</td>
+                <td><code>docker ps -a</code></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Redémarrer un conteneur</td>
+                <td><code>docker restart &lt;container_name&gt;</code></td>
+                <td><code>docker restart django</code></td>
+            </tr>
+            <tr>
+                <td>Supprimer un conteneur</td>
+                <td><code>docker rm &lt;container_name&gt;</code></td>
+                <td><code>docker rm django</code></td>
+            </tr>
+            <tr>
+                <td>Supprimer une image</td>
+                <td><code>docker rmi &lt;image_id&gt;</code></td>
+                <td><code>docker rmi abc123</code></td>
+            </tr>
+            <tr>
+                <td>Accéder à PostgreSQL dans Docker</td>
+                <td><code>docker exec -it postgres psql -U &lt;username&gt; -d &lt;database&gt;</code></td>
+                <td><code>docker exec -it postgres psql -U pong_user -d pong_db</code></td>
+            </tr>
+            <tr>
+                <td>Nettoyer uniquement les volumes</td>
+                <td><code>docker volume prune -f</code></td>
+                <td></td>
+            </tr>
+            <tr>
