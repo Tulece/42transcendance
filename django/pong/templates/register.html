@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription</title>
+</head>
+<body>
+    <h1>Créer un compte</h1>
+
+    {% if error_message %}
+        <p style="color: red;">{{ error_message }}</p>
+    {% endif %}
+
+    <form method="POST" action="/register/" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="username">Nom d'utilisateur :</label>
+        <input type="text" id="username" name="username" required><br>
+
+        <label for="password">Mot de passe :</label>
+        <input type="password" id="password" name="password" required><br>
+
+        <label for="avatar">Avatar :</label>
+        <input type="file" id="avatar" name="avatar"><br>
+
+        <button type="submit">S'inscrire</button>
+    </form>
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>

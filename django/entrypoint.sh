@@ -27,5 +27,10 @@ else:
     print(f"Superuser {username} already exists.")
 EOF
 
+until python manage.py check; do
+    echo "Waiting for Django apps to load..."
+    sleep 1
+done
+
 # Lancer le serveur
 exec daphne -b 0.0.0.0 -p 8000 pong.asgi:application

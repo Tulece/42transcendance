@@ -29,9 +29,11 @@ services:
     env_file:
       - .env
     environment:
+      DJANGO_SETTINGS_MODULE: pong.settings
       POSTGRES_HOST: db
     volumes:
       - ./django:/app
+      - ./media:/app/media
     ports:
       - "8000:8000"
     depends_on:
