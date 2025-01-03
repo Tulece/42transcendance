@@ -3,7 +3,9 @@ const ctx = canvas.getContext('2d');
 
 // Dimensions et position initiale de la barre
 const barWidth = 10;
-const barHeight = 60;
+const barHeight = 100;
+
+let game_running = false;
 
 const ball = {
     x: 0,
@@ -11,16 +13,33 @@ const ball = {
     radius: 10
 };
 
+const key_pressed = {};
+
 const player = {
     x: 0,
     y: 0 
 };
 
-let socket = null;
-
 let isResetting = false; // Flag pour éviter des conflits pendant la réinitialisation
 let paused = false;
 // Propriétés de la balle
+
+socket = new WebSocket('ws://localhost:8000/ws/game/1/');
+
+socket.onopen = function(event) {
+	console.log("WebSocket connection established.");
+};
+
+socket.onmessage = function(event) {
+	const data = JSON.parse(event.data);
+	if (data.type === "position_update") {
+		ball.x = data.ball_position.x;
+		ball.y = data.ball_position.y;
+		player.x = data.player_state.x;
+		player.y = data.player_state.y;
+	}
+	updateCanvas();
+};
 
 // Dessiner la barre
 function drawBar() {
@@ -47,59 +66,68 @@ function updateCanvas() {
     drawBar();
 }
 
+function sendAction(action) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        console.log(`Envoi de l'action : ${action}`);
+        socket.send(JSON.stringify({ action: action }));
+    } else {
+        console.error("WebSocket non ouvert !");
+    }
+}
+
 //Websocket version
 // Envoyer une action joueur
 document.addEventListener('keydown', function(event) {
-    if (event.key === "ArrowUp") {
-        socket.send(JSON.stringify({ action: "move_up" }));
-    }
-    if (event.key === "ArrowDown") {
-        socket.send(JSON.stringify({ action: "move_down" }));
-    }
+	if (!key_pressed[event.key]) {
+		if (!game_running)
+			return;
+		console.log("Key pressed :" + event.key);
+		key_pressed[event.key] = true;
+		if (event.key === "ArrowUp") {
+			sendAction("move_up");
+		}
+		if (event.key === "ArrowDown") {
+			sendAction("move_down");
+		}
+		if (event.key === "Escape") {
+			sendAction("pause_game");
+		}
+	}
+});
+
+document.addEventListener('keyup', function(event) {
+	delete key_pressed[event.key];
+	if (!game_running)
+		return;
+	if (event.key === "ArrowUp") {
+		sendAction("stop_move_up");
+	}
+	if (event.key === "ArrowDown") {
+		sendAction("stop_move_down");
+	}
 });
 
 
 function resetGame() {
     if (socket && socket.readyState === WebSocket.OPEN)
-		socket.send(JSON.stringify({ action: "reset_game" }))
+		sendAction("reset_game");
 }
 
 function pauseGame() {
-    fetch('/pause_game/').catch(error => {
-        console.error('Erreur reseau :', error);
-    });
-    paused = !paused;
-    if (!paused) {
-        requestAnimationFrame(update);
-    }
+    if (socket && socket.readyState === WebSocket.OPEN)
+		sendAction("pause_game");
 }
 
 function startGame() {
-    socket = new WebSocket('ws://localhost:8000/ws/game/1/');
-
-    socket.onopen = function(event) {
-        const message = {
-            action: "start_game",
-            width: canvas.width,
-            height: canvas.height
-        };
-        // Envoyer le message au serveur
-        socket.send(JSON.stringify(message));
-		console.log("WebSocket connection established.");
-    };
-    
-    socket.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        if (data.type === "position_update") {
-            ball.x = data.ball_position.x;
-            ball.y = data.ball_position.y;
-            player.x = data.player_position.x;
-            player.y = data.player_position.y;
-        }
-		updateCanvas();
-    };
+	game_running = true;
+	const message = {
+		action: "start_game",
+		width: canvas.width,
+		height: canvas.height
+	};
+	// Envoyer le message au serveur
+	socket.send(JSON.stringify(message));
 }
-
 
 // Gérer le bouton de réinitialisation
 const resetButton = document.getElementById('reset-button');

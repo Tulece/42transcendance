@@ -58,16 +58,19 @@ class PongConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data):
+        print(f"Message reçu dans receive : {text_data}")
         data = json.loads(text_data)
         action = data.get('action')
 
         if action == 'move_up':
-            # Déplacer le joueur vers le haut
-            move_player_up()
+            player_state['dy'] = -player_state['speed']
         elif action == 'move_down':
-            # Déplacer le joueur vers le bas
-            move_player_down()
-        elif action == 'pause':
+            player_state['dy'] = player_state['speed']
+        elif action == 'stop_move_down' and player_state['dy'] == player_state['speed']:
+            player_state['dy'] = 0
+        elif action == 'stop_move_up' and player_state['dy'] == -player_state['speed']:
+            player_state['dy'] = 0
+        elif action == 'pause_game':
             paused = not paused
         elif action == 'start_game':
             # On lance la boucle de mise à jour en tâche de fond
@@ -76,7 +79,11 @@ class PongConsumer(AsyncWebsocketConsumer):
             self.game_task = asyncio.create_task(self.ball_loop())
         elif action == 'reset_game':
             if self.game_task is not None:
-                self.game_task.cancel()
+                self.game_task.cancel()  # Annuler la tâche en cours
+                try:
+                    await self.game_task  # Attendre que la tâche se termine
+                except asyncio.CancelledError:
+                    pass
             reset_game()
             self.game_task = asyncio.create_task(self.ball_loop())
             
@@ -88,7 +95,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         Ici on renvoie la position de la balle et du joueur à ce client.
         """
         # Si tu stockes la logique dans `logic.py` :
-        from .logic.game import ball_state, player_position
+        from .logic.game import ball_state, player_state
 
         await self.send(text_data=json.dumps({
             'type': 'position_update',
@@ -96,9 +103,9 @@ class PongConsumer(AsyncWebsocketConsumer):
                 'x': ball_state['x'],
                 'y': ball_state['y']
             },
-            'player_position': {
-                'x': player_position['x'],
-                'y': player_position['y']
+            'player_state': {
+                'x': player_state['x'],
+                'y': player_state['y']
             }
         }))
 
