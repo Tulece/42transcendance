@@ -21,7 +21,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from pong.views import register_view
+from .views.main_views import register_view
+from .logic.game import *
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -42,7 +43,7 @@ urlpatterns += [
     path('api/protected/', protected_view, name='protected_view'),
 ]
 
-from pong.views import home
+from .views.main_views import home
 
 urlpatterns += [
     path('', home, name='home'),
@@ -54,3 +55,11 @@ from django.conf.urls.static import static
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+urlpatterns += [
+    path('move_player_up/', move_player_up, name='move_player_up'),
+    path('move_player_down/', move_player_down, name='move_player_down'),
+    path('reset_game/', reset_game, name='reset_game'),
+    path('game_launcher/', game_launcher, name='game_launcher'),
+    path('pause_game/', pause_game, name='pause_game'),
+]

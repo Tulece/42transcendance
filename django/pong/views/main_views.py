@@ -5,7 +5,7 @@ from django.core.files.storage import FileSystemStorage
 from rest_framework_simplejwt.tokens import RefreshToken
 
 def home(request):
-    return render(request, 'home.html')
+    return render(request, 'index.html')
 
 def register_view(request):
     if request.method == "POST":
@@ -43,3 +43,4 @@ def register_view(request):
         return redirect('home')  # 'home' est le nom de la vue pour home.html dans vos URL
 
     return render(request, "register.html")
+
