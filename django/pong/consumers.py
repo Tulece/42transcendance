@@ -4,7 +4,7 @@ from jwt import decode as jwt_decode
 from urllib.parse import parse_qs
 from django.conf import settings
 
-class PongConsumer(AsyncWebsocketConsumer):
+class menuConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.username = None  # Initialisation
         # Décodage et extraction du token depuis le query string
