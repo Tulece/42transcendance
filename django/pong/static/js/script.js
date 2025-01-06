@@ -17,14 +17,21 @@ const key_pressed = {};
 
 const player = {
     x: 0,
-    y: 0 
+    y: 0,
+	hp: 0
+};
+
+const opponent = {
+    x: 0,
+    y: 0,
+	hp: 0
 };
 
 let isResetting = false; // Flag pour éviter des conflits pendant la réinitialisation
 let paused = false;
 // Propriétés de la balle
 
-socket = new WebSocket('ws://localhost:8000/ws/game/1/');
+socket = new WebSocket('ws://localhost:8000/ws/game/1/?player_id=player1');
 
 socket.onopen = function(event) {
 	console.log("WebSocket connection established.");
@@ -37,12 +44,23 @@ socket.onmessage = function(event) {
 		ball.y = data.ball_position.y;
 		player.x = data.player_state.x;
 		player.y = data.player_state.y;
-	}
-	updateCanvas();
+		player.hp = data.player_state.lifepoints;
+		opponent.x = data.opponent_state.x;
+		opponent.y = data.opponent_state.y;
+		opponent.hp = data.opponent_state.lifepoints;
+		updateCanvas();
+	} else if (data.type === "game_over") {
+        alert(data.message);
+        game_running = false;
+    }
 };
 
-// Dessiner la barre
-function drawBar() {
+function drawPlayer() {
+	ctx.font = "20px Arial";
+	ctx.fillText("hp: ", 10, 20);
+	for (i = 0; i < player.hp; ++i) {
+		drawHeart (50 + (i * 15), 10, 10);
+	}
     ctx.beginPath();
     ctx.rect(player.x, player.y, barWidth, barHeight); // Barre sur la gauche
     ctx.fillStyle = 'white';
@@ -50,7 +68,20 @@ function drawBar() {
     ctx.closePath();
 }
 
-// Dessiner la balle
+function drawOpponent() {
+	ctx.font = "20px Arial";
+	ctx.fillText("hp: ", canvas.width - 115, 20);
+	for (i = 0; i < opponent.hp; ++i) {
+		x = canvas.width - ((5 - i) * 15) 
+		drawHeart (x, 10, 10);
+	}
+    ctx.beginPath();
+    ctx.rect(opponent.x, opponent.y, barWidth, barHeight); // Barre sur la gauche
+    ctx.fillStyle = 'white';
+    ctx.fill();
+    ctx.closePath();
+}
+
 function drawBall() {
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
@@ -59,11 +90,33 @@ function drawBall() {
     ctx.closePath();
 }
 
-// Mettre à jour le canvas
+function drawHeart(x, y, size) {
+    ctx.beginPath();    
+    ctx.moveTo(x, y);
+    ctx.bezierCurveTo(
+        x - size / 2, y - size / 2,
+        x - size, y + size / 3,
+        x, y + size
+    );
+
+    ctx.bezierCurveTo(
+        x + size, y + size / 3,
+        x + size / 2, y - size / 2,
+        x, y
+    );
+
+    ctx.closePath();
+    ctx.fillStyle = 'red';
+    ctx.fill();
+}
+
 function updateCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Effacer le canvas
+	console.log("Player state:", player);
+    console.log("Opponent state:", opponent);
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Effacer le canvas\
     drawBall();
-    drawBar();
+    drawPlayer();
+	drawOpponent();
 }
 
 function sendAction(action) {
@@ -75,7 +128,7 @@ function sendAction(action) {
     }
 }
 
-//Websocket version
+// Websocket version
 // Envoyer une action joueur
 document.addEventListener('keydown', function(event) {
 	if (!key_pressed[event.key]) {
@@ -106,7 +159,6 @@ document.addEventListener('keyup', function(event) {
 		sendAction("stop_move_down");
 	}
 });
-
 
 function resetGame() {
     if (socket && socket.readyState === WebSocket.OPEN)

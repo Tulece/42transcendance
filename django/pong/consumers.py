@@ -71,11 +71,14 @@ class PongConsumer(AsyncWebsocketConsumer):
     #     print(f"Message reçu de {self.username}: {text_data}")
     #     await self.send(text_data=f"Echo: {text_data}")
 
+    game_running = False
+
     async def connect(self):
         self.game_id = self.scope['url_route']['kwargs']['game_id']
         self.group_name = f'game_{self.game_id}'
+        query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
+        self.player_id = query_params.get('player_id', ['unknown'])[0]
 
-        # Ajouter le client au groupe
         await self.channel_layer.group_add(
             self.group_name,
             self.channel_name
@@ -83,16 +86,22 @@ class PongConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def disconnect(self, close_code):
-        # Retirer le client du groupe
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name
         )
 
     async def receive(self, text_data):
-        print(f"Message reçu dans receive : {text_data}")
+        global paused, players
+        print(f"Message reçu dans receive : {text_data}", flush=True)
         data = json.loads(text_data)
         action = data.get('action')
+
+        if self.player_id not in players:
+            print(f"Joueur {self.player_id} inconnu")
+            return
+
+        player_state = players[self.player_id]
 
         if action == 'move_up':
             player_state['dy'] = -player_state['speed']
@@ -104,22 +113,19 @@ class PongConsumer(AsyncWebsocketConsumer):
             player_state['dy'] = 0
         elif action == 'pause_game':
             paused = not paused
-        elif action == 'start_game':
-            # On lance la boucle de mise à jour en tâche de fond
-            CANVAS_HEIGHT = data.get('height')
-            CANVAS_WIDTH = data.get('width')
+        elif action == 'start_game' and self.game_running == False:
+            self.game_running = True
+            player_state['lifepoints'] = 5
+            players["player2"]['lifepoints'] = 5
             self.game_task = asyncio.create_task(self.ball_loop())
         elif action == 'reset_game':
-            if self.game_task is not None:
-                self.game_task.cancel()  # Annuler la tâche en cours
-                try:
-                    await self.game_task  # Attendre que la tâche se termine
-                except asyncio.CancelledError:
-                    pass
             reset_game()
-            self.game_task = asyncio.create_task(self.ball_loop())
-
-
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    "type": "update_position"
+                }
+            )
 
     async def update_position(self, event):
         """
@@ -127,7 +133,15 @@ class PongConsumer(AsyncWebsocketConsumer):
         Ici on renvoie la position de la balle et du joueur à ce client.
         """
         # Si tu stockes la logique dans `logic.py` :
-        from .logic.game import ball_state, player_state
+        global ball_state, players
+
+        player_state = players[self.player_id]
+        opponent_state = None
+
+        for player_id, state in players.items():
+            if player_id != self.player_id:
+                opponent_state = state
+                break
 
         await self.send(text_data=json.dumps({
             'type': 'position_update',
@@ -137,7 +151,13 @@ class PongConsumer(AsyncWebsocketConsumer):
             },
             'player_state': {
                 'x': player_state['x'],
-                'y': player_state['y']
+                'y': player_state['y'],
+                'lifepoints': player_state['lifepoints'],
+            },
+            'opponent_state': {
+                'x': opponent_state['x'],
+                'y': opponent_state['y'],
+                'lifepoints': opponent_state['lifepoints'],
             }
         }))
 
@@ -147,7 +167,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.game_task = asyncio.create_task(self.ball_loop())
 
     async def ball_loop(self):
-        global paused, ball_state
+        global paused, ball_state, players
         while True:
             if not paused:
                 # Mettre à jour la balle
@@ -158,10 +178,39 @@ class PongConsumer(AsyncWebsocketConsumer):
                         "type": "update_position"
                     }
                 )
-            # On dort en asynchrone
+                if players['player1']['lifepoints'] < 1:
+                    self.game_running = False
+                    await self.channel_layer.group_send(
+                        self.group_name,
+                        {
+                            "type": "game_over",
+                            "message": "Game Over! Vous avez perdu."
+                        }
+                    )
+                    break
+                elif players['player2']['lifepoints'] < 1:
+                    self.game_running = False
+                    await self.channel_layer.group_send(
+                        self.group_name,
+                        {
+                            "type": "game_over",
+                            "message": "Congrats! You win."
+                        }
+                    )
+                    break
             await asyncio.sleep(1/60)
 
 
+    async def game_over(self, event):
+        """
+        Méthode appelée pour gérer la fin du jeu.
+        """
+        await self.send(text_data=json.dumps({
+            "type": "game_over",
+            "message": event["message"]
+        }))
+
+
     async def game_state(self, event):
-        # Envoyer l'état du jeu
         await self.send(text_data=json.dumps(event['state']))
+
