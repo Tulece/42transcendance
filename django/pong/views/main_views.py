@@ -4,8 +4,8 @@ from django.contrib.auth.hashers import make_password
 from django.core.files.storage import FileSystemStorage
 from rest_framework_simplejwt.tokens import RefreshToken
 
-def home(request):
-    return render(request, 'index.html')
+def home_view(request):
+    return render(request, 'home.html')
 
 def register_view(request):
     if request.method == "POST":
@@ -44,3 +44,7 @@ def register_view(request):
 
     return render(request, "register.html")
 
+def game_view(request):
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'index.html')  # Fragment AJAX
+    return render(request, 'index.html')  # Page complète

@@ -8,6 +8,38 @@ import json
 from .logic.game import *
 
 
+class menuConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.username = None  # Initialisation
+        # Décodage et extraction du token depuis le query string
+        query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
+        token = query_params.get('token', [None])[0]
+        if not token:
+            print("Token manquant, fermeture de la connexion.")
+            await self.close(code=4003)
+            return
+
+        try:
+            # Décodage du token JWT
+            payload = jwt_decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            self.username = payload.get('username', 'Anonyme')
+            print(f"Utilisateur authentifié : {self.username}")
+            await self.accept()
+        except InvalidToken as e:
+            print(f"Token invalide : {e}")
+            await self.close(code=4003)
+        except Exception as e:
+            print(f"Erreur inattendue lors de la validation du token : {e}")
+            await self.close(code=4003)
+
+    async def disconnect(self, close_code):
+        print(f"Déconnecté : {self.username} (code {close_code})")
+
+    async def receive(self, text_data):
+        print(f"Message reçu de {self.username}: {text_data}")
+        await self.send(text_data=f"Echo: {text_data}")
+
+
 class PongConsumer(AsyncWebsocketConsumer):
     # async def connect(self):
     #     self.username = None  # Initialisation
@@ -42,7 +74,7 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.game_id = self.scope['url_route']['kwargs']['game_id']
         self.group_name = f'game_{self.game_id}'
-    
+
         # Ajouter le client au groupe
         await self.channel_layer.group_add(
             self.group_name,
@@ -86,7 +118,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                     pass
             reset_game()
             self.game_task = asyncio.create_task(self.ball_loop())
-            
+
 
 
     async def update_position(self, event):
