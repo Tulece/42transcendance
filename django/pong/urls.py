@@ -21,36 +21,33 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from pong.views import register_view
+from .views.main_views import register_view
+from .logic.game import *
+from django.conf import settings
+from django.conf.urls.static import static
+from pong.views.main_views import home_view, game_view
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def protected_view(request):
     return Response({"message": "Vous êtes authentifié !"})
 
-
-
 urlpatterns = [
-	path('register/', register_view, name='register'),
+    path('', home_view, name='home'),
+    path('register/', register_view, name='register'),
+    path('game/', game_view, name='game'),
     path('admin/', admin.site.urls),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
-
-urlpatterns += [
-    path('api/protected/', protected_view, name='protected_view'),
-]
-
-from pong.views import home
-
-urlpatterns += [
-    path('', home, name='home'),
-]
-
-from django.conf import settings
-from django.conf.urls.static import static
-
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+urlpatterns += [
+    path('reset_game/', reset_game, name='reset_game'),
+    path('game_launcher/', game_launcher, name='game_launcher'),
+    path('pause_game/', pause_game, name='pause_game'),
+]
