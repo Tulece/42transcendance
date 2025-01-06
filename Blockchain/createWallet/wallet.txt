@@ -1,0 +1,5 @@
+Adresse Ethereum : 0x0a5D25afFA75a0E4F7760E5c356a5047A768E02f
+
+Clé privée : 303b03b38e725c037b6b2c02c0e9c2747aa74f3d653ae2bb28433ae6dfdb3d8a
+
+Etherscan testnet holesky : https://holesky.etherscan.io/address/0x0a5D25afFA75a0E4F7760E5c356a5047A768E02f
