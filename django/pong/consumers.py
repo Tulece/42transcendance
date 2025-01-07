@@ -79,17 +79,46 @@ class PongConsumer(AsyncWebsocketConsumer):
         query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
         self.player_id = query_params.get('player_id', ['unknown'])[0]
 
+        # Initialiser l'état du joueur s'il n'existe pas
+        if self.player_id not in players:
+            if self.player_id == "player1":
+                players[self.player_id] = DEFAULT_PLAYER_ONE_STATE.copy()
+            elif self.player_id == "player2":
+                players[self.player_id] = DEFAULT_PLAYER_TWO_STATE.copy()
+            else:
+                print(f"ID de joueur non valide : {self.player_id}")
+                await self.close()
+                return
+
+        # Ajouter le client au groupe
         await self.channel_layer.group_add(
             self.group_name,
             self.channel_name
         )
         await self.accept()
+        print(f"Joueur {self.player_id} connecté au jeu {self.game_id}")
+
 
     async def disconnect(self, close_code):
+        global players
+        print(f"Déconnexion du joueur {self.player_id}", flush=True)
+
+        # Supprimer l'état du joueur
+        if self.player_id in players:
+            del players[self.player_id]
+
+        # Arrêter la boucle si le joueur est celui qui l'a lancée
+        if hasattr(self, 'game_task') and not self.game_task.done():
+            self.game_task.cancel()
+            print(f"Boucle de jeu arrêtée pour {self.player_id}")
+
+        # Retirer le client du groupe WebSocket
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name
         )
+        print(f"Joueur {self.player_id} retiré du groupe {self.group_name}")
+
 
     async def receive(self, text_data):
         global paused, players
@@ -168,37 +197,25 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def ball_loop(self):
         global paused, ball_state, players
-        while True:
-            if not paused:
-                # Mettre à jour la balle
-                ball_updater()
-                await self.channel_layer.group_send(
-                    self.group_name,  # ex: "game_1"
-                    {
-                        "type": "update_position"
-                    }
-                )
-                if players['player1']['lifepoints'] < 1:
-                    self.game_running = False
+        try:
+            while self.game_running:
+                if not paused:
+                    ball_updater()
                     await self.channel_layer.group_send(
                         self.group_name,
-                        {
-                            "type": "game_over",
-                            "message": "Game Over! Vous avez perdu."
-                        }
+                        {"type": "update_position"}
                     )
-                    break
-                elif players['player2']['lifepoints'] < 1:
-                    self.game_running = False
-                    await self.channel_layer.group_send(
-                        self.group_name,
-                        {
-                            "type": "game_over",
-                            "message": "Congrats! You win."
-                        }
-                    )
-                    break
-            await asyncio.sleep(1/60)
+                    if players['player1']['lifepoints'] < 1 or players['player2']['lifepoints'] < 1:
+                        self.game_running = False
+                        message = "Game Over! Vous avez perdu." if players['player1']['lifepoints'] < 1 else "Congrats! You win."
+                        await self.channel_layer.group_send(
+                            self.group_name,
+                            {"type": "game_over", "message": message}
+                        )
+                        break
+                await asyncio.sleep(1 / 60)
+        except asyncio.CancelledError:
+            print("Boucle de jeu annulée.")
 
 
     async def game_over(self, event):

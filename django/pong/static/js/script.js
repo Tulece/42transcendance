@@ -37,6 +37,12 @@ socket.onopen = function(event) {
 	console.log("WebSocket connection established.");
 };
 
+window.addEventListener('beforeunload', function() {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close();
+    }
+});
+
 socket.onmessage = function(event) {
 	const data = JSON.parse(event.data);
 	if (data.type === "position_update") {
