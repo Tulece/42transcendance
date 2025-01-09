@@ -5,7 +5,21 @@ from django.core.files.storage import FileSystemStorage
 from rest_framework_simplejwt.tokens import RefreshToken
 
 def home_view(request):
+    # Mode AJAX ?
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # On regarde le path :
+        if request.path == '/':
+            return render(request, 'home.html')
+        elif request.path == '/game':
+            return render(request, 'pong.html')
+        elif request.path == '/register/':
+            return render(request, 'register.html')
+        # fallback
+        return HttpResponse("Fragment non géré")
+
+    # Sinon (accès direct), on renvoie la shell
     return render(request, 'home.html')
+
 
 def register_view(request):
     if request.method == "POST":
@@ -46,5 +60,5 @@ def register_view(request):
 
 def game_view(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return render(request, 'index.html')  # Fragment AJAX
-    return render(request, 'index.html')  # Page complète
+        return render(request, 'pong.html')  # Fragment AJAX
+    return render(request, 'home.html')  # Page complète
