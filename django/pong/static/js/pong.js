@@ -130,6 +130,7 @@
 	  if (socket && socket.readyState === WebSocket.OPEN) {
 		socket.send(JSON.stringify({
 		  action: "start_game",
+		  mode: "solo",
 		  width: canvas.width,
 		  height: canvas.height
 		}));

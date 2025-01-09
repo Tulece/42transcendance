@@ -4,6 +4,12 @@ from asgiref.sync import async_to_sync
 import threading
 import time
 
+import datetime
+
+def timed_print(*args, **kwargs):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{now}]", *args, **kwargs)
+
 # Constantes
 PADDLE_SIZE = 100
 PADDLE_WIDTH = 10
@@ -15,14 +21,14 @@ DEFAULT_PLAYER_ONE_STATE = {
     'x': CANVAS_WIDTH / 100,
     'y': (CANVAS_HEIGHT / 2) - (PADDLE_SIZE / 2),
     'dy': 0,
-    'speed': 3,
+    'speed': 5,
 }
 
 DEFAULT_PLAYER_TWO_STATE = {
     'x': CANVAS_WIDTH - (CANVAS_WIDTH / 100) - PADDLE_WIDTH,
     'y': (CANVAS_HEIGHT / 2) - (PADDLE_SIZE / 2),
     'dy': 0,
-    'speed': 3,
+    'speed': 5,
 }
 
 DEFAULT_BALL_STATE = {
@@ -73,6 +79,8 @@ def ball_updater():
         if ball_state['x'] + ball_state['radius'] > players['player2']['x'] and ball_state['y'] - ball_state['radius'] <= players['player2']['y'] + PADDLE_SIZE and ball_state['y'] + ball_state['radius'] >= players['player2']['y']:
             ball_state['x'] -= (ball_state['x'] + ball_state['radius']) - players['player2']['x'] 
             ball_state['dx'] = absadd(ball_state['dx'], 1)
+            # if ball_state['y'] - ball_state['radius'] < players['player2']['y'] + PADDLE_SIZE / 8:
+            #     ball_state['dy'] = 
             ball_state['dy'] = absadd(ball_state['dy'], 1)
             ball_state['dx'] *= -1
 

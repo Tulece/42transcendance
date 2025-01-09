@@ -98,9 +98,9 @@ class PongConsumer(AsyncWebsocketConsumer):
         )
         # Optionnel : annuler la tâche si tu veux arrêter la partie
         # (mais souvent, on ne le fait qu’après un "quit_game" explicite)
-        if hasattr(self, 'game_task') and not self.game_task.done():
-            self.game_task.cancel()
-            print(f"Annulation de la tâche de jeu pour game_id={self.game_id}")
+        # if hasattr(self, 'game_task') and not self.game_task.done():
+        #     self.game_task.cancel()
+        #     print(f"Annulation de la tâche de jeu pour game_id={self.game_id}")
 
     async def receive(self, text_data):
         global paused, players
@@ -129,12 +129,17 @@ class PongConsumer(AsyncWebsocketConsumer):
         elif action == 'start_game' and self.game_running == False:
             self.game_running = True
             mode = data.get('mode')
+            print(f"Mode = {mode}", flush = True)
             if mode == 'solo':
-                print(f"Mode = {mode}", flush = True)
                 asyncio.create_task(launch_ai())
             player_state['lifepoints'] = 5
             players["player2"]['lifepoints'] = 5
-            # on lance la boucle asynchrone
+            await self.channel_layer.group_send(
+                f'game_{self.game_id}_ai',
+                {
+                    "type": "update_position"
+                }
+            )
             self.game_task = asyncio.create_task(self.ball_loop())
 
         elif action == 'reset_game':
