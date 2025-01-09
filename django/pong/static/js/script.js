@@ -117,8 +117,8 @@ function drawHeart(x, y, size) {
 }
 
 function updateCanvas() {
-	console.log("Player state:", player);
-    console.log("Opponent state:", opponent);
+	// console.log("Player state:", player);
+    // console.log("Opponent state:", opponent);
     ctx.clearRect(0, 0, canvas.width, canvas.height); // Effacer le canvas\
     drawBall();
     drawPlayer();
@@ -180,6 +180,7 @@ function startGame() {
 	game_running = true;
 	const message = {
 		action: "start_game",
+		mode: "solo",
 		width: canvas.width,
 		height: canvas.height
 	};

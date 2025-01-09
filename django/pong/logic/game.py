@@ -44,6 +44,9 @@ ball_state = DEFAULT_BALL_STATE.copy()
 paused = False
 channel_layer = get_channel_layer()
 
+def absadd(number, n):
+    return number - n if number < 0 else number + n
+
 def ball_updater():
         global ball_state, players
         ball_state['x'] += ball_state['dx']
@@ -55,15 +58,23 @@ def ball_updater():
         if players['player1']['y'] + PADDLE_SIZE > CANVAS_HEIGHT :
             players['player1']['y'] = CANVAS_HEIGHT - PADDLE_SIZE
 
+        players['player2']['y'] += players['player2']['dy']
+        if players['player2']['y'] < 0:
+            players['player2']['y'] = 0
+        if players['player2']['y'] + PADDLE_SIZE > CANVAS_HEIGHT :
+            players['player2']['y'] = CANVAS_HEIGHT - PADDLE_SIZE
+
         if ball_state['x'] - ball_state['radius'] < players['player1']['x'] + PADDLE_WIDTH and ball_state['y'] - ball_state['radius'] <= players['player1']['y'] + PADDLE_SIZE and ball_state['y'] + ball_state['radius'] >= players['player1']['y']:
+            ball_state['x'] += (players['player1']['x'] + PADDLE_WIDTH) - ((ball_state['x'] - ball_state['radius']) - (players['player1']['x'] + PADDLE_WIDTH))
+            ball_state['dx'] = absadd(ball_state['dx'], 1)
+            ball_state['dy'] = absadd(ball_state['dy'], 1)
             ball_state['dx'] *= -1
-            ball_state['dx'] += 1
-            ball_state['dy'] += 1
 
         if ball_state['x'] + ball_state['radius'] > players['player2']['x'] and ball_state['y'] - ball_state['radius'] <= players['player2']['y'] + PADDLE_SIZE and ball_state['y'] + ball_state['radius'] >= players['player2']['y']:
+            ball_state['x'] -= (ball_state['x'] + ball_state['radius']) - players['player2']['x'] 
+            ball_state['dx'] = absadd(ball_state['dx'], 1)
+            ball_state['dy'] = absadd(ball_state['dy'], 1)
             ball_state['dx'] *= -1
-            ball_state['dx'] += 1
-            ball_state['dy'] += 1
 
         if ball_state['x'] < ball_state['radius']:
             players['player1']['lifepoints'] -= 1

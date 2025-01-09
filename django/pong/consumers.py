@@ -6,7 +6,7 @@ from django.conf import settings
 import asyncio
 import json
 from .logic.game import *
-
+from .logic.ai_player import launch_ai
 
 class menuConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -41,43 +41,23 @@ class menuConsumer(AsyncWebsocketConsumer):
 
 
 class PongConsumer(AsyncWebsocketConsumer):
-    # async def connect(self):
-    #     self.username = None  # Initialisation
-    #     # Décodage et extraction du token depuis le query string
-    #     query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
-    #     token = query_params.get('token', [None])[0]
-    #     if not token:
-    #         print("Token manquant, fermeture de la connexion.")
-    #         await self.close(code=4003)
-    #         return
-
-    #     try:
-    #         # Décodage du token JWT
-    #         payload = jwt_decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-    #         self.username = payload.get('username', 'Anonyme')
-    #         print(f"Utilisateur authentifié : {self.username}")
-    #         await self.accept()
-    #     except InvalidToken as e:
-    #         print(f"Token invalide : {e}")
-    #         await self.close(code=4003)
-    #     except Exception as e:
-    #         print(f"Erreur inattendue lors de la validation du token : {e}")
-    #         await self.close(code=4003)
-
-    # async def disconnect(self, close_code):
-    #     print(f"Déconnecté : {self.username} (code {close_code})")
-
-    # async def receive(self, text_data):
-    #     print(f"Message reçu de {self.username}: {text_data}")
-    #     await self.send(text_data=f"Echo: {text_data}")
-
     game_running = False
 
     async def connect(self):
+        global players
         self.game_id = self.scope['url_route']['kwargs']['game_id']
-        self.group_name = f'game_{self.game_id}'
+        human_group_name = f'game_{self.game_id}_humans'
+        ai_group_name = f'game_{self.game_id}_ai'
         query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
         self.player_id = query_params.get('player_id', ['unknown'])[0]
+
+        mode = query_params.get('mode', ['multi'])[0]
+        if self.player_id == "player2" and mode == 'solo':
+            self.is_ai = True
+            self.group_name = ai_group_name
+        else:
+            self.is_ai = False
+            self.group_name = human_group_name
 
         # Initialiser l'état du joueur s'il n'existe pas
         if self.player_id not in players:
@@ -104,8 +84,8 @@ class PongConsumer(AsyncWebsocketConsumer):
         print(f"Déconnexion du joueur {self.player_id}", flush=True)
 
         # Supprimer l'état du joueur
-        if self.player_id in players:
-            del players[self.player_id]
+        # if self.player_id in players:
+        #     del players[self.player_id]
 
         # Arrêter la boucle si le joueur est celui qui l'a lancée
         if hasattr(self, 'game_task') and not self.game_task.done():
@@ -122,13 +102,13 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         global paused, players
-        print(f"Message reçu dans receive : {text_data}", flush=True)
         data = json.loads(text_data)
         action = data.get('action')
 
         if self.player_id not in players:
             print(f"Joueur {self.player_id} inconnu")
             return
+        print(f"Message reçu dans receive : {text_data}, by player : {self.player_id}", flush=True)
 
         player_state = players[self.player_id]
 
@@ -144,6 +124,10 @@ class PongConsumer(AsyncWebsocketConsumer):
             paused = not paused
         elif action == 'start_game' and self.game_running == False:
             self.game_running = True
+            mode = data.get('mode')
+            if mode == 'solo':
+                print(f"Mode = {mode}", flush = True)
+                asyncio.create_task(launch_ai())
             player_state['lifepoints'] = 5
             players["player2"]['lifepoints'] = 5
             self.game_task = asyncio.create_task(self.ball_loop())
@@ -172,11 +156,17 @@ class PongConsumer(AsyncWebsocketConsumer):
                 opponent_state = state
                 break
 
+        # print(f"Player {self.player_id}: x={player_state['x']}, y={player_state['y']}, lifepoints={player_state['lifepoints']}")
+        # if opponent_state:
+        #     print(f"Opponent: x={opponent_state['x']}, y={opponent_state['y']}, lifepoints={opponent_state['lifepoints']}")
+
         await self.send(text_data=json.dumps({
             'type': 'position_update',
             'ball_position': {
                 'x': ball_state['x'],
-                'y': ball_state['y']
+                'y': ball_state['y'],
+                'dy': ball_state['dy'],
+                'dx': ball_state['dx'],
             },
             'player_state': {
                 'x': player_state['x'],
@@ -190,6 +180,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             }
         }))
 
+
     async def start_game(self, event):
         # event = { 'type': 'start_game' } (par exemple)
         # On lance la boucle en tâche de fond (async)
@@ -197,14 +188,25 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def ball_loop(self):
         global paused, ball_state, players
+        count = 0
         try:
             while self.game_running:
                 if not paused:
+                    count += 1
                     ball_updater()
-                    await self.channel_layer.group_send(
-                        self.group_name,
-                        {"type": "update_position"}
-                    )
+                    if "human" in self.group_name or count == 60:
+                        await self.channel_layer.group_send(
+                            self.group_name,
+                            {"type": "update_position"}
+                        )
+                        
+                        if count == 60 :
+                            await self.channel_layer.group_send(
+                                f'game_{self.game_id}_ai',
+                                {"type": "update_position"}
+                            )
+                            print("Message sent to group : ", self.group_name)
+                            count = 0
                     if players['player1']['lifepoints'] < 1 or players['player2']['lifepoints'] < 1:
                         self.game_running = False
                         message = "Game Over! Vous avez perdu." if players['player1']['lifepoints'] < 1 else "Congrats! You win."
@@ -230,4 +232,5 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def game_state(self, event):
         await self.send(text_data=json.dumps(event['state']))
+
 
