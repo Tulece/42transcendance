@@ -1,15 +1,26 @@
-<div id="app">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <title>Proxyjeza</title>
+</head>
+<body>
+  <div id="app">
+
+    <!-- Tester l'authentification JWT -->
     <h2>Tester l'authentification JWT</h2>
     <label for="jwt-username">Nom d'utilisateur :</label>
     <input type="text" id="jwt-username" placeholder="Entrez votre nom d'utilisateur" />
-    <br />
+    <br/>
     <label for="jwt-password">Mot de passe :</label>
     <input type="password" id="jwt-password" placeholder="Entrez votre mot de passe" />
-    <br />
+    <br/>
     <button id="generate-jwt">Générer le JWT</button>
     <pre id="jwt-display"></pre>
     <pre id="jwt-error" style="color: red;"></pre>
 
+    <!-- WebSocket test avec JWT -->
     <h2>Tester WebSocket avec JWT</h2>
     <button id="connect-ws">Se connecter au WebSocket</button>
     <pre id="ws-log"></pre>
@@ -18,154 +29,15 @@
     <input type="text" id="ws-message" placeholder="Entrez votre message" disabled />
     <button id="send-ws-message" disabled>Envoyer</button>
 
-    <h2>Navigation</h2>
-    <a href="/register/" class="spa-link">Aller à la page d'inscription</a>
-    <a href="/game/" class="spa-link">Jouer à Pong</a>
-</div>
+    <!-- Liens SPA vers /game et /register -->
+    <h2>Navigation SPA</h2>
+    <a href="/game" class="spa-link">Jouer à Pong</a>
+    <a href="/register" class="spa-link">Inscription</a>
+  </div>
 
-<script>
-    let jwtToken = "";
-    let ws;
-
-    document.addEventListener("DOMContentLoaded", () => {
-        const app = document.getElementById("app");
-
-        // Fonction pour charger dynamiquement un script JS
-        function loadScript(scriptUrl) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement("script");
-                script.src = scriptUrl;
-                script.onload = resolve;
-                script.onerror = reject;
-                document.body.appendChild(script);
-            });
-        }
-
-        // Fonction pour charger le contenu dynamiquement
-        async function loadContent(url) {
-            console.log("loadContent() → fetching:", url);
-            const response = await fetch(url, {
-                headers: { "X-Requested-With": "XMLHttpRequest" },
-            });
-
-            if (response.ok) {
-                app.innerHTML = await response.text();
-
-                // Charger dynamiquement le script JS si nécessaire
-                if (url.includes('/game')) {
-                    await loadScript("/static/js/script.js");
-                } else if (url === "/") {
-                    console.log("→ calling restoreHomePage()");
-                    restoreHomePage();
-                    console.log("Loading: ", url)
-                }
-            } else {
-                console.log("loadContent() → response NOT OK");
-                app.innerHTML = "<p>Erreur lors du chargement du contenu.</p>";
-            }
-        }
-
-        // Fonction pour restaurer les fonctionnalités de la page d'accueil
-        function restoreHomePage() {
-            console.log("→ restoreHomePage() called")
-            // Rétablir les événements et fonctionnalités de la page d'accueil
-            document.getElementById("generate-jwt").onclick = async () => {
-                const username = document.getElementById("jwt-username").value;
-                const password = document.getElementById("jwt-password").value;
-
-                if (!username || !password) {
-                    alert("Veuillez entrer un nom d'utilisateur et un mot de passe.");
-                    return;
-                }
-
-                const response = await fetch("/api/token/", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username, password }),
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    jwtToken = data.access;
-                    document.getElementById("jwt-display").textContent = `JWT: ${jwtToken}`;
-                    document.getElementById("jwt-error").textContent = "";
-                    console.log("JWT récupéré :", jwtToken);
-                } else {
-                    const errorData = await response.json();
-                    document.getElementById("jwt-error").textContent = `Erreur d'authentification : ${errorData.detail || "Inconnue"}`;
-                    jwtToken = "";
-                    console.error("Erreur JWT :", errorData);
-                }
-            };
-
-            document.getElementById("connect-ws").onclick = () => {
-                if (!jwtToken) {
-                    alert("Erreur : Vous devez générer un JWT avant de vous connecter au WebSocket.");
-                    document.getElementById("ws-log").textContent += "\n[Erreur] JWT manquant. Connectez-vous d'abord.";
-                    return;
-                }
-
-                ws = new WebSocket(`ws://localhost:8000/ws/somepath/?token=${jwtToken}`);
-
-                ws.onopen = () => {
-                    console.log("WebSocket connecté.");
-                    document.getElementById("ws-log").textContent += "\n[WebSocket] Connecté.";
-                    document.getElementById("ws-message").disabled = false;
-                    document.getElementById("send-ws-message").disabled = false;
-                };
-
-                ws.onmessage = (event) => {
-                    console.log("Message reçu :", event.data);
-                    document.getElementById("ws-log").textContent += `\n[Serveur] ${event.data}`;
-                };
-
-                ws.onerror = (error) => {
-                    console.error("Erreur WebSocket :", error);
-                    document.getElementById("ws-log").textContent += "\n[Erreur WebSocket]";
-                };
-
-                ws.onclose = (event) => {
-                    console.log("WebSocket déconnecté.");
-                    let reason = "Déconnecté.";
-                    if (event.code === 4003) reason = "JWT invalide ou expiré.";
-                    document.getElementById("ws-log").textContent += `\n[WebSocket] ${reason}`;
-                    document.getElementById("ws-message").disabled = true;
-                    document.getElementById("send-ws-message").disabled = true;
-                };
-            };
-
-            document.getElementById("send-ws-message").onclick = () => {
-                const message = document.getElementById("ws-message").value;
-                if (message && ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(message);
-                    console.log("Message envoyé :", message);
-                    document.getElementById("ws-log").textContent += `\n[Vous] ${message}`;
-                } else {
-                    alert("Erreur : WebSocket non connecté ou message vide.");
-                }
-            };
-        }
-
-        // Navigation SPA
-        document.addEventListener("click", async (event) => {
-            if (event.target.classList.contains("spa-link")) {
-                event.preventDefault();
-                const url = event.target.getAttribute("href");
-
-                history.pushState(null, "", url);
-                await loadContent(url);
-            }
-        });
-
-        window.addEventListener("popstate", async () => {
-            await loadContent(location.pathname);
-        });
-
-        // Charger le contenu initial
-        if (location.pathname.includes('/game')) {
-            loadScript("/static/js/script.js");
-        } else if (location.pathname === "/") {
-            restoreHomePage();
-        }
-    });
-</script>
+  <!-- Scripts : home.js, pong.js, puis app.js -->
+  <script src="{% static 'js/home.js' %}"></script>
+  <script src="{% static 'js/pong.js' %}"></script>
+  <script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>
