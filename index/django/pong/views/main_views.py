@@ -11,14 +11,16 @@ def register_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
-        mail = request.POST.get("mail")
+        email = request.POST.get("email")
         avatar = request.FILES.get("avatar")
 
         # Validation des données
-        if not username or not password or not mail:
+        if not username or not password or not email:
             return render(request, "register.html", {"error_message": "Tous les champs sont obligatoires."})
         if User.objects.filter(username=username).exists():
             return render(request, "register.html", {"error_message": "Nom d'utilisateur déjà pris."})
+        if User.objects.filter(email=email).exists():
+            return render(request, "register.html", {"error_message": "Adresse email déjà pris."})
 
         # Sauvegarde de l'avatar
         if avatar:
