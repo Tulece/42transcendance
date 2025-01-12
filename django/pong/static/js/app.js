@@ -19,58 +19,95 @@
     async function navigateTo(url, pushState = true) {
         console.log("[navigateTo]", url);
 
-        // On détruit la page précédente (Pong, Home, etc.)
-        destroyCurrentPage();
-
-        // Gère l'historique (pushState ou non)
-        if (pushState) {
-            history.pushState(null, "", url);
-        }
-
-        // Si c'est '/' (ou ''), on ne fetch pas, on restaure la home initiale
-        if (url === "/" || url === "") {
-            currentPage = "home";
-            // On ré-injecte le HTML initial dans #app
-            const appDiv = document.getElementById("app");
-            appDiv.innerHTML = initialHomeHtml;
-
-            // Puis on relance initHome() pour que les écouteurs fonctionnent
-            if (window.initHome) {
-                window.initHome();
-            }
+        // Vérifie si l'URL cible est déjà la page actuelle pour éviter les doublons
+        if (pushState && location.pathname === url) {
+            console.log("[navigateTo] Déjà sur l'URL:", url);
             return;
         }
 
-        // Sinon, on fait la requête AJAX (ex: /game, /register, etc.)
+        destroyCurrentPage();
+
+        if (pushState) {
+            // Évite de créer un nouvel état si on est déjà sur /register
+            if (url.startsWith("/register") && location.pathname.startsWith("/register")) {
+                console.log("[navigateTo] Déjà sur la page d'inscription, pas de nouvel historique.");
+            } else {
+                history.pushState(null, "", url);
+            }
+        }
+
+        const appDiv = document.getElementById("app");
         try {
             const resp = await fetch(url, {
-                headers: { "X-Requested-With": "XMLHttpRequest" }
+                headers: { "X-Requested-With": "XMLHttpRequest" },
             });
             if (resp.ok) {
                 const htmlSnippet = await resp.text();
-                const appDiv = document.getElementById("app");
                 appDiv.innerHTML = htmlSnippet;
 
+                // Initialisation spécifique selon l'URL
                 if (url.includes("/game")) {
                     currentPage = "game";
-                    if (window.initPong) {
-                        window.initPong();
-                    }
-                } else if (url.includes("/register")) {
-                    currentPage = "register";
-                    // initRegister() si besoin
+                    const script = document.createElement("script");
+                    script.src = "/static/js/pong.js";
+                    script.onload = () => {
+                        if (window.initPong) {
+                            window.initPong();
+                        } else {
+                            console.error("initPong n'est pas défini après le chargement de pong.js.");
+                        }
+                    };
+                    document.body.appendChild(script);
+                } else if (url === "/") {
+                    currentPage = "home";
+                    loadScriptOnce("/static/js/home.js");
+                    if (window.initHome) { window.initHome(); }
+                } else if (url.includes("/chat")) {
+                    currentPage = "chat";
+                    const script = document.createElement("script");
+                    script.src = "/static/js/chat.js";
+                    script.onload = () => {
+                         if (window.initChat) {
+                             window.initChat();
+                         } else {
+                             console.error("initChat n'est pas défini après le chargement de chat.js.");
+                         }
+                    };
+                    document.body.appendChild(script);
                 } else {
-                    currentPage = "unknown";
+                    currentPage = "register";
+
+                    // Désactiver temporairement le bouton de soumission
+                    const form = document.getElementById("register-form");
+                    if (form) {
+                        const submitBtn = form.querySelector('button[type="submit"]');
+                        if (submitBtn) submitBtn.disabled = true;
+                    }
+
+                    const script = document.createElement("script");
+                    script.src = "/static/js/register.js";
+                    script.onload = () => {
+                        // Réactiver le bouton une fois le script chargé
+                        const form = document.getElementById("register-form");
+                        if (form) {
+                            const submitBtn = form.querySelector('button[type="submit"]');
+                            if (submitBtn) submitBtn.disabled = false;
+                        }
+                    };
+                    document.body.appendChild(script);
                 }
             } else {
-                console.error("Error fetching", url);
+                console.error("Erreur lors du fetch de", url);
             }
         } catch (e) {
             console.error(e);
         }
     }
+    window.navigateTo = navigateTo;  // Exposer navigateTo globalement
 
     function destroyCurrentPage() {
+        const appDiv = document.getElementById("app");
+
         if (currentPage === "home") {
             if (window.destroyHome) {
                 window.destroyHome();
@@ -80,27 +117,53 @@
                 window.destroyPong();
             }
         }
-        // S'il y a d'autres pages (register?), on pourrait faire pareil
+
+        // Effacer le contenu actuel
+        appDiv.innerHTML = "";
         currentPage = null;
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
-        // On stocke le HTML initial de la home :
-        const appDiv = document.getElementById("app");
-        initialHomeHtml = appDiv.innerHTML;
 
-        // Au démarrage, si on est sur '/', on reste tel quel
+    document.addEventListener("DOMContentLoaded", async function () {
+        const appDiv = document.getElementById("app");
+
+        if (appDiv.innerHTML.trim() !== "") {
+            return;
+        }
+
+        // Charger la page initiale via AJAX
         if (location.pathname === "/" || location.pathname === "") {
             currentPage = "home";
-            if (window.initHome) {
-                window.initHome();
+
+            try {
+                const resp = await fetch("/", {
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
+                });
+
+                if (resp.ok) {
+                    const htmlSnippet = await resp.text();
+                    appDiv.innerHTML = htmlSnippet;
+
+                    if (window.initHome) {
+                        window.initHome();
+                    }
+                } else {
+                    console.error("Erreur lors du fetch initial de /");
+                }
+            } catch (e) {
+                console.error("Erreur lors du chargement initial :", e);
             }
         } else {
-            // Sinon (ex: /game), c’est un accès direct =>
-            // la page "shell" (home.html) est chargée,
-            // on fetch le fragment pour la vue en cours
             navigateTo(location.pathname, false);
         }
     });
 
+    function loadScriptOnce(src) {
+        // Vérifie si un script avec ce src est déjà chargé
+        if (!document.querySelector(`script[src="${src}"]`)) {
+            const script = document.createElement("script");
+            script.src = src;
+            document.body.appendChild(script);
+        }
+    }
 })();

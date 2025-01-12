@@ -9,20 +9,35 @@ from .logic.game import *
 from .logic.ai_player import launch_ai
 
 class menuConsumer(AsyncWebsocketConsumer):
+    from channels.generic.websocket import AsyncWebsocketConsumer
+from rest_framework_simplejwt.exceptions import InvalidToken
+from jwt import decode as jwt_decode
+from urllib.parse import parse_qs
+from django.conf import settings
+import json
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    """
+    Consommateur WebSocket pour le chat avec authentification JWT.
+    """
+
     async def connect(self):
-        self.username = None
+        # Extraire le JWT depuis la query string
         query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
         token = query_params.get('token', [None])[0]
+
         if not token:
             print("Token manquant, fermeture de la connexion.")
             await self.close(code=4003)
             return
 
         try:
+            # Décoder et valider le token JWT
             payload = jwt_decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            self.username = payload.get('username', 'Anonyme')
+            self.username = payload.get('username', 'Anonyme')  # Récupérer le nom d'utilisateur depuis le token
             print(f"Utilisateur authentifié : {self.username}")
             await self.accept()
+            await self.send(json.dumps({"type": "welcome", "message": f"Bienvenue, {self.username} !"}))
         except InvalidToken as e:
             print(f"Token invalide : {e}")
             await self.close(code=4003)
@@ -34,8 +49,22 @@ class menuConsumer(AsyncWebsocketConsumer):
         print(f"Déconnecté : {self.username} (code {close_code})")
 
     async def receive(self, text_data):
-        print(f"Message reçu de {self.username}: {text_data}")
-        await self.send(text_data=f"Echo: {text_data}")
+        # Traiter les messages envoyés par le client
+        try:
+            data = json.loads(text_data)
+            message = data.get("message")
+            print(f"Message reçu de {self.username} : {message}")
+
+            # Répondre au client
+            await self.send(json.dumps({
+                "type": "chat_message",
+                "username": self.username,
+                "message": message
+            }))
+        except Exception as e:
+            print(f"Erreur lors du traitement du message : {e}")
+            await self.send(json.dumps({"type": "error", "message": "Erreur lors du traitement du message."}))
+
 
 
 
@@ -219,7 +248,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                             self.group_name,
                             {"type": "update_position"}
                         )
-                        
+
                         if count == 60 :
                             await self.channel_layer.group_send(
                                 f'game_{self.game_id}_ai',

@@ -1,9 +1,8 @@
+{% load static %}
 <div>
     <h1>Créer un compte</h1>
-    {% if error_message %}
-        <p style="color: red;">{{ error_message }}</p>
-    {% endif %}
-    <form method="POST" action="/register/" enctype="multipart/form-data">
+    <!-- Message d'erreur inline supprimé -->
+    <form id="register-form" method="POST" action="/register/" enctype="multipart/form-data">
         {% csrf_token %}
         <label for="username">Nom d'utilisateur :</label>
         <input type="text" id="username" name="username" required><br>
@@ -18,3 +17,5 @@
     </form>
     <a href="/" class="spa-link">Retour à l'accueil</a>
 </div>
+
+<script src="{% static 'js/register.js' %}"></script>
