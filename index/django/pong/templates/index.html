@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong</title>
+    <!-- Ajouter un style de base -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #282c34;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        canvas {
+            display: block;
+            margin: 20px auto;
+            background: black;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pong</h1>
+    <canvas id="pong" width="800" height="400"></canvas>
+    <button id="launch-button">Start Game</button>
+    <button id="reset-button">Réinitialiser</button>
+    <script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>
