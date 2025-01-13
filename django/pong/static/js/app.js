@@ -58,10 +58,6 @@
                         }
                     };
                     document.body.appendChild(script);
-                } else if (url === "/") {
-                    currentPage = "home";
-                    loadScriptOnce("/static/js/home.js");
-                    if (window.initHome) { window.initHome(); }
                 } else if (url.includes("/chat")) {
                     currentPage = "chat";
                     const script = document.createElement("script");
@@ -74,6 +70,10 @@
                          }
                     };
                     document.body.appendChild(script);
+                } else if (url === "/") {
+                    currentPage = "home";
+                    loadScriptOnce("/static/js/home.js");
+                    if (window.initHome) { window.initHome(); }
                 } else {
                     currentPage = "register";
 
@@ -123,40 +123,37 @@
         currentPage = null;
     }
 
-
     document.addEventListener("DOMContentLoaded", async function () {
         const appDiv = document.getElementById("app");
 
-        if (appDiv.innerHTML.trim() !== "") {
-            return;
-        }
-
-        // Charger la page initiale via AJAX
+        // Si on est sur la home et que le contenu n'est pas encore chargé, charger la home via AJAX
         if (location.pathname === "/" || location.pathname === "") {
-            currentPage = "home";
-
-            try {
-                const resp = await fetch("/", {
-                    headers: { "X-Requested-With": "XMLHttpRequest" },
-                });
-
-                if (resp.ok) {
-                    const htmlSnippet = await resp.text();
-                    appDiv.innerHTML = htmlSnippet;
-
-                    if (window.initHome) {
-                        window.initHome();
+            if (appDiv.innerHTML.trim() === "") {
+                currentPage = "home";
+                try {
+                    const resp = await fetch("/", {
+                        headers: { "X-Requested-With": "XMLHttpRequest" },
+                    });
+                    if (resp.ok) {
+                        const htmlSnippet = await resp.text();
+                        appDiv.innerHTML = htmlSnippet;
+                        if (window.initHome) {
+                            window.initHome();
+                        }
+                    } else {
+                        console.error("Erreur lors du fetch initial de /");
                     }
-                } else {
-                    console.error("Erreur lors du fetch initial de /");
+                } catch (e) {
+                    console.error("Erreur lors du chargement initial :", e);
                 }
-            } catch (e) {
-                console.error("Erreur lors du chargement initial :", e);
             }
-        } else {
+        }
+        // Si on n'est pas sur la home, forcer la navigation pour charger et initialiser les scripts
+        else {
             navigateTo(location.pathname, false);
         }
     });
+
 
     function loadScriptOnce(src) {
         // Vérifie si un script avec ce src est déjà chargé
