@@ -11,7 +11,7 @@ def timed_print(*args, **kwargs):
     print(f"[{now}]", *args, **kwargs)
 
 # Constantes
-PADDLE_SIZE = 100
+PADDLE_SIZE = 70
 PADDLE_WIDTH = 10
 CANVAS_WIDTH = 800
 CANVAS_HEIGHT = 400
@@ -21,14 +21,14 @@ DEFAULT_PLAYER_ONE_STATE = {
     'x': CANVAS_WIDTH / 100,
     'y': (CANVAS_HEIGHT / 2) - (PADDLE_SIZE / 2),
     'dy': 0,
-    'speed': 5,
+    'speed': 8,
 }
 
 DEFAULT_PLAYER_TWO_STATE = {
     'x': CANVAS_WIDTH - (CANVAS_WIDTH / 100) - PADDLE_WIDTH,
     'y': (CANVAS_HEIGHT / 2) - (PADDLE_SIZE / 2),
     'dy': 0,
-    'speed': 5,
+    'speed': 8,
 }
 
 DEFAULT_BALL_STATE = {
@@ -36,7 +36,7 @@ DEFAULT_BALL_STATE = {
     'x': CANVAS_WIDTH / 2,
     'dx': -5,
     'dy': 5,
-    'radius': 10,
+    'radius': 5,
 }
 
 # Variables globales pour stocker les positions
@@ -73,15 +73,39 @@ def ball_updater():
         if ball_state['x'] - ball_state['radius'] < players['player1']['x'] + PADDLE_WIDTH and ball_state['y'] - ball_state['radius'] <= players['player1']['y'] + PADDLE_SIZE and ball_state['y'] + ball_state['radius'] >= players['player1']['y']:
             ball_state['x'] += (players['player1']['x'] + PADDLE_WIDTH) - ((ball_state['x'] - ball_state['radius']) - (players['player1']['x'] + PADDLE_WIDTH))
             ball_state['dx'] = absadd(ball_state['dx'], 1)
-            ball_state['dy'] = absadd(ball_state['dy'], 1)
+            if ball_state['y'] < players['player1']['y'] + PADDLE_SIZE / 8:
+                ball_state['dy'] = abs(ball_state['dx']) * -1
+            elif ball_state['y'] < players['player1']['y'] + ( 2 * (PADDLE_SIZE / 8)):
+                ball_state['dy'] = (abs(ball_state['dx']) // 2) * -1
+            elif ball_state['y'] < players['player1']['y'] + ( 3 * (PADDLE_SIZE / 8)):
+                ball_state['dy'] = (abs(ball_state['dx']) // 4) * -1
+            elif ball_state['y'] < players['player1']['y'] + ( 5 * (PADDLE_SIZE / 8)):
+                ball_state['dy'] = 0
+            elif ball_state['y'] < players['player1']['y'] + ( 6 * (PADDLE_SIZE / 8)):
+                ball_state['dy'] = abs(ball_state['dx']) // 4
+            elif ball_state['y'] < players['player1']['y'] + ( 7 * (PADDLE_SIZE / 8)):
+                ball_state['dy'] = abs(ball_state['dx']) // 2
+            else :
+                ball_state['dy'] = abs(ball_state['dx'])
             ball_state['dx'] *= -1
 
         if ball_state['x'] + ball_state['radius'] > players['player2']['x'] and ball_state['y'] - ball_state['radius'] <= players['player2']['y'] + PADDLE_SIZE and ball_state['y'] + ball_state['radius'] >= players['player2']['y']:
             ball_state['x'] -= (ball_state['x'] + ball_state['radius']) - players['player2']['x'] 
             ball_state['dx'] = absadd(ball_state['dx'], 1)
-            # if ball_state['y'] - ball_state['radius'] < players['player2']['y'] + PADDLE_SIZE / 8:
-            #     ball_state['dy'] = 
-            ball_state['dy'] = absadd(ball_state['dy'], 1)
+            if ball_state['y'] < players['player2']['y'] + PADDLE_SIZE / 8:
+                ball_state['dy'] = abs(ball_state['dx']) * -1
+            elif ball_state['y'] < players['player2']['y'] + ( 2 * (PADDLE_SIZE / 8)):
+                ball_state['dy'] = (abs(ball_state['dx']) // 2) * -1
+            elif ball_state['y'] < players['player2']['y'] + ( 3 * (PADDLE_SIZE / 8)):
+                ball_state['dy'] = (abs(ball_state['dx']) // 4) * -1
+            elif ball_state['y'] < players['player2']['y'] +( 5 * (PADDLE_SIZE / 8)):
+                ball_state['dy'] = 0
+            elif ball_state['y'] < players['player2']['y'] +( 6 * (PADDLE_SIZE / 8)):
+                ball_state['dy'] = abs(ball_state['dx']) // 4
+            elif ball_state['y'] < players['player2']['y'] +( 7 * (PADDLE_SIZE / 8)):
+                ball_state['dy'] = abs(ball_state['dx']) // 2
+            else :
+                ball_state['dy'] = abs(ball_state['dx'])
             ball_state['dx'] *= -1
 
         if ball_state['x'] < ball_state['radius']:

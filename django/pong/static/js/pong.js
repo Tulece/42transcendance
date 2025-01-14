@@ -1,12 +1,12 @@
 // pong.js
-(function() {
+// (function() {
 
 	let canvas, ctx;
 	let socket = null;
 	let game_running = false;
 	let key_pressed = {};
 
-	const ball = { x: 0, y: 0, radius: 10 };
+	const ball = { x: 0, y: 0, radius: 5 };
 	const player = { x: 0, y: 0, hp: 0 };
 	const opponent = { x: 0, y: 0, hp: 0 };
 
@@ -151,7 +151,7 @@
 		drawHeart(50 + (i * 15), 10, 10);
 	  }
 	  ctx.beginPath();
-	  ctx.rect(player.x, player.y, 10, 100);
+	  ctx.rect(player.x, player.y, 10, 70);
 	  ctx.fillStyle = 'white';
 	  ctx.fill();
 	  ctx.closePath();
@@ -165,7 +165,7 @@
 		drawHeart(x, 10, 10);
 	  }
 	  ctx.beginPath();
-	  ctx.rect(opponent.x, opponent.y, 10, 100);
+	  ctx.rect(opponent.x, opponent.y, 10, 70);
 	  ctx.fillStyle = 'white';
 	  ctx.fill();
 	  ctx.closePath();
@@ -197,4 +197,4 @@
 	  ctx.fill();
 	}
 
-  })();
+//   })();

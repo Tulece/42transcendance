@@ -51,15 +51,35 @@ class AIPlayer:
             print(f"Erreur dans listen : {e}", flush=True)
 
 
+    # def actualise_pos(self, pos, dx, dy):
+    #     pos['x'] += dx
+    #     if (pos['x'] > CANVAS_WIDTH):
+    #         pos['x'] = CANVAS_WIDTH - (pos['x'] - CANVAS_WIDTH)
+    #         dx *= -1
+    #     elif (pos['x'] < PADDLE_WIDTH + (CANVAS_WIDTH / 100)):
+    #         pos['x'] += (PADDLE_WIDTH + (CANVAS_WIDTH / 100)) - pos['x'] 
+    #         dy = absadd(dy, 1)
+    #         dx = absadd(dx, 1) 
+    #         dx *= -1
+    #     pos['y'] += dy
+    #     if (pos['y'] > CANVAS_HEIGHT):
+    #         pos['y'] = CANVAS_HEIGHT - (pos['y'] - CANVAS_HEIGHT)
+    #         dy *= -1
+    #     elif (pos['y'] < 0):
+    #         pos['y'] = -pos['y']
+    #         dy *= -1
+    #     return {'x': pos['x'], 'y': pos['y']}
+
+    # with dy = 0 when hits opponent
     def actualise_pos(self, pos, dx, dy):
         pos['x'] += dx
         if (pos['x'] > CANVAS_WIDTH):
             pos['x'] = CANVAS_WIDTH - (pos['x'] - CANVAS_WIDTH)
             dx *= -1
-        elif (pos['x'] < PADDLE_WIDTH + (CANVAS_WIDTH / 100)):
-            pos['x'] += (PADDLE_WIDTH + (CANVAS_WIDTH / 100)) - pos['x'] 
-            dy = absadd(dy, 1)
-            dx = absadd(dx, 1) 
+        elif (pos['x'] < PADDLE_WIDTH + (CANVAS_WIDTH // 100)):
+            pos['x'] += (PADDLE_WIDTH + (CANVAS_WIDTH // 100)) - pos['x'] 
+            dy = 0
+            dx = absadd(dx, 1)
             dx *= -1
         pos['y'] += dy
         if (pos['y'] > CANVAS_HEIGHT):
@@ -69,7 +89,6 @@ class AIPlayer:
             pos['y'] = -pos['y']
             dy *= -1
         return {'x': pos['x'], 'y': pos['y']}
-
 
 
     def update_positions(self, data):
@@ -89,8 +108,7 @@ class AIPlayer:
             if frames == 59:
                 self.next_estimation['fbi'] = frames
                 self.next_estimation['x'] = act_pos['x']
-                self.next_estimation['y'] = CANVAS_HEIGHT / 2
-            
+                self.next_estimation['y'] = CANVAS_HEIGHT // 2
 
     async def compute_action(self, websocket):
         paddle_y = self.paddle_position["y"]
@@ -98,6 +116,7 @@ class AIPlayer:
 
         ball_y = self.next_estimation["y"]
         diff = abs(ball_y - (paddle_y + (PADDLE_SIZE // 2)))
+        
         if ball_y < paddle_y + self.paddle_size // 2:
             action.append("move_up")
         elif ball_y > paddle_y + self.paddle_size // 2:
@@ -105,8 +124,9 @@ class AIPlayer:
         else:
             action.append(None)
         if action[0] is not None:
-            frames_to_reach = diff // self.paddle_position['speed'] 
-            action.append(max(frames_to_reach, 59))
+            frames_to_reach = diff // self.paddle_position['speed']
+            frames_to_reach += 2 
+            action.append(min(frames_to_reach, 59))
             action.append(f"stop_{action[0]}")
         return action
 
