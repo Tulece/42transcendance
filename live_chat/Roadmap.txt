@@ -97,4 +97,4 @@ ETAPES - SPRINT 1 :
 1. Configurer le backend pour gérer les WebSockets et les messages.
 2. Ajouter une route WebSocket pour le live chat.
 3. Créer un consumer qui gère les connexions, envoie et réceptionne des messages.
-4. Configurer le frontend pour se connecter au WebSocket et afficher/écrire des messages. => FIRST GRAPHICAL LAYER
+4. Configurer le frontend pour se connecter au WebSocket et afficher/écrire des messages.

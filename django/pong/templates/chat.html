@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chat-log {
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 100%;
+            height: 300px;
+            overflow-y: scroll;
+            background: #f9f9f9;
+        }
+        #chat-input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        #send-button {
+            padding: 10px 20px;
+            margin-top: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Chat</h1>
+    <div id="chat-log"></div>
+    <input id="chat-input" type="text" placeholder="Type your message here..." />
+    <button id="send-button">Send</button>
+
+    <script>
+        const chatLog = document.getElementById('chat-log');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+
+        // Connexion WebSocket
+        const socket = new WebSocket('ws://localhost:8000/ws/chat/');
+
+        // Gérer les messages reçus
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const message = data.message;
+
+            // Add le message reçu au log
+            chatLog.innerHTML += `<div>${message}</div>`;
+            chatLog.scrollTop = chatLog.scrollHeight; // Scroll automatique
+        };
+
+        // Send un message via WebSocket
+        sendButton.onclick = function() {
+            const message = chatInput.value;
+            if (message) {
+                socket.send(JSON.stringify({ message: message }));
+                chatInput.value = ''; // Réinitialiser le champ d'entrée
+            }
+        };
+
+        // Erreurs
+        socket.onerror = function(error) {
+            console.error('WebSocket Error: ', error);
+        };
+
+        // Fermeture
+        socket.onclose = function() {
+            console.log('WebSocket closed');
+        };
+    </script>
+</body>
+</html>

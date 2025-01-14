@@ -62,3 +62,7 @@ def game_view(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return render(request, 'pong.html')  # Fragment AJAX
     return render(request, 'home.html')  # Page complète
+
+
+def chat_view(request):
+    return render(request, 'chat.html')

@@ -39,6 +39,63 @@ class menuConsumer(AsyncWebsocketConsumer):
 
 
 
+class ChatConsumer(AsyncWebsocketConsumer):
+    
+    async def connect(self):
+        # Récupérer le nom du groupe depuis l'URL (par défaut : "general")
+        self.group_name = "general"
+
+        # Add le user au groupe
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+
+        # Accepter la connexion WebSocket
+        await self.accept()
+        print("WebSocket connection accepted.")
+        print(f"User connected to group: {self.group_name}")
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.group_name,
+            self.channel_name
+        )
+        print(f"User disconnected from group: {self.group_name}")
+
+
+    async def receive(self, text_data):
+        try:
+            if not text_data: # check si message empty
+                print("Received an empty message.")
+                return
+
+            # Convertir les données JSON en dict. Python
+            data = json.loads(text_data)
+            message = data.get("message", "No message provided")
+
+            # Spread le message au groupe
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    "type": "chat_message",
+                    "message": message
+                }
+            )
+        except json.JSONDecodeError as e:
+            print(f"JSONDecodeError: {e}")
+            await self.send(text_data=json.dumps({
+                "error": "Invalid JSON format"
+            }))
+        
+    async def chat_message(self, event):
+        # Envoyer le message diffusé au WebSocket client
+        message = event["message"]
+        await self.send(text_data=json.dumps({
+            "message": message
+         }))
+
+
 class PongConsumer(AsyncWebsocketConsumer):
     game_running = False
 

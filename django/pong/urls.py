@@ -25,7 +25,7 @@ from .views.main_views import register_view
 from .logic.game import *
 from django.conf import settings
 from django.conf.urls.static import static
-from pong.views.main_views import home_view, game_view
+from pong.views.main_views import home_view, game_view, chat_view
 
 
 @api_view(['GET'])
@@ -40,6 +40,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('chat/', chat_view, name='chat'),
 ]
 
 if settings.DEBUG:
