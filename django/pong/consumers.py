@@ -1,5 +1,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 from rest_framework_simplejwt.exceptions import InvalidToken
+from rest_framework_simplejwt.tokens import AccessToken
 from jwt import decode as jwt_decode
 from urllib.parse import parse_qs
 from django.conf import settings
@@ -42,46 +43,117 @@ class menuConsumer(AsyncWebsocketConsumer):
 class ChatConsumer(AsyncWebsocketConsumer):
     
     async def connect(self):
-        # Récupérer le nom du groupe depuis l'URL (par défaut : "general")
-        self.group_name = "general"
+        # Check si le user est authentifié
+        token = self.scope['query_string'].decode().split('token=')[-1]
 
-        # Add le user au groupe
+        try:
+            access_token = AccessToken(token)
+        self.user = await database_sync_to_async(User.objects.get)(id=access_token['user_id'])
+        self.blocked_users = await database_sync_to_async(
+            lambda: list(self.user.profile.blocked_users.values_list('id', flat=True))
+        )  # Liste des IDs des users bloqués
+        self.users_who_blocked_me = await database_sync_to_async(
+            lambda: list(self.user.blocked_by.values_list('id', flat=True))
+        )  # Liste des IDs des users qui ont bloqué ce user
+        except Exception as e:
+            await self.close()
+            print(f"Invalid WebSocket connection attempt: {e}")
+            return
+
+
+        #self.user = self.scope.get('user')
+        #if not self.user or not self.user.is_authenticated:
+        #    await self.close()
+        #    print("Unauthorized WebSocket connection attempt.")
+        #    return
+
+        # Nom du groupe général de chat
+        self.room_name = 'chat'
+        self.room_group_name = f'chat_{self.room_name}'
+
+        # Groupe individuel pour chq user
+        self.personal_group = f"user_{self.user.id}"
+
+        # Add le user au groupe Websocket général
         await self.channel_layer.group_add(
-            self.group_name,
+            self.room_group_name,
+            self.channel_name
+        )
+
+        # Add au groupe perso.
+        await self.channel_layer.group_add(
+            self.personal_group,
             self.channel_name
         )
 
         # Accepter la connexion WebSocket
-        await self.accept()
-        print("WebSocket connection accepted.")
-        print(f"User connected to group: {self.group_name}")
+        await self.accept(
+            print("WebSocket connection accepted.")
+            print(f"User {self.user.username} connected to groups: {self.room_group_name}, {self.personal_group}")
+        )
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
-            self.group_name,
+            self.room_group_name,
             self.channel_name
         )
-        print(f"User disconnected from group: {self.group_name}")
+
+        # Retirer du groupe perso.
+        await self.channel_layer.group_discard(
+            self.personal_group,
+            self.channel_name
+        )
+        print(f"User {self.user.username} disconnected from groups.")
 
 
     async def receive(self, text_data):
         try:
-            if not text_data: # check si message empty
-                print("Received an empty message.")
+            if not text_data:
+                await self.send(text_data=json.dumps({"error": "Message vide"}))
                 return
 
             # Convertir les données JSON en dict. Python
             data = json.loads(text_data)
-            message = data.get("message", "No message provided")
+            message = data.get("message")
+            target_user_id = data.get("target_user_id") # Id user cible
 
-            # Spread le message au groupe
-            await self.channel_layer.group_send(
-                self.group_name,
-                {
-                    "type": "chat_message",
-                    "message": message
-                }
-            )
+            if target_user_id: # Gestion message direct
+                if int(target_user_id) in self.blocked_users:
+                    await self.send(text_data=json.dumps({
+                        "type": "error",
+                        "message": "Vous avez bloqué cet utilisateur."
+                    }))
+                    return
+
+                if int(target_user_id) in self.users_who_blocked_me:
+                    await self.send(text_data=json.dumps({
+                        "type": "error",
+                        "message": "Cet utilisateur vous a bloqué."
+                    }))
+                    return
+                
+                
+                target_group = f"user_{target_user_id}" # Groupe perso du user cible
+
+                # Send le message au groupe perso du user cible
+                await self.channel_layer.group_send(
+                    target_group,
+                    {
+                        "type": "chat_message",
+                        "message": message,
+                        "sender": self.user.username
+                    }
+                )
+
+            else: # Gestion message de groupe
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "chat_message", # Méthode qui reçoit les events diffusés par group_send et les envoie au client
+                        "message": message,
+                        "sender": self.user.username
+                    }
+                )
         except json.JSONDecodeError as e:
             print(f"JSONDecodeError: {e}")
             await self.send(text_data=json.dumps({
@@ -89,10 +161,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }))
         
     async def chat_message(self, event):
+        message = event['message']
+        sender = event.get('sender', 'Anonymous')
+
         # Envoyer le message diffusé au WebSocket client
-        message = event["message"]
         await self.send(text_data=json.dumps({
-            "message": message
+            'type': 'message',
+            'message': message,
+            'sender': sender
          }))
 
 
