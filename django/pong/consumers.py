@@ -18,44 +18,29 @@ import json
 
 class ChatConsumer(AsyncWebsocketConsumer):
     """
-    Consommateur WebSocket pour le chat avec authentification JWT.
+    Consommateur WebSocket pour le chat avec authentification basée sur la session.
     """
-
     async def connect(self):
-        # Extraire le JWT depuis la query string
-        query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
-        token = query_params.get('token', [None])[0]
-
-        if not token:
-            print("Token manquant, fermeture de la connexion.")
+        user = self.scope["user"]
+        if not user.is_authenticated:
+            print("Utilisateur non authentifié, fermeture de la connexion.")
             await self.close(code=4003)
             return
-
-        try:
-            # Décoder et valider le token JWT
-            payload = jwt_decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            self.username = payload.get('username', 'Anonyme')  # Récupérer le nom d'utilisateur depuis le token
-            print(f"Utilisateur authentifié : {self.username}")
-            await self.accept()
-            await self.send(json.dumps({"type": "welcome", "message": f"Bienvenue, {self.username} !"}))
-        except InvalidToken as e:
-            print(f"Token invalide : {e}")
-            await self.close(code=4003)
-        except Exception as e:
-            print(f"Erreur inattendue lors de la validation du token : {e}")
-            await self.close(code=4003)
+        self.username = user.username or "Anonyme"
+        await self.accept()
+        await self.send(json.dumps({
+            "type": "welcome",
+            "message": f"Bienvenue, {self.username} !"
+        }))
 
     async def disconnect(self, close_code):
         print(f"Déconnecté : {self.username} (code {close_code})")
 
     async def receive(self, text_data):
-        # Traiter les messages envoyés par le client
         try:
             data = json.loads(text_data)
             message = data.get("message")
             print(f"Message reçu de {self.username} : {message}")
-
-            # Répondre au client
             await self.send(json.dumps({
                 "type": "chat_message",
                 "username": self.username,
@@ -63,7 +48,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }))
         except Exception as e:
             print(f"Erreur lors du traitement du message : {e}")
-            await self.send(json.dumps({"type": "error", "message": "Erreur lors du traitement du message."}))
+            await self.send(json.dumps({
+                "type": "error",
+                "message": "Erreur lors du traitement du message."
+            }))
+
 
 
 
