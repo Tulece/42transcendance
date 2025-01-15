@@ -21,11 +21,12 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenBlacklistView
 from .views.main_views import register_view
 from .logic.game import *
 from django.conf import settings
 from django.conf.urls.static import static
-from pong.views.main_views import home_view, game_view, chat_view
+from pong.views.main_views import home_view, game_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view
 
 
 @api_view(['GET'])
@@ -40,7 +41,11 @@ urlpatterns = [
     path('chat/', chat_view, name='chat'),
     path('admin/', admin.site.urls),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/revoke/', TokenBlacklistView.as_view(), name='token_revoke'),
+    path('api/user_info/', get_user_info, name='get_user_info'),
+    path('login/', login_view, name='login'),
+    path("api/logout/", logout_view, name="logout"),
 ]
 
 if settings.DEBUG:

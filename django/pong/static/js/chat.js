@@ -1,49 +1,34 @@
 window.initChat = () => {
-    let jwtToken = null;
     let ws = null;
-
-    const jwtForm = document.getElementById("jwt-form");
-    const jwtOutput = document.getElementById("jwt-output");
-    const jwtTokenDisplay = document.getElementById("jwt-token");
     const connectWsButton = document.getElementById("connect-ws");
     const wsLog = document.getElementById("ws-log");
     const wsMessageInput = document.getElementById("ws-message");
     const sendWsMessageButton = document.getElementById("send-ws-message");
 
-    // Générer le JWT
-    jwtForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
-
-        try {
-            const response = await fetch("/api/token/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ username, password }),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                jwtToken = data.access;
-                jwtOutput.style.display = "block";
-                jwtTokenDisplay.textContent = jwtToken;
-                connectWsButton.disabled = false;
-            } else {
-                jwtOutput.style.color = "red";
-                jwtOutput.textContent = "Erreur lors de la génération du JWT.";
+    function getJWTFromCookies() {
+        const name = "access_token=";
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const ca = decodedCookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+            let c = ca[i].trim();
+            if (c.indexOf(name) === 0) {
+                return c.substring(name.length, c.length);
             }
-        } catch (error) {
-            console.error("Erreur lors de la génération du JWT :", error);
         }
-    });
+        return "";
+    }
+
+    // Vérifie si un JWT existe et active le bouton de connexion WebSocket
+    const tokenFromCookie = getJWTFromCookies();
+    if (tokenFromCookie) {
+        connectWsButton.disabled = false;
+    }
 
     // Connexion au WebSocket
     connectWsButton.addEventListener("click", () => {
+        const jwtToken = getJWTFromCookies();
         if (!jwtToken) {
-            alert("Veuillez générer un JWT avant de vous connecter au WebSocket.");
+            alert("Vous devez vous connecter pour accéder au WebSocket.");
             return;
         }
 

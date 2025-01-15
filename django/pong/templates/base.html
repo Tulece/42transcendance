@@ -3,15 +3,18 @@
 <head>
   {% load static %}
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Proxyjeza</title>
 </head>
 <body>
   {% include 'header.html' %}
   <div id="app">
-    <!-- Charger le fragment initial si disponible -->
-    {% if initial_fragment %}
-        {% include initial_fragment %}
-    {% endif %}
+    <div id="content">
+      <!-- Charger le fragment initial si disponible -->
+      {% if initial_fragment %}
+          {% include initial_fragment %}
+      {% endif %}
+    </div>
   </div>
   <script src="{% static 'js/app.js' %}"></script>
   <script src="{% static 'js/register.js' %}"></script>
