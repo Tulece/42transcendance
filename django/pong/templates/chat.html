@@ -60,6 +60,7 @@
 
         // Connexion WebSocket (n'oublie pas d'ajouter le token JWT ici)
         const token = 'TON_JWT_ICI'; // Remplace par un mécanisme de récupération réel
+        console.log(`Connecting with token: ${token}`);
         const socket = new WebSocket(`ws://localhost:8000/ws/chat/?token=${token}`);
 
         // Gérer les messages reçus

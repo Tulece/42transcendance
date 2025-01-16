@@ -65,4 +65,6 @@ def game_view(request):
 
 
 def chat_view(request):
+    if 'access_token' not in request.session:
+        return HttpResponseForbidden("Vous devez être connecté pour accéder au chat.")
     return render(request, 'chat.html')

@@ -4,6 +4,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from jwt import decode as jwt_decode
 from urllib.parse import parse_qs
 from django.conf import settings
+from datetime import datetime
 import asyncio
 import json
 from .logic.game import *
@@ -44,22 +45,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     async def connect(self):
         # Check si le user est authentifié
-        token = self.scope['query_string'].decode().split('token=')[-1]
-
+        token = self.scope['query_string'].decode().split('token=')[-1] # Infos sur la co WebSocket (headers, user, query string, etc.)
         try:
             access_token = AccessToken(token)
-        self.user = await database_sync_to_async(User.objects.get)(id=access_token['user_id'])
-        self.blocked_users = await database_sync_to_async(
-            lambda: list(self.user.profile.blocked_users.values_list('id', flat=True))
-        )  # Liste des IDs des users bloqués
-        self.users_who_blocked_me = await database_sync_to_async(
-            lambda: list(self.user.blocked_by.values_list('id', flat=True))
-        )  # Liste des IDs des users qui ont bloqué ce user
+            self.user = await database_sync_to_async(User.objects.get)(id=access_token['user_id'])
+        
         except Exception as e:
             await self.close()
             print(f"Invalid WebSocket connection attempt: {e}")
             return
 
+        try:
+            self.blocked_users = await database_sync_to_async(
+                lambda: list(self.user.profile.blocked_users.values_list('id', flat=True))
+            )  # Liste des IDs des users bloqués
+            self.users_who_blocked_me = await database_sync_to_async(
+                lambda: list(self.user.blocked_by.values_list('id', flat=True))
+            )  # Liste des IDs des users qui ont bloqué ce user
+
+        except Exception as e:
+            print(f"Error retrieving blocked users for {self.user.username}: {e}")
+            return
 
         #self.user = self.scope.get('user')
         #if not self.user or not self.user.is_authenticated:
@@ -75,9 +81,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.personal_group = f"user_{self.user.id}"
 
         # Add le user au groupe Websocket général
-        await self.channel_layer.group_add(
+        await self.channel_layer.group_add( # Interface pour send des messages entre consommateurs.
             self.room_group_name,
-            self.channel_name
+            self.channel_name # ID unique de la co WebSocket
         )
 
         # Add au groupe perso.
@@ -88,7 +94,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # Accepter la connexion WebSocket
         await self.accept(
-            print("WebSocket connection accepted.")
+            print("WebSocket connection accepted."),
             print(f"User {self.user.username} connected to groups: {self.room_group_name}, {self.personal_group}")
         )
 
@@ -139,7 +145,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_send(
                     target_group,
                     {
-                        "type": "chat_message",
+                        "type": "chat_message", # Indique à Django C. quelle méthode utiliser pour gérer l'évent !
                         "message": message,
                         "sender": self.user.username
                     }
@@ -163,12 +169,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def chat_message(self, event):
         message = event['message']
         sender = event.get('sender', 'Anonymous')
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # Envoyer le message diffusé au WebSocket client
         await self.send(text_data=json.dumps({
             'type': 'message',
             'message': message,
-            'sender': sender
+            'sender': sender,
+            'timestamp': timestamp
          }))
 
 
