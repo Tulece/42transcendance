@@ -1,12 +1,12 @@
 import asyncio
 import websockets
 import json
-from .game import CANVAS_HEIGHT, CANVAS_WIDTH, PADDLE_SIZE, PADDLE_WIDTH, DEFAULT_PLAYER_TWO_STATE, absadd, timed_print
+from .game import CANVAS_HEIGHT, CANVAS_WIDTH, PADDLE_SIZE, PADDLE_WIDTH, DEFAULT_PLAYER_TWO_STATE, absadd
 
 SERVER_URL = "ws://localhost:8000/ws/game/1/?player_id=player2&mode=solo"
 
 class AIPlayer:
-    instance_count = 0  # Compteur d'instances
+    instance_count = 0  # Compteur d'instances (Used to id each playing IA);
 
     def __init__(self):
         AIPlayer.instance_count += 1
@@ -51,26 +51,6 @@ class AIPlayer:
             print(f"Erreur dans listen : {e}", flush=True)
 
 
-    # def actualise_pos(self, pos, dx, dy):
-    #     pos['x'] += dx
-    #     if (pos['x'] > CANVAS_WIDTH):
-    #         pos['x'] = CANVAS_WIDTH - (pos['x'] - CANVAS_WIDTH)
-    #         dx *= -1
-    #     elif (pos['x'] < PADDLE_WIDTH + (CANVAS_WIDTH / 100)):
-    #         pos['x'] += (PADDLE_WIDTH + (CANVAS_WIDTH / 100)) - pos['x'] 
-    #         dy = absadd(dy, 1)
-    #         dx = absadd(dx, 1) 
-    #         dx *= -1
-    #     pos['y'] += dy
-    #     if (pos['y'] > CANVAS_HEIGHT):
-    #         pos['y'] = CANVAS_HEIGHT - (pos['y'] - CANVAS_HEIGHT)
-    #         dy *= -1
-    #     elif (pos['y'] < 0):
-    #         pos['y'] = -pos['y']
-    #         dy *= -1
-    #     return {'x': pos['x'], 'y': pos['y']}
-
-    # with dy = 0 when hits opponent
     def actualise_pos(self, pos, dx, dy):
         pos['x'] += dx
         if (pos['x'] > CANVAS_WIDTH):
@@ -93,8 +73,8 @@ class AIPlayer:
 
     def update_positions(self, data):
         self.ball_position.update(data["ball_position"])
-        self.paddle_position.update(data["player_state"])
-        self.opponent_position.update(data["opponent_state"])
+        self.paddle_position.update(data["player1_state"])
+        self.opponent_position.update(data["player2_state"])
 
     def estimate_next_point(self):
         act_pos = {'x': self.ball_position['x'], 'y': self.ball_position['y']}
@@ -145,7 +125,7 @@ class AIPlayer:
                     continue
                 else:
                     await websocket.send(json.dumps({"action": actions[i]}))
-                    timed_print(f"Action envoyée : {actions[i]}")
+                    print(f"Action envoyée : {actions[i]}")
                     i += 1
             if total_wait < 60:
                 await asyncio.sleep((60 - total_wait) / 60)

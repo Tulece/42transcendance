@@ -82,7 +82,6 @@ def register_view(request):
     return render(request, "base.html", context)
 
 
-
 def game_view(request):
     """
     Gère la vue pour le jeu Pong
