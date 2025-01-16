@@ -3,6 +3,7 @@ let lobbySocket = null;
 let gameSocket = null;
 let game_running = false;
 let key_pressed = {};
+let host = ""
 
 const ball = { x: 0, y: 0, radius: 5 };
 const player = { x: 0, y: 0, hp: 5 };
@@ -27,7 +28,8 @@ function setupCanvas() {
 }
 
 function connectToLobby() {
-    lobbySocket = new WebSocket('ws://localhost:8000/ws/matchmaking/');
+	host = window.location.hostname;
+    lobbySocket = new WebSocket(`ws://${host}:8000/ws/matchmaking/`);
 
     lobbySocket.onopen = () => {
         console.log("Connexion au lobby établie.");
@@ -62,7 +64,7 @@ function displayWaitingMessage(message) {
 }
 
 function connectToGame(gameId, role) {
-    gameSocket = new WebSocket(`ws://localhost:8000/ws/game/${gameId}/?player_id=${role}`);
+    gameSocket = new WebSocket(`ws://${host}:8000/ws/game/${gameId}/?player_id=${role}`);
 
     gameSocket.onopen = () => {
         console.log(`Connecté à la partie : ${gameId}, rôle : ${role}`);
