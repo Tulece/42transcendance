@@ -1,60 +1,38 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
 from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken
 from jwt import decode as jwt_decode
 from urllib.parse import parse_qs
 from django.conf import settings
-from datetime import datetime
 import asyncio
 import json
 from .logic.game import *
 from .logic.ai_player import launch_ai
 
-class menuConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        self.username = None
-        query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
-        token = query_params.get('token', [None])[0]
-        if not token:
-            print("Token manquant, fermeture de la connexion.")
-            await self.close(code=4003)
-            return
-
-        try:
-            payload = jwt_decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            self.username = payload.get('username', 'Anonyme')
-            print(f"Utilisateur authentifié : {self.username}")
-            await self.accept()
-        except InvalidToken as e:
-            print(f"Token invalide : {e}")
-            await self.close(code=4003)
-        except Exception as e:
-            print(f"Erreur inattendue lors de la validation du token : {e}")
-            await self.close(code=4003)
-
-    async def disconnect(self, close_code):
-        print(f"Déconnecté : {self.username} (code {close_code})")
-
-    async def receive(self, text_data):
-        print(f"Message reçu de {self.username}: {text_data}")
-        await self.send(text_data=f"Echo: {text_data}")
-
-
-
 class ChatConsumer(AsyncWebsocketConsumer):
     
     async def connect(self):
-        # Check si le user est authentifié
-        token = self.scope['query_string'].decode().split('token=')[-1] # Infos sur la co WebSocket (headers, user, query string, etc.)
-        try:
-            access_token = AccessToken(token)
-            self.user = await database_sync_to_async(User.objects.get)(id=access_token['user_id'])
-        
-        except Exception as e:
-            await self.close()
-            print(f"Invalid WebSocket connection attempt: {e}")
-            return
 
+        self.user = self.scope.get("user")
+        if not self.user or not self.user.is_authenticated:
+            print("User isn't identified, closing connexion")
+            await self.close(code=4003)
+            return
+        # Check si le user est authentifié
+        #token = self.scope['query_string'].decode().split('token=')[-1] # Infos sur la co WebSocket (headers, user, query string, etc.)
+        #try:
+        #    access_token = AccessToken(token)
+        #    self.user = await database_sync_to_async(User.objects.get)(id=access_token['user_id'])
+        
+        #except Exception as e:
+        #    await self.close()
+        #    print(f"Invalid WebSocket connection attempt: {e}")
+        #    return
+
+        
+        self.username = self.user.username if self.user else "Anonyme"
+        
         try:
             self.blocked_users = await database_sync_to_async(
                 lambda: list(self.user.profile.blocked_users.values_list('id', flat=True))
@@ -75,8 +53,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # Nom du groupe général de chat
         self.room_name = 'chat'
-        self.room_group_name = f'chat_{self.room_name}'
-
+        self.room_group_name = f"chat_{self.room_name}"
+        
         # Groupe individuel pour chq user
         self.personal_group = f"user_{self.user.id}"
 
@@ -85,6 +63,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name # ID unique de la co WebSocket
         )
+        print(f"Utilisateur ajouté au groupe : {self.room_group_name}")
 
         # Add au groupe perso.
         await self.channel_layer.group_add(
@@ -98,18 +77,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print(f"User {self.user.username} connected to groups: {self.room_group_name}, {self.personal_group}")
         )
 
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
-        )
+        # Envoyer un message de bienvenue
+        await self.send(text_data=json.dumps({
+            "type": "welcome",
+            "message": f"Bienvenue, {self.username} !",
+        }))
 
-        # Retirer du groupe perso.
-        await self.channel_layer.group_discard(
-            self.personal_group,
-            self.channel_name
-        )
-        print(f"User {self.user.username} disconnected from groups.")
+    async def disconnect(self, close_code):
+        if self.room_group_name:
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+        if self.personal_group:
+            await self.channel_layer.group_discard(
+                self.personal_group,
+                self.channel_name
+            )
+        print(f"User {getattr(self.user, 'username', 'unknown')} disconnected from groups.")
 
 
     async def receive(self, text_data):
@@ -122,6 +107,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             data = json.loads(text_data)
             message = data.get("message")
             target_user_id = data.get("target_user_id") # Id user cible
+
+            print(f"Message reçu : {message}, cible : {target_user_id}")
 
             if target_user_id: # Gestion message direct
                 if int(target_user_id) in self.blocked_users:
@@ -170,6 +157,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event['message']
         sender = event.get('sender', 'Anonymous')
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        print(f"Message envoyé : {message} par {sender} à {timestamp}")
 
         # Envoyer le message diffusé au WebSocket client
         await self.send(text_data=json.dumps({
@@ -360,7 +349,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                             self.group_name,
                             {"type": "update_position"}
                         )
-                        
+
                         if count == 60 :
                             await self.channel_layer.group_send(
                                 f'game_{self.game_id}_ai',
@@ -393,5 +382,3 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def game_state(self, event):
         # Si besoin, une méthode pour transmettre l'état complet
         await self.send(text_data=json.dumps(event['state']))
-
-

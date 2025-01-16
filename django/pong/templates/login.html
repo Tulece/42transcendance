@@ -1,0 +1,14 @@
+<div id="login-form-container">
+    <h1>Connexion</h1>
+
+    <form id="login-form">
+        {% csrf_token %}
+        <!-- input hidden next -->
+        <input type="hidden" name="next" value="{{ next_url|default:"/" }}">
+        <input type="text" name="username" required placeholder="Nom d'utilisateur">
+        <input type="password" name="password" required placeholder="Mot de passe">
+        <button type="submit">Se connecter</button>
+    </form>
+
+    <p id="login-error" style="color: red;"></p>
+</div>
