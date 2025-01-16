@@ -33,10 +33,11 @@ def register_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
+        email = request.POST.get("email")
         avatar = request.FILES.get("avatar")
 
         # Validation des données
-        if not username or not password:
+        if not username or not password or not email:
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({"error": "Tous les champs sont obligatoires."}, status=400)
             context = {
@@ -63,6 +64,7 @@ def register_view(request):
         # Création de l'utilisateur
         user = User.objects.create(
             username=username,
+            email=email,
             password=make_password(password)
         )
 

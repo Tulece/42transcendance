@@ -21,6 +21,12 @@
     form.addEventListener("submit", async function(event) {
         event.preventDefault();
 
+        const emailInput = document.getElementById("email");
+        if (!emailInput.value) {
+            alert("Veuillez entrer un email.");
+            return;
+        }
+
         const formData = new FormData(form);
 
         try {
@@ -44,7 +50,7 @@
                 let result = {};
                 try {
                     const text = await response.text();
-					console.log("Response text:", text);
+                    console.log("Response text:", text);
                     result = JSON.parse(text);
                 } catch(e) {
                     console.error("Erreur lors du parsing de la réponse :", e);
