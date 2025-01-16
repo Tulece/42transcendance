@@ -52,8 +52,4 @@ if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-urlpatterns += [
-    path('reset_game/', reset_game, name='reset_game'),
-    path('game_launcher/', game_launcher, name='game_launcher'),
-    path('pause_game/', pause_game, name='pause_game'),
-]
+
