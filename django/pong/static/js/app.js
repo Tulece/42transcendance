@@ -65,10 +65,6 @@
             loadScriptOnce("/static/js/pong.js", () => {
                 if (window.initPong) window.initPong();
             });
-        } else if (url === "/") {
-            loadScriptOnce("/static/js/home.js", () => {
-                if (window.initHome) window.initHome();
-            });
         } else if (url.includes("/chat")) {
             loadScriptOnce("/static/js/chat.js", () => {
                 if (window.initChat) window.initChat();
