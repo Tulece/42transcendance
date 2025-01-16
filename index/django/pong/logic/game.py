@@ -1,11 +1,10 @@
-from django.http import HttpResponse
+import asyncio
+import uuid
 from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-import threading
-import time
+import json
 
 # Constantes
-PADDLE_SIZE = 100
+PADDLE_SIZE = 70
 PADDLE_WIDTH = 10
 CANVAS_WIDTH = 800
 CANVAS_HEIGHT = 400
@@ -15,14 +14,14 @@ DEFAULT_PLAYER_ONE_STATE = {
     'x': CANVAS_WIDTH / 100,
     'y': (CANVAS_HEIGHT / 2) - (PADDLE_SIZE / 2),
     'dy': 0,
-    'speed': 3,
+    'speed': 8,
 }
 
 DEFAULT_PLAYER_TWO_STATE = {
     'x': CANVAS_WIDTH - (CANVAS_WIDTH / 100) - PADDLE_WIDTH,
     'y': (CANVAS_HEIGHT / 2) - (PADDLE_SIZE / 2),
     'dy': 0,
-    'speed': 3,
+    'speed': 8,
 }
 
 DEFAULT_BALL_STATE = {
@@ -30,87 +29,162 @@ DEFAULT_BALL_STATE = {
     'x': CANVAS_WIDTH / 2,
     'dx': -5,
     'dy': 5,
-    'radius': 10,
+    'radius': 5,
 }
 
-# Variables globales pour stocker les positions
-players = {
-    "player1": DEFAULT_PLAYER_ONE_STATE.copy(),
-    "player2": DEFAULT_PLAYER_TWO_STATE.copy(),
-}
-# player_state = DEFAULT_PLAYER_ONE_STATE.copy()
-ball_state = DEFAULT_BALL_STATE.copy()
+class Game:
+    def __init__(self, game_id, player1, player2):
+        self.game_id = game_id
+        self.player1 = player1
+        self.player2 = player2
+        self.players = {
+            "player1": {**DEFAULT_PLAYER_ONE_STATE, 'lifepoints': 5},
+            "player2": {**DEFAULT_PLAYER_TWO_STATE, 'lifepoints': 5},
+        }
+        self.ball_state = DEFAULT_BALL_STATE.copy()
+        self.paused = False
+        self.running = False
+        self.channel_layer = get_channel_layer()
 
-paused = False
-channel_layer = get_channel_layer()
+    async def start(self):
+        """Démarre la boucle de jeu."""
+        self.running = True
+        try:
+            while self.running:
+                if not self.paused:
+                    self.update_game_state()
+                    await self.send_game_state()
+                await asyncio.sleep(1 / 60)
+        except asyncio.CancelledError:
+            print(f"Game {self.game_id} annulée.")
+
+    def stop(self):
+        """Arrête la boucle de jeu."""
+        self.running = False
+
+    def update_game_state(self):
+        """Mise à jour de la logique du jeu (balle, paddles, etc.)."""
+        ball_updater(self)
+
+    async def send_game_state(self):
+        await self.channel_layer.group_send(
+            self.game_id,
+            {
+                "type": "game_update",
+                "message": {
+                    "type": "position_update",
+                    "ball_position": {
+                        "x": self.ball_state["x"],
+                        "y": self.ball_state["y"],
+                        "dy": self.ball_state["dy"],
+                        "dx": self.ball_state["dx"],
+                    },
+                    "player1_state": {
+                        "x": self.players["player1"]["x"],
+                        "y": self.players["player1"]["y"],
+                        "lifepoints": self.players["player1"]["lifepoints"],
+                    },
+                    "player2_state": {
+                        "x": self.players["player2"]["x"],
+                        "y": self.players["player2"]["y"],
+                        "lifepoints": self.players["player2"]["lifepoints"],
+                    },
+                },
+            }
+        )
+
+
+    def handle_player_action(self, player_id, action):
+        """Gère les actions des joueurs (déplacements, pause, etc.)."""
+        if player_id not in self.players:
+            return
+        player_state = self.players[player_id]
+        if action == "move_up":
+            player_state["dy"] = -player_state["speed"]
+        elif action == "move_down":
+            player_state["dy"] = player_state["speed"]
+        elif (action == "stop_move_down" and player_state["dy"] > 0) or (action == "stop_move_up" and player_state["dy"] < 0):
+            player_state["dy"] = 0
+        elif action == "pause_game":
+            self.paused = not self.paused
+
+    def reset_pos(self):
+        self.players['player1'].update(DEFAULT_PLAYER_ONE_STATE)
+        self.players['player2'].update(DEFAULT_PLAYER_TWO_STATE)
+        self.ball_state.update(DEFAULT_BALL_STATE)
+
 
 def absadd(number, n):
     return number - n if number < 0 else number + n
 
-def ball_updater():
-        global ball_state, players
-        ball_state['x'] += ball_state['dx']
-        ball_state['y'] += ball_state['dy']
+def ball_updater(game):
+    ball_state = game.ball_state
+    players = game.players
 
-        players['player1']['y'] += players['player1']['dy']
-        if players['player1']['y'] < 0:
-            players['player1']['y'] = 0
-        if players['player1']['y'] + PADDLE_SIZE > CANVAS_HEIGHT :
-            players['player1']['y'] = CANVAS_HEIGHT - PADDLE_SIZE
+    ball_state['x'] += ball_state['dx']
+    ball_state['y'] += ball_state['dy']
 
-        players['player2']['y'] += players['player2']['dy']
-        if players['player2']['y'] < 0:
-            players['player2']['y'] = 0
-        if players['player2']['y'] + PADDLE_SIZE > CANVAS_HEIGHT :
-            players['player2']['y'] = CANVAS_HEIGHT - PADDLE_SIZE
+    players['player1']['y'] += players['player1']['dy']
+    if players['player1']['y'] < 0:
+        players['player1']['y'] = 0
+    if players['player1']['y'] + PADDLE_SIZE > CANVAS_HEIGHT :
+        players['player1']['y'] = CANVAS_HEIGHT - PADDLE_SIZE
 
-        if ball_state['x'] - ball_state['radius'] < players['player1']['x'] + PADDLE_WIDTH and ball_state['y'] - ball_state['radius'] <= players['player1']['y'] + PADDLE_SIZE and ball_state['y'] + ball_state['radius'] >= players['player1']['y']:
-            ball_state['x'] += (players['player1']['x'] + PADDLE_WIDTH) - ((ball_state['x'] - ball_state['radius']) - (players['player1']['x'] + PADDLE_WIDTH))
-            ball_state['dx'] = absadd(ball_state['dx'], 1)
-            ball_state['dy'] = absadd(ball_state['dy'], 1)
-            ball_state['dx'] *= -1
+    players['player2']['y'] += players['player2']['dy']
+    if players['player2']['y'] < 0:
+        players['player2']['y'] = 0
+    if players['player2']['y'] + PADDLE_SIZE > CANVAS_HEIGHT :
+        players['player2']['y'] = CANVAS_HEIGHT - PADDLE_SIZE
 
-        if ball_state['x'] + ball_state['radius'] > players['player2']['x'] and ball_state['y'] - ball_state['radius'] <= players['player2']['y'] + PADDLE_SIZE and ball_state['y'] + ball_state['radius'] >= players['player2']['y']:
-            ball_state['x'] -= (ball_state['x'] + ball_state['radius']) - players['player2']['x'] 
-            ball_state['dx'] = absadd(ball_state['dx'], 1)
-            ball_state['dy'] = absadd(ball_state['dy'], 1)
-            ball_state['dx'] *= -1
+    if ball_state['x'] - ball_state['radius'] < players['player1']['x'] + PADDLE_WIDTH and ball_state['y'] - ball_state['radius'] <= players['player1']['y'] + PADDLE_SIZE and ball_state['y'] + ball_state['radius'] >= players['player1']['y']:
+        ball_state['x'] += (players['player1']['x'] + PADDLE_WIDTH) - ((ball_state['x'] - ball_state['radius']) - (players['player1']['x'] + PADDLE_WIDTH))
+        ball_state['dx'] = absadd(ball_state['dx'], 1)
+        if ball_state['y'] < players['player1']['y'] + PADDLE_SIZE / 8:
+            ball_state['dy'] = abs(ball_state['dx']) * -1
+        elif ball_state['y'] < players['player1']['y'] + ( 2 * (PADDLE_SIZE / 8)):
+            ball_state['dy'] = (abs(ball_state['dx']) // 2) * -1
+        elif ball_state['y'] < players['player1']['y'] + ( 3 * (PADDLE_SIZE / 8)):
+            ball_state['dy'] = (abs(ball_state['dx']) // 4) * -1
+        elif ball_state['y'] < players['player1']['y'] + ( 5 * (PADDLE_SIZE / 8)):
+            ball_state['dy'] = 0
+        elif ball_state['y'] < players['player1']['y'] + ( 6 * (PADDLE_SIZE / 8)):
+            ball_state['dy'] = abs(ball_state['dx']) // 4
+        elif ball_state['y'] < players['player1']['y'] + ( 7 * (PADDLE_SIZE / 8)):
+            ball_state['dy'] = abs(ball_state['dx']) // 2
+        else :
+            ball_state['dy'] = abs(ball_state['dx'])
+        ball_state['dx'] *= -1
 
-        if ball_state['x'] < ball_state['radius']:
-            players['player1']['lifepoints'] -= 1
-            reset_game()
-        if ball_state['x'] + ball_state['radius'] >= CANVAS_WIDTH:
-            players['player2']['lifepoints'] -= 1
-            reset_game()
+    if ball_state['x'] + ball_state['radius'] > players['player2']['x'] and ball_state['y'] - ball_state['radius'] <= players['player2']['y'] + PADDLE_SIZE and ball_state['y'] + ball_state['radius'] >= players['player2']['y']:
+        ball_state['x'] -= (ball_state['x'] + ball_state['radius']) - players['player2']['x'] 
+        ball_state['dx'] = absadd(ball_state['dx'], 1)
+        if ball_state['y'] < players['player2']['y'] + PADDLE_SIZE / 8:
+            ball_state['dy'] = abs(ball_state['dx']) * -1
+        elif ball_state['y'] < players['player2']['y'] + ( 2 * (PADDLE_SIZE / 8)):
+            ball_state['dy'] = (abs(ball_state['dx']) // 2) * -1
+        elif ball_state['y'] < players['player2']['y'] + ( 3 * (PADDLE_SIZE / 8)):
+            ball_state['dy'] = (abs(ball_state['dx']) // 4) * -1
+        elif ball_state['y'] < players['player2']['y'] +( 5 * (PADDLE_SIZE / 8)):
+            ball_state['dy'] = 0
+        elif ball_state['y'] < players['player2']['y'] +( 6 * (PADDLE_SIZE / 8)):
+            ball_state['dy'] = abs(ball_state['dx']) // 4
+        elif ball_state['y'] < players['player2']['y'] +( 7 * (PADDLE_SIZE / 8)):
+            ball_state['dy'] = abs(ball_state['dx']) // 2
+        else :
+            ball_state['dy'] = abs(ball_state['dx'])
+        ball_state['dx'] *= -1
 
-        if ball_state['x'] + ball_state['radius'] > CANVAS_WIDTH or \
-            ball_state['x'] - ball_state['radius'] < 0:
-            ball_state['dx'] *= -1
+    if ball_state['x'] < ball_state['radius']:
+        players['player1']['lifepoints'] -= 1
+        game.reset_pos()
+    if ball_state['x'] + ball_state['radius'] >= CANVAS_WIDTH:
+        players['player2']['lifepoints'] -= 1
+        game.reset_pos()
 
-        if ball_state['y'] + ball_state['radius'] > CANVAS_HEIGHT or \
-            ball_state['y'] - ball_state['radius'] < 0:
-            ball_state['dy'] *= -1
+    if ball_state['x'] + ball_state['radius'] > CANVAS_WIDTH or \
+        ball_state['x'] - ball_state['radius'] < 0:
+        ball_state['dx'] *= -1
 
-def game_launcher(request):
-    global CANVAS_WIDTH, CANVAS_HEIGHT, players, ball_state
-    players['player1']['lifepoints'] = 5
-    players['player1']['y'] = CANVAS_HEIGHT / 2
-    players['player1']['x'] = CANVAS_WIDTH / 100
-    players['player2']['lifepoint'] = 5
-    players['player2']['y'] = CANVAS_HEIGHT / 2
-    players['player2']['x'] = CANVAS_WIDTH - (CANVAS_WIDTH / 100)
-    ball_state.update(DEFAULT_BALL_STATE)
-    return HttpResponse(status=204)
-
-def pause_game():
-    global paused
-    paused = not paused
-
-def reset_game():
-    """
-    Réinitialise les positions du paddle et de la balle.
-    """
-    global players, ball_state
-    players['player1'].update(DEFAULT_PLAYER_ONE_STATE)
-    players['player2'].update(DEFAULT_PLAYER_TWO_STATE)
-    ball_state.update(DEFAULT_BALL_STATE)
+    if ball_state['y'] + ball_state['radius'] > CANVAS_HEIGHT or \
+        ball_state['y'] - ball_state['radius'] < 0:
+        ball_state['dy'] *= -1

@@ -1,0 +1,31 @@
+<div id="login-form-container">
+    <h1>Connexion</h1>
+    <form id="login-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next_url|default:"/" }}">
+        
+        <div class="form-group">
+            <input type="text" name="username" required placeholder="Nom d'utilisateur">
+        </div>
+        
+        <div class="form-group">
+            <input type="password" name="password" required placeholder="Mot de passe">
+        </div>
+        
+        <div id="otp-container" style="display: none;">
+            <div class="form-group">
+                <input type="text" 
+                       id="otp_code" 
+                       name="otp_code" 
+                       placeholder="Code de vérification"
+                       pattern="[0-9]*" 
+                       inputmode="numeric"
+                       maxlength="6">
+                <small>Veuillez entrer le code reçu par email</small>
+            </div>
+        </div>
+
+        <button type="submit">Se connecter</button>
+    </form>
+    <p id="login-error" style="color: red;"></p>
+</div>
