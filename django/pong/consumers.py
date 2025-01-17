@@ -11,15 +11,46 @@ from .logic.game import *
 from .logic.ai_player import launch_ai
 
 class ChatConsumer(AsyncWebsocketConsumer):
+
+    room_group_name = None
+    personal_group = None
     
     async def connect(self):
-
-        self.user = self.scope.get("user")
-        if not self.user or not self.user.is_authenticated:
+        #self.user = self.scope.get("user")
+        self.user = self.scope["user"]
+        if not self.user or not self.user.is_authenticated: # Check l'authentification de session
             print("User isn't identified, closing connexion")
             await self.close(code=4003)
             return
-        # Check si le user est authentifié
+        
+        self.username = self.user.username if self.user else "Anonyme"
+
+        await self.accept()
+        await self.send(json.dumps({
+            "type": "welcome",
+            "message": f"Bienvenue, {self.username} !"
+        }))
+        query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
+        token = query_params.get('token', [None])[0]
+        if not token:
+            print("Token manquant, fermeture de la connexion.", flush=True)
+            await self.close(code=4003)
+            return
+
+        try:
+            payload = jwt_decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            self.username = payload.get('username', 'Anonyme')
+            print(f"Utilisateur authentifié : {self.username}", flush=True)
+            await self.accept()
+            await self.send(json.dumps({"type": "welcome", "message": f"Bienvenue, {self.username} !"}))
+        except InvalidToken as e:
+            print(f"Token invalide : {e}", flush=True)
+            await self.close(code=4003)
+        except Exception as e:
+            print(f"Erreur inattendue lors de la validation du token : {e}", flush=True)
+            await self.close(code=4003)
+
+        # Check si le user est authentifié via JWT
         #token = self.scope['query_string'].decode().split('token=')[-1] # Infos sur la co WebSocket (headers, user, query string, etc.)
         #try:
         #    access_token = AccessToken(token)
@@ -30,9 +61,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         #    print(f"Invalid WebSocket connection attempt: {e}")
         #    return
 
-        
-        self.username = self.user.username if self.user else "Anonyme"
-        
         try:
             self.blocked_users = await database_sync_to_async(
                 lambda: list(self.user.profile.blocked_users.values_list('id', flat=True))
@@ -44,12 +72,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"Error retrieving blocked users for {self.user.username}: {e}")
             return
-
-        #self.user = self.scope.get('user')
-        #if not self.user or not self.user.is_authenticated:
-        #    await self.close()
-        #    print("Unauthorized WebSocket connection attempt.")
-        #    return
 
         # Nom du groupe général de chat
         self.room_name = 'chat'
@@ -70,18 +92,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.personal_group,
             self.channel_name
         )
-
-        # Accepter la connexion WebSocket
-        await self.accept(
-            print("WebSocket connection accepted."),
-            print(f"User {self.user.username} connected to groups: {self.room_group_name}, {self.personal_group}")
-        )
-
-        # Envoyer un message de bienvenue
-        await self.send(text_data=json.dumps({
-            "type": "welcome",
-            "message": f"Bienvenue, {self.username} !",
-        }))
 
     async def disconnect(self, close_code):
         if self.room_group_name:

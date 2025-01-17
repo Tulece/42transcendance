@@ -1,5 +1,4 @@
 window.initChat = () => {
-
     console.log("initChat appelé");
     let ws = null;
     const connectWsButton = document.getElementById("connect-ws");
@@ -43,9 +42,7 @@ window.initChat = () => {
 
     // Connexion au WebSocket
     connectWsButton.addEventListener("click", () => {
-        
-        const ws = new WebSocket("ws://localhost:8000/ws/chat/");
-        //const ws = new WebSocket(`ws://${window.location.host}/ws/chat/`);
+        ws = new WebSocket(`ws://${window.location.host}/ws/chat/`);
 
         ws.onopen = () => {
             wsLog.textContent += "WebSocket connecté.\n";
