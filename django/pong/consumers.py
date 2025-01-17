@@ -10,44 +10,67 @@ from .logic.lobby import Lobby
 import uuid
 import asyncio
 
+
 class ChatConsumer(AsyncWebsocketConsumer):
     """
     Consommateur WebSocket pour le chat avec authentification basée sur la session.
     """
     async def connect(self):
-        user = self.scope["user"]
-        if not user.is_authenticated:
-            print("Utilisateur non authentifié, fermeture de la connexion.")
+        print("Tentative de connexion WebSocket.")
+
+        # Afficher tout ce qui est disponible dans le scope
+        print("Scope complet :", self.scope)
+
+        user = self.scope.get("user", None)
+        print("Utilisateur récupéré depuis le scope :", user)
+
+        if not user or not user.is_authenticated:
+            print("Utilisateur non authentifié. Fermeture de la connexion.")
             await self.close(code=4003)
             return
+
+        print(f"Utilisateur authentifié : {user.username}")
         self.username = user.username or "Anonyme"
+
+        # Extraction et affichage des query parameters
+        query_params = parse_qs(self.scope["query_string"].decode("utf-8"))
+        print("Query parameters reçus :", query_params)
+
+        token = query_params.get("token", [None])[0]
+        print(f"Token reçu : {token}")
+
+        if token:
+            try:
+                payload = jwt_decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+                print("Payload décodé du JWT :", payload)
+                self.username = payload.get("username", self.username)
+                print(f"Utilisateur authentifié via JWT : {self.username}")
+            except InvalidToken:
+                print("Token JWT invalide. Fermeture de la connexion.")
+                await self.close(code=4003)
+                return
+            except Exception as e:
+                print(f"Erreur inattendue lors du décodage du token : {e}")
+                await self.close(code=4003)
+                return
+
         await self.accept()
+        print(f"Connexion WebSocket acceptée pour l'utilisateur : {self.username}")
         await self.send(json.dumps({
             "type": "welcome",
             "message": f"Bienvenue, {self.username} !"
         }))
 
-        try:
-            payload = jwt_decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            self.username = payload.get('username', 'Anonyme')
-            print(f"Utilisateur authentifié : {self.username}")
-            await self.accept()
-            await self.send(json.dumps({"type": "welcome", "message": f"Bienvenue, {self.username} !"}))
-        except InvalidToken as e:
-            print(f"Token invalide : {e}")
-            await self.close(code=4003)
-        except Exception as e:
-            print(f"Erreur inattendue lors de la validation du token : {e}")
-            await self.close(code=4003)
-
     async def disconnect(self, close_code):
-        print(f"Déconnecté : {self.username} (code {close_code})")
+        print(f"Déconnexion de l'utilisateur : {self.username}, code : {close_code}")
 
     async def receive(self, text_data):
+        print("Message reçu brut :", text_data)
         try:
             data = json.loads(text_data)
-            message = data.get("message")
-            print(f"Message reçu de {self.username} : {message}")
+            print("Message parsé :", data)
+            message = data.get("message", "")
+            print(f"Message à traiter : {message}")
             await self.send(json.dumps({
                 "type": "chat_message",
                 "username": self.username,
