@@ -1,6 +1,7 @@
 import uuid
 import asyncio
 from .game import Game
+from .ai_player import AIPlayer, launch_ai
 
 class Lobby:
     _instance = None
@@ -29,7 +30,9 @@ class Lobby:
 
     def remove_player_from_queue(self, player_consumer):
         """Retire un joueur de la file d'attente."""
+        print("remove player from queue called", flush=True)
         if player_consumer in self.waiting_queue:
+            print("remove player from lobby", flush=True)
             self.waiting_queue.remove(player_consumer)
 
     def remove_game(self, game_id):
@@ -55,6 +58,20 @@ class Lobby:
 
             return game_id, player1, player2
         return None, None, None
+    
+    async def create_solo_game(self, player_consumer):
+        """Crée une partie si deux joueurs sont disponibles."""
+
+        game_id = str(uuid.uuid4())
+
+        ai_bot = asyncio.create_task(launch_ai("localhost", game_id))
+
+        game = Game(game_id, player_consumer, ai_bot)
+        self.active_games[game_id] = game
+
+        asyncio.create_task(game.start())
+
+        return game_id, player_consumer
 
     def get_game(self, game_id):
         """Récupère une instance de Game par son identifiant."""

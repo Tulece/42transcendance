@@ -1,9 +1,9 @@
 // app.js
-(function(){
+(function () {
     let currentPage = null;
-    let initialHomeHtml = "";  // Va contenir le HTML initial de la home
 
-    document.addEventListener("click", function(event) {
+    // Gérer les clics sur les liens de navigation SPA
+    document.addEventListener("click", function (event) {
         const link = event.target.closest(".spa-link");
         if (!link) return;
 
@@ -12,155 +12,205 @@
         navigateTo(url);
     });
 
-    window.addEventListener("popstate", function() {
+    // Gérer la navigation par les boutons Précédent/Suivant du navigateur
+    window.addEventListener("popstate", function () {
         navigateTo(location.pathname, false);
     });
 
     async function navigateTo(url, pushState = true) {
         console.log("[navigateTo]", url, " From : ", location.pathname);
 
-        // Vérifie si l'URL cible est déjà la page actuelle pour éviter les doublons
-        if (pushState && location.pathname === url) {
+        if (location.pathname === url && pushState) {
             console.log("[navigateTo] Déjà sur l'URL:", url);
             return;
         }
 
-        destroyCurrentPage();
-
         if (pushState) {
-            // Évite de créer un nouvel état si on est déjà sur /register
-            if (url.startsWith("/register") && location.pathname.startsWith("/register")) {
-                console.log("[navigateTo] Déjà sur la page d'inscription, pas de nouvel historique.");
-            } else {
-                history.pushState(null, "", url);
-            }
+            history.pushState(null, "", url);
         }
 
-        const appDiv = document.getElementById("app");
         try {
-            const resp = await fetch(url, {
+            const response = await fetch(url, {
                 headers: { "X-Requested-With": "XMLHttpRequest" },
+                credentials: "include",
             });
-            if (resp.ok) {
-                const htmlSnippet = await resp.text();
-                appDiv.innerHTML = htmlSnippet;
 
-                // Initialisation spécifique selon l'URL
-                if (url.includes("/game")) {
-                    currentPage = "game";
-                    const script = document.createElement("script");
-                    script.src = "/static/js/pong.js";
-                    script.onload = () => {
-                        if (window.initPong) {
-                            window.initPong();
-                        } else {
-                            console.error("initPong n'est pas défini après le chargement de pong.js.");
-                        }
-                    };
-                    document.body.appendChild(script);
-                } else if (url.includes("/chat")) {
-                    currentPage = "chat";
-                    const script = document.createElement("script");
-                    script.src = "/static/js/chat.js";
-                    script.onload = () => {
-                         if (window.initChat) {
-                             window.initChat();
-                         } else {
-                             console.error("initChat n'est pas défini après le chargement de chat.js.");
-                         }
-                    };
-                    document.body.appendChild(script);
-                } else if (url === "/") {
-                    currentPage = "home";
-                    loadScriptOnce("/static/js/home.js");
-                    if (window.initHome) { window.initHome(); }
-                } else {
-                    currentPage = "register";
-
-                    // Désactiver temporairement le bouton de soumission
-                    const form = document.getElementById("register-form");
-                    if (form) {
-                        const submitBtn = form.querySelector('button[type="submit"]');
-                        if (submitBtn) submitBtn.disabled = true;
-                    }
-
-                    const script = document.createElement("script");
-                    script.src = "/static/js/register.js";
-                    script.onload = () => {
-                        // Réactiver le bouton une fois le script chargé
-                        const form = document.getElementById("register-form");
-                        if (form) {
-                            const submitBtn = form.querySelector('button[type="submit"]');
-                            if (submitBtn) submitBtn.disabled = false;
-                        }
-                    };
-                    document.body.appendChild(script);
-                }
-            } else {
-                console.error("Erreur lors du fetch de", url);
+            if (response.status === 403) {
+                alert("Vous devez être connecté pour accéder à cette page !");
+                // Optionnel : rediriger vers la page d'accueil ou effectuer une autre action
+                // navigateTo("/");
+                return;
             }
-        } catch (e) {
-            console.error(e);
+
+
+            if (!response.ok) {
+                console.error("Erreur fetch URL:", url, "status =", response.status);
+                return;
+            }
+
+            const htmlSnippet = await response.text();
+            const appDiv = document.getElementById("app");
+            appDiv.innerHTML = htmlSnippet;
+
+            handlePageSpecificScripts(url);
+
+        } catch (error) {
+            console.error("Erreur réseau :", error);
         }
     }
-    window.navigateTo = navigateTo;  // Exposer navigateTo globalement
 
-    function destroyCurrentPage() {
-        const appDiv = document.getElementById("app");
 
-        if (currentPage === "home") {
-            if (window.destroyHome) {
-                window.destroyHome();
-            }
-        } else if (currentPage === "game") {
-            if (window.destroyPong) {
-                window.destroyPong();
-            }
+    function handlePageSpecificScripts(url) {
+        if (url.includes("/game")) {
+            loadScriptOnce("/static/js/pong.js", () => {
+                if (window.initPong) window.initPong();
+            });
+        } else if (url.includes("/chat")) {
+            loadScriptOnce("/static/js/chat.js", () => {
+                if (window.initChat) window.initChat();
+            });
+        } else if (url.includes("/login")) {
+            loadScriptOnce("/static/js/login.js", () => {
+                console.log("Script de connexion chargé.");
+            });
         }
-
-        // Effacer le contenu actuel
-        appDiv.innerHTML = "";
-        currentPage = null;
     }
 
+    function loadScriptOnce(src, callback) {
+        if (!document.querySelector(`script[src="${src}"]`)) {
+            const script = document.createElement("script");
+            script.src = src;
+            script.onload = callback;
+            document.body.appendChild(script);
+        } else if (callback) {
+            callback();
+        }
+    }
+
+    // Charger la page initiale lors du chargement du DOM
     document.addEventListener("DOMContentLoaded", async function () {
-        const appDiv = document.getElementById("app");
-
-        // Si on est sur la home et que le contenu n'est pas encore chargé, charger la home via AJAX
+        await updateUserInfo();
         if (location.pathname === "/" || location.pathname === "") {
-            if (appDiv.innerHTML.trim() === "") {
-                currentPage = "home";
-                try {
-                    const resp = await fetch("/", {
-                        headers: { "X-Requested-With": "XMLHttpRequest" },
-                    });
-                    if (resp.ok) {
-                        const htmlSnippet = await resp.text();
-                        appDiv.innerHTML = htmlSnippet;
-                        if (window.initHome) {
-                            window.initHome();
-                        }
-                    } else {
-                        console.error("Erreur lors du fetch initial de /");
-                    }
-                } catch (e) {
-                    console.error("Erreur lors du chargement initial :", e);
-                }
-            }
-        }
-        // Si on n'est pas sur la home, forcer la navigation pour charger et initialiser les scripts
-        else {
+            navigateTo("/", false);
+        } else {
             navigateTo(location.pathname, false);
         }
     });
 
-
-    function loadScriptOnce(src) {
-        // Vérifie si un script avec ce src est déjà chargé
-        if (!document.querySelector(`script[src="${src}"]`)) {
-            const script = document.createElement("script");
-            script.src = src;
-            document.body.appendChild(script);
-        }
-    }
+    // Exposer navigateTo pour un accès global (optionnel)
+    window.navigateTo = navigateTo;
 })();
+
+
+// ----- En-dessous, les fonctions globales -----
+
+async function fetchUserInfo() {
+    try {
+        const response = await fetch("/api/user_info/", {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        });
+
+        if (response.ok) {
+            const userInfo = await response.json();
+            updateHeaderUserInfo(userInfo);
+        } else {
+            console.warn("Utilisateur non connecté ou erreur :", response.status);
+            updateHeaderUserInfo(null);
+        }
+    } catch (error) {
+        console.error("Erreur lors de la récupération des infos utilisateur :", error);
+        updateHeaderUserInfo(null);
+    }
+}
+
+function updateHeaderUserInfo(userInfo) {
+    const userDisplay = document.getElementById("user-display");
+    const loginLink = document.getElementById("login-link");
+    const logoutBtn = document.getElementById("logout-btn");
+
+    if (userInfo) {
+        userDisplay.textContent = `Bonjour, ${userInfo.username}`;
+        loginLink.style.display = "none"; // Cache le lien "Connexion"
+        logoutBtn.style.display = "inline"; // Affiche le bouton "Déconnexion"
+
+        logoutBtn.onclick = async () => {
+            try {
+                const csrfToken = getCSRFToken();
+                const response = await fetch("/api/logout/", {
+                    method: "POST",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-CSRFToken": csrfToken,
+                    },
+                    credentials: "include",
+                });
+                if (response.ok) {
+                    console.log("Déconnexion réussie.");
+                    updateHeaderUserInfo(null);
+                } else {
+                    console.error("Erreur lors de la déconnexion :", response.status);
+                }
+            } catch (error) {
+                console.error("Erreur réseau lors de la déconnexion :", error);
+            }
+        };
+    } else {
+        userDisplay.textContent = "Non connecté";
+        loginLink.style.display = "inline";
+        logoutBtn.style.display = "none";
+    }
+}
+
+async function updateUserInfo() {
+    try {
+        const response = await fetch("/api/user_info/", {
+            method: "GET",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "Authorization": `Bearer ${getAccessToken()}`, // Inclure le token d'accès si besoin
+            },
+            credentials: "include", // Inclure les cookies
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            updateHeaderUserInfo(data);
+        } else if (response.status === 403) {
+            console.info("Utilisateur non connecté.");
+            updateHeaderUserInfo(null);
+        } else {
+            console.warn("Erreur inattendue lors de la récupération des infos utilisateur :", response.status);
+            updateHeaderUserInfo(null);
+        }
+    } catch (error) {
+        console.error("Erreur réseau lors de la récupération des informations utilisateur :", error);
+        updateHeaderUserInfo(null);
+    }
+}
+
+function getAccessToken() {
+    const cookieValue = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("access_token="))
+        ?.split("=")[1];
+    return cookieValue || null;
+}
+
+// Exposer updateUserInfo globalement
+function getCSRFToken() {
+    const csrfMetaTag = document.querySelector('meta[name="csrf-token"]');
+    if (csrfMetaTag) {
+        return csrfMetaTag.getAttribute("content");
+    }
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+    return cookieValue || '';
+}
+
+window.getCSRFToken = getCSRFToken;
