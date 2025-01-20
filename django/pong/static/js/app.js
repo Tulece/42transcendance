@@ -17,7 +17,7 @@
     });
 
     async function navigateTo(url, pushState = true) {
-        console.log("[navigateTo]", url);
+        console.log("[navigateTo]", url, " From : ", location.pathname);
 
         // Vérifie si l'URL cible est déjà la page actuelle pour éviter les doublons
         if (pushState && location.pathname === url) {
