@@ -41,7 +41,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4003)
 
     async def disconnect(self, close_code):
-        print(f"Déconnecté : {self.username} (code {close_code})")
+        print(f"Déconnecté : {self.username} (code {close_code})", flush=True)
 
     async def receive(self, text_data):
         try:
@@ -71,7 +71,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         """Gère la déconnexion d'un joueur du lobby."""
         self.lobby.remove_player_from_queue(self)
-        print(f"Joueur {self.player_id} déconnecté du lobby.")
+        print(f"Joueur {self.player_id} déconnecté du lobby.", flush=True)
 
     async def receive(self, text_data):
         """Traite les messages reçus du client."""
@@ -79,12 +79,20 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         action = data.get("action")
 
         if action == "find_game":
-            await self.handle_find_game()
+            await self.handle_find_game(data.get("mode"))
         elif action == "quit_queue":
             await self.handle_quit_queue()
 
-    async def handle_find_game(self):
+    async def handle_find_game(self, mode):
         """Gère la demande de recherche d'une partie."""
+        if mode == 'solo':
+            game_id, player1 = await self.lobby.create_solo_game(self)
+            await player1.send(json.dumps({
+                "type": "game_found",
+                "game_id": game_id,
+                "role": "player1"
+            }))
+            return
         self.lobby.add_player_to_queue(self)
         print(f"Joueur {self.player_id} en attente d'une partie.")
 

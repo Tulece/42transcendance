@@ -3,7 +3,13 @@
     <nav>
         <ul>
             <li><a href="/" class="spa-link">Accueil</a></li>
-            <li><a href="/game" class="spa-link">Jouer</a></li>
+            <li class="dropdown">
+                <a href="#" class="spa-link">Jouer</a>
+                <ul class="dropdown-menu" style="display: none;">
+                    <li><a href="/game?mode=multi" class="spa-link">Play Duel</a></li>
+                    <li><a href="/game?mode=solo" class="spa-link">Play Solo</a></li>
+                </ul>
+            </li>
             <li><a href="/register" class="spa-link">S'inscrire</a></li>
             <li><a href="/chat" class="spa-link">Chat</a></li>
         </ul>
@@ -14,3 +20,47 @@
         </div>
     </nav>
 </div>
+
+<style>
+    #header nav ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+    }
+
+    #header nav ul li {
+        position: relative;
+        margin: 0 10px;
+    }
+
+    .dropdown {
+        cursor: pointer;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: white;
+        border: 1px solid #ddd;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 0;
+        list-style: none;
+        z-index: 1000;
+    }
+
+    .dropdown-menu li {
+        margin: 0;
+    }
+
+    .dropdown-menu li a {
+        padding: 10px 15px;
+        color: black;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        display: block!important;
+    }
+</style>

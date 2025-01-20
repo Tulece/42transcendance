@@ -33,7 +33,15 @@ function connectToLobby() {
 
     lobbySocket.onopen = () => {
         console.log("Connexion au lobby établie.");
-        lobbySocket.send(JSON.stringify({ action: "find_game" }));
+		//?? Here I have to developp the message to tell the llobby either to add me to  the waiting queue or ton launch an AI bot and launch a game with it 
+        //?? For this, i meed to get the query part of the url that lead me here, can window.location helps ?
+		// Try :
+		const queryString = window.location.search;
+        const params = new URLSearchParams(queryString);
+        const mode = params.get("mode");
+		console.log(mode);
+		console.log(mode);
+		lobbySocket.send(JSON.stringify({ action: "find_game", mode: mode }));
     };
 
     lobbySocket.onmessage = (event) => {
@@ -212,7 +220,7 @@ function drawHeart(x, y, size) {
 window.destroyPong = function () {
     console.log("destroyPong() called.");
 	destroyGameControls();
-	// destroyLobbySocket(); 
+	destroyLobbySocket(); 
 	destroyGameSocket();
     if (gameSocket && gameSocket.readyState === WebSocket.OPEN) {
         gameSocket.send(JSON.stringify({ action: "quit_game" }));

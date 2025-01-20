@@ -3,12 +3,12 @@ import websockets
 import json
 from .game import CANVAS_HEIGHT, CANVAS_WIDTH, PADDLE_SIZE, PADDLE_WIDTH, DEFAULT_PLAYER_TWO_STATE, absadd
 
-SERVER_URL = "ws://localhost:8000/ws/game/1/?player_id=player2&mode=solo"
 
 class AIPlayer:
     instance_count = 0  # Compteur d'instances (Used to id each playing IA);
 
-    def __init__(self):
+    def __init__(self, host, game_id):
+        self.ws = f"ws://{host}:8000/ws/game/{game_id}/?player_id=player2&mode=solo"
         AIPlayer.instance_count += 1
         self.ball_position = {'x': 0, 'y': 0, 'dx': 0, 'dy': 0}
         self.paddle_position = {'x': 0, 'y': 0, 'speed': 5}
@@ -20,7 +20,7 @@ class AIPlayer:
 
     async def connect(self):
         try:
-            async with websockets.connect(SERVER_URL) as websocket:
+            async with websockets.connect(self.ws) as websocket:
                 print("IA connectée au serveur")
                 listener_task = asyncio.create_task(self.listen(websocket))
                 await listener_task
@@ -35,7 +35,7 @@ class AIPlayer:
         try:
             async for message in websocket:
                 data = json.loads(message)
-                print("IA received data:", data, flush=True)
+                # print("IA received data:", data, flush=True)
                 if data["type"] == "position_update":
                     self.update_positions(data)
                     try:
@@ -134,6 +134,6 @@ if __name__ == "__main__":
     ai = AIPlayer()
     asyncio.run(ai.connect())
     
-async def launch_ai():
-    ai = AIPlayer()
+async def launch_ai(host, game_id):
+    ai = AIPlayer(host, game_id)
     await ai.connect()
