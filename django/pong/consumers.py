@@ -1,97 +1,59 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.db import database_sync_to_async
 from rest_framework_simplejwt.exceptions import InvalidToken
-from rest_framework_simplejwt.tokens import AccessToken
-from jwt import decode as jwt_decode
+from channels.db import database_sync_to_async
+from django.contrib.auth.models import User
 from urllib.parse import parse_qs
+from jwt import decode as jwt_decode
 from django.conf import settings
-import asyncio
-import json
 from .logic.game import *
 from .logic.ai_player import launch_ai
+from datetime import datetime
+import json
+from .logic.lobby import Lobby
+import uuid
+import asyncio
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
-
+    """
+    Consommateur WebSocket pour un chat global
+    """
     room_group_name = None
-    personal_group = None
-    
+
     async def connect(self):
-        #self.user = self.scope.get("user")
-        self.user = self.scope["user"]
-        if not self.user or not self.user.is_authenticated: # Check l'authentification de session
-            print("User isn't identified, closing connexion")
+        print("Tentative de connexion WebSocket.")
+        self.user = self.scope.get("user", None)
+
+        if not self.user or not self.user.is_authenticated:
+            print("Utilisateur non authentifié. Fermeture de la connexion.")
             await self.close(code=4003)
             return
-        
-        self.username = self.user.username if self.user else "Anonyme"
 
+        self.username = self.user.username or "Anonyme"
         await self.accept()
-        await self.send(json.dumps({
-            "type": "welcome",
-            "message": f"Bienvenue, {self.username} !"
-        }))
-        query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
-        token = query_params.get('token', [None])[0]
-        if not token:
-            print("Token manquant, fermeture de la connexion.", flush=True)
-            await self.close(code=4003)
-            return
+        print(f"Connexion WebSocket acceptée pour l'utilisateur : {self.username}")
 
-        try:
-            payload = jwt_decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            self.username = payload.get('username', 'Anonyme')
-            print(f"Utilisateur authentifié : {self.username}", flush=True)
-            await self.accept()
-            await self.send(json.dumps({"type": "welcome", "message": f"Bienvenue, {self.username} !"}))
-        except InvalidToken as e:
-            print(f"Token invalide : {e}", flush=True)
-            await self.close(code=4003)
-        except Exception as e:
-            print(f"Erreur inattendue lors de la validation du token : {e}", flush=True)
-            await self.close(code=4003)
-
-        # Check si le user est authentifié via JWT
-        #token = self.scope['query_string'].decode().split('token=')[-1] # Infos sur la co WebSocket (headers, user, query string, etc.)
-        #try:
-        #    access_token = AccessToken(token)
-        #    self.user = await database_sync_to_async(User.objects.get)(id=access_token['user_id'])
-        
-        #except Exception as e:
-        #    await self.close()
-        #    print(f"Invalid WebSocket connection attempt: {e}")
-        #    return
-
-        try:
-            self.blocked_users = await database_sync_to_async(
-                lambda: list(self.user.profile.blocked_users.values_list('id', flat=True))
-            )  # Liste des IDs des users bloqués
-            self.users_who_blocked_me = await database_sync_to_async(
-                lambda: list(self.user.blocked_by.values_list('id', flat=True))
-            )  # Liste des IDs des users qui ont bloqué ce user
-
-        except Exception as e:
-            print(f"Error retrieving blocked users for {self.user.username}: {e}")
-            return
-
-        # Nom du groupe général de chat
-        self.room_name = 'chat'
-        self.room_group_name = f"chat_{self.room_name}"
-        
-        # Groupe individuel pour chq user
+        self.room_group_name = "chat_room"
         self.personal_group = f"user_{self.user.id}"
 
-        # Add le user au groupe Websocket général
-        await self.channel_layer.group_add( # Interface pour send des messages entre consommateurs.
+        # Joindre le groupe
+        await self.channel_layer.group_add(
             self.room_group_name,
-            self.channel_name # ID unique de la co WebSocket
+            self.channel_name
         )
-        print(f"Utilisateur ajouté au groupe : {self.room_group_name}")
+        print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}")
 
         # Add au groupe perso.
         await self.channel_layer.group_add(
             self.personal_group,
             self.channel_name
         )
+
+        # Envoi d’un message de bienvenue
+        await self.send(json.dumps({
+            "type": "welcome",
+            "message": f"Bienvenue, {self.username} !"
+        }))
 
     async def disconnect(self, close_code):
         if self.room_group_name:
@@ -104,291 +66,203 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.personal_group,
                 self.channel_name
             )
-        print(f"User {getattr(self.user, 'username', 'unknown')} disconnected from groups.")
-
+        print(f"Déconnexion de l'utilisateur {self.username} - code: {close_code}")
 
     async def receive(self, text_data):
+        print("Message reçu brut :", text_data)
         try:
             if not text_data:
                 await self.send(text_data=json.dumps({"error": "Message vide"}))
                 return
 
-            # Convertir les données JSON en dict. Python
             data = json.loads(text_data)
-            message = data.get("message")
-            target_user_id = data.get("target_user_id") # Id user cible
+            message = data.get("message", "")
+            target_username = data.get("target_username")
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            print(f"Message reçu : {message}, cible : {target_user_id}")
-
-            if target_user_id: # Gestion message direct
-                if int(target_user_id) in self.blocked_users:
-                    await self.send(text_data=json.dumps({
-                        "type": "error",
-                        "message": "Vous avez bloqué cet utilisateur."
-                    }))
-                    return
-
-                if int(target_user_id) in self.users_who_blocked_me:
-                    await self.send(text_data=json.dumps({
-                        "type": "error",
-                        "message": "Cet utilisateur vous a bloqué."
-                    }))
-                    return
-                
-                
-                target_group = f"user_{target_user_id}" # Groupe perso du user cible
-
-                # Send le message au groupe perso du user cible
-                await self.channel_layer.group_send(
-                    target_group,
-                    {
-                        "type": "chat_message", # Indique à Django C. quelle méthode utiliser pour gérer l'évent !
-                        "message": message,
-                        "sender": self.user.username
-                    }
-                )
-
-            else: # Gestion message de groupe
+            if target_username:
+                await self.send_private_message(target_username, message)
+            else:
+                # Diffuser le message à tout le monde dans le groupe
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
-                        "type": "chat_message", # Méthode qui reçoit les events diffusés par group_send et les envoie au client
+                        "type": "chat_message",
+                        "sender": self.username,
                         "message": message,
-                        "sender": self.user.username
+                        "timestamp": timestamp
                     }
                 )
-        except json.JSONDecodeError as e:
-            print(f"JSONDecodeError: {e}")
-            await self.send(text_data=json.dumps({
-                "error": "Invalid JSON format"
+        except Exception as e:
+            print(f"Erreur lors du traitement du message : {e}", flush = True)
+            await self.send(json.dumps({
+                "type": "error",
+                "message": "Erreur lors du traitement du message."
             }))
-        
+
     async def chat_message(self, event):
-        message = event['message']
-        sender = event.get('sender', 'Anonymous')
+        """
+        Méthode appelée quand on fait `group_send(..., {"type": "chat_message", ...})`.
+        """
+        sender = event["sender"]
+        message = event["message"]
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Envoyer ce message au client WebSocket
+        await self.send(json.dumps({
+            "type": "chat_message",
+            "username": sender,
+            "message": message,
+            "timestamp": timestamp
+        }))
+    
+    @database_sync_to_async
+    def get_user_by_username(self, username):
+        return User.objects.get(username=username)
 
-        print(f"Message envoyé : {message} par {sender} à {timestamp}")
+    async def send_private_message(self, target_username, message):
+        """
+        Cherche l'utilisateur ayant ce 'target_username',
+        et envoie un 'private_message' à son groupe perso : 'user_<id>'.
+        """
+        try:
+            found_user = await self.get_user_by_username(target_username)
+        except User.DoesNotExist:
+            await self.send(json.dumps({
+                "type": "error",
+                "message": f"L'utilisateur '{target_username}' est introuvable."
+            }))
+            return
 
-        # Envoyer le message diffusé au WebSocket client
-        await self.send(text_data=json.dumps({
-            'type': 'message',
-            'message': message,
-            'sender': sender,
-            'timestamp': timestamp
-         }))
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        target_group = f"user_{found_user.id}"
+        await self.channel_layer.group_send(
+            target_group,
+            {
+                "type": "private_message",
+                "sender": self.username,
+                "message": message,
+                "timestamp": timestamp
+            }
+        )
+
+
+    # Gestion envoi messages privés
+    async def private_message(self, event):
+        sender = event["sender"]
+        message = event["message"]
+        timestamp = event.get("timestamp") # récupéré du group_send
+        await self.send(json.dumps({
+            "type": "private_message",
+            "username": sender,
+            "message": message,
+            "timestamp": timestamp
+        }))
+
+
+
+
+class LobbyConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        """Gère la connexion d'un joueur au lobby."""
+        self.lobby = Lobby.get_instance()
+        self.player_id = str(uuid.uuid4())
+        self.game_id = None
+
+        await self.accept()
+        print(f"Joueur {self.player_id} connecté au lobby.")
+
+    async def disconnect(self, close_code):
+        """Gère la déconnexion d'un joueur du lobby."""
+        self.lobby.remove_player_from_queue(self)
+        print(f"Joueur {self.player_id} déconnecté du lobby.")
+
+    async def receive(self, text_data):
+        """Traite les messages reçus du client."""
+        data = json.loads(text_data)
+        action = data.get("action")
+
+        if action == "find_game":
+            await self.handle_find_game()
+        elif action == "quit_queue":
+            await self.handle_quit_queue()
+
+    async def handle_find_game(self):
+        """Gère la demande de recherche d'une partie."""
+        self.lobby.add_player_to_queue(self)
+        print(f"Joueur {self.player_id} en attente d'une partie.")
+
+        if self.lobby.get_queue_len() >= 2:
+            game_id, player1, player2 = await self.lobby.create_game()
+
+            await player1.send(json.dumps({
+                "type": "game_found",
+                "game_id": game_id,
+                "role": "player1"
+            }))
+            await player2.send(json.dumps({
+                "type": "game_found",
+                "game_id": game_id,
+                "role": "player2"
+            }))
+
+    async def handle_quit_queue(self):
+        """Gère la demande de quitter la file d'attente."""
+        self.lobby.remove_player_from_queue(self)
+        await self.send(json.dumps({
+            "type": "queue_left",
+            "message": "Vous avez quitté la file d'attente."
+        }))
+        print(f"Joueur {self.player_id} a quitté la file d'attente.")
 
 
 class PongConsumer(AsyncWebsocketConsumer):
-    game_running = False
-
     async def connect(self):
-        global players
+        """Gère la connexion d'un joueur à une partie."""
         self.game_id = self.scope['url_route']['kwargs']['game_id']
-        human_group_name = f'game_{self.game_id}_humans'
-        ai_group_name = f'game_{self.game_id}_ai'
+        self.lobby = Lobby.get_instance()
+        self.game = self.lobby.get_game(self.game_id)
+
+        if not self.game:
+            await self.close()
+            return
+
         query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
-        self.player_id = query_params.get('player_id', ['unknown'])[0]
+        self.player_id = query_params.get('player_id', [None])[0]
 
-        mode = query_params.get('mode', ['multi'])[0]
-        if self.player_id == "player2" and mode == 'solo':
-            self.is_ai = True
-            self.group_name = ai_group_name
-        else:
-            self.is_ai = False
-            self.group_name = human_group_name
+        if not self.player_id or self.player_id not in ["player1", "player2"]:
+            await self.close()
+            return
 
-        # Initialiser l'état du joueur s'il n'existe pas
-        if self.player_id not in players:
-            if self.player_id == "player1":
-                players[self.player_id] = DEFAULT_PLAYER_ONE_STATE.copy()
-            elif self.player_id == "player2":
-                players[self.player_id] = DEFAULT_PLAYER_TWO_STATE.copy()
-            else:
-                print(f"ID de joueur non valide : {self.player_id}")
-                await self.close()
-                return
+        await self.channel_layer.group_add(self.game_id, self.channel_name)
 
-        # Ajouter le client au groupe
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
         await self.accept()
-        print(f"Joueur {self.player_id} connecté au jeu {self.game_id}")
-
+        print(f"Joueur {self.player_id} connecté à la partie {self.game_id}.")
 
     async def disconnect(self, close_code):
-        global players
-        print(f"Déconnexion du joueur {self.player_id}", flush=True)
+        """Gère la déconnexion d'un joueur."""
+        await self.channel_layer.group_discard(self.game_id, self.channel_name)
+        print(f"Joueur {self.player_id} déconnecté de la partie {self.game_id}.")
 
-        # Supprimer l'état du joueur
-        # if self.player_id in players:
-        #     del players[self.player_id]
-
-        # Arrêter la boucle si le joueur est celui qui l'a lancée
-        if hasattr(self, 'game_task') and not self.game_task.done():
-            self.game_task.cancel()
-            print(f"Boucle de jeu arrêtée pour {self.player_id}")
-
-        # Retirer le client du groupe WebSocket
-        await self.channel_layer.group_discard(
-            self.group_name,
-            self.channel_name
-        )
-        # Optionnel : annuler la tâche si tu veux arrêter la partie
-        # (mais souvent, on ne le fait qu’après un "quit_game" explicite)
-        # if hasattr(self, 'game_task') and not self.game_task.done():
-        #     self.game_task.cancel()
-        #     print(f"Annulation de la tâche de jeu pour game_id={self.game_id}")
+        # Si nécessaire, notifier la classe Game ou le Lobby
+        # if self.game:
+        #     self.game.handle_player_disconnect(self.player_id)
 
     async def receive(self, text_data):
-        global paused, players
-        data = json.loads(text_data)
-        action = data.get('action')
-
-        if self.player_id not in players:
-            print(f"Joueur {self.player_id} inconnu")
-            return
-        print(f"Message reçu dans receive : {text_data}, by player : {self.player_id}", flush=True)
-
-        player_state = players[self.player_id]
-
-        if action == 'move_up':
-            player_state['dy'] = -player_state['speed']
-        elif action == 'move_down':
-            player_state['dy'] = player_state['speed']
-        elif action == 'stop_move_down' and player_state['dy'] == player_state['speed']:
-            player_state['dy'] = 0
-        elif action == 'stop_move_up' and player_state['dy'] == -player_state['speed']:
-            player_state['dy'] = 0
-
-        elif action == 'pause_game':
-            paused = not paused
-
-        elif action == 'start_game' and self.game_running == False:
-            self.game_running = True
-            mode = data.get('mode')
-            print(f"Mode = {mode}", flush = True)
-            if mode == 'solo':
-                asyncio.create_task(launch_ai())
-            player_state['lifepoints'] = 5
-            players["player2"]['lifepoints'] = 5
-            await self.channel_layer.group_send(
-                f'game_{self.game_id}_ai',
-                {
-                    "type": "update_position"
-                }
-            )
-            self.game_task = asyncio.create_task(self.ball_loop())
-
-        elif action == 'reset_game':
-            reset_game()
-            await self.channel_layer.group_send(
-                self.group_name,
-                {"type": "update_position"}
-            )
-
-        elif action == 'quit_game':
-            # Nouveau bloc pour stopper la partie côté serveur
-            print("Action quit_game reçue => arrêt de la partie côté serveur", flush=True)
-            self.game_running = False
-            # Annuler la boucle si elle tourne
-            if hasattr(self, 'game_task') and not self.game_task.done():
-                self.game_task.cancel()
-                print("Tâche de jeu annulée (quit_game).", flush=True)
-
-            # On peut éventuellement envoyer un message "game_over"
-            await self.channel_layer.group_send(
-                self.group_name,
-                {
-                    "type": "game_over",
-                    "message": "Partie quittée."
-                }
-            )
-
-    async def update_position(self, event):
-        global ball_state, players
-        player_state = players[self.player_id]
-        opponent_state = None
-
-        for player_id, state in players.items():
-            if player_id != self.player_id:
-                opponent_state = state
-                break
-
-        # print(f"Player {self.player_id}: x={player_state['x']}, y={player_state['y']}, lifepoints={player_state['lifepoints']}")
-        # if opponent_state:
-        #     print(f"Opponent: x={opponent_state['x']}, y={opponent_state['y']}, lifepoints={opponent_state['lifepoints']}")
-
-        await self.send(text_data=json.dumps({
-            'type': 'position_update',
-            'ball_position': {
-                'x': ball_state['x'],
-                'y': ball_state['y'],
-                'dy': ball_state['dy'],
-                'dx': ball_state['dx'],
-            },
-            'player_state': {
-                'x': player_state['x'],
-                'y': player_state['y'],
-                'lifepoints': player_state['lifepoints'],
-            },
-            'opponent_state': {
-                'x': opponent_state['x'],
-                'y': opponent_state['y'],
-                'lifepoints': opponent_state['lifepoints'],
-            }
-        }))
-
-
-    async def start_game(self, event):
-        # Cette méthode est un exemple si tu utilises un "type": "start_game" dans un group_send
-        self.game_task = asyncio.create_task(self.ball_loop())
-
-    async def ball_loop(self):
-        global paused, ball_state, players
-        count = 0
+        """Reçoit les actions des joueurs et les transmet à la classe Game."""
         try:
-            while self.game_running:
-                if not paused:
-                    count += 1
-                    ball_updater()
-                    if "human" in self.group_name or count == 60:
-                        await self.channel_layer.group_send(
-                            self.group_name,
-                            {"type": "update_position"}
-                        )
+            data = json.loads(text_data)
+            action = data.get('action')
 
-                        if count == 60 :
-                            await self.channel_layer.group_send(
-                                f'game_{self.game_id}_ai',
-                                {"type": "update_position"}
-                            )
-                            print("Message sent to group : ", self.group_name)
-                            count = 0
-                    if players['player1']['lifepoints'] < 1 or players['player2']['lifepoints'] < 1:
-                        self.game_running = False
-                        message = "Game Over! Vous avez perdu." if players['player1']['lifepoints'] < 1 else "Congrats! You win."
-                        await self.channel_layer.group_send(
-                            self.group_name,
-                            {"type": "game_over", "message": message}
-                        )
-                        break
-                await asyncio.sleep(1 / 60)
-        except asyncio.CancelledError:
-            print("Boucle de jeu annulée.")
+            if not action:
+                return
 
+            if self.game:
+                self.game.handle_player_action(self.player_id, action)
+        except Exception as e:
+            print(f"Erreur lors de la réception d'un message : {e}")
 
-    async def game_over(self, event):
-        """
-        Méthode appelée pour gérer la fin du jeu.
-        """
-        await self.send(text_data=json.dumps({
-            "type": "game_over",
-            "message": event["message"]
-        }))
+    async def game_update(self, event):
+        """Envoie les mises à jour du jeu aux joueurs via WebSocket."""
+        await self.send(json.dumps(event["message"]))
 
-    async def game_state(self, event):
-        # Si besoin, une méthode pour transmettre l'état complet
-        await self.send(text_data=json.dumps(event['state']))

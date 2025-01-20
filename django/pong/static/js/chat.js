@@ -5,6 +5,10 @@ window.initChat = () => {
     const wsLog = document.getElementById("ws-log");
     const wsMessageInput = document.getElementById("ws-message");
     const sendWsMessageButton = document.getElementById("send-ws-message");
+    const messageList = document.getElementById("message-list"); // Conteneur pour les messages
+    const privateMsgBtn = document.getElementById("send-private-btn");
+    const targetUsernameInput = document.getElementById("target-username");
+
 
     // Fonction pour vérifier si l'utilisateur est authentifié
     async function checkAuthentication() {
@@ -14,7 +18,7 @@ window.initChat = () => {
                 headers: {
                     "X-Requested-With": "XMLHttpRequest",
                 },
-                credentials: "include", // Inclure les cookies
+                credentials: "include",
             });
 
             if (response.ok) {
@@ -37,38 +41,47 @@ window.initChat = () => {
     // Appeler la fonction de vérification au chargement
     checkAuthentication();
 
-    // Rafraîchir l'état d'authentification lorsqu'un utilisateur se connecte ou se déconnecte
-    // Vous pouvez écouter des événements personnalisés ou utiliser des mécanismes de polling si nécessaire
-
     // Connexion au WebSocket
     connectWsButton.addEventListener("click", () => {
+        
+        if (ws) {
+            console.log("Déjà connecté !");
+            return;
+        }
+        connectWsButton.disabled = true;
         ws = new WebSocket(`ws://${window.location.host}/ws/chat/`);
 
         ws.onopen = () => {
-            wsLog.textContent += "WebSocket connecté.\n";
+            addMessageToChat("System", "WebSocket connecté.");
             wsMessageInput.disabled = false;
             sendWsMessageButton.disabled = false;
+            privateMsgBtn.disabled = false;
             console.log("WebSocket connecté.");
         };
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.type === "chat_message") {
-                wsLog.textContent += `${data.username}: ${data.message}\n`;
+                const UserAndTime = `[${data.timestamp}] - ${data.username}`;
+                addMessageToChat(UserAndTime, data.message);
+            } else if (data.type === "private_message") {
+                const UserAndTime = `[${data.timestamp}] - ${data.username}`;
+                addMessageToChat(UserAndTime, data.message);
             } else if (data.type === "welcome") {
-                wsLog.textContent += `${data.message}\n`;
+                addMessageToChat("System", data.message);
             }
         };
 
         ws.onerror = (error) => {
-            wsLog.textContent += `Erreur WebSocket : ${error}\n`;
+            addMessageToChat("System", `Erreur WebSocket : ${error}`);
             console.error("Erreur WebSocket :", error);
         };
 
         ws.onclose = () => {
-            wsLog.textContent += "WebSocket déconnecté.\n";
+            addMessageToChat("System", "WebSocket déconnecté.");
             wsMessageInput.disabled = true;
             sendWsMessageButton.disabled = true;
+            privateMsgBtn.disabled = true;
             console.log("WebSocket déconnecté.");
         };
     });
@@ -78,12 +91,40 @@ window.initChat = () => {
         const message = wsMessageInput.value;
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ message }));
-            wsLog.textContent += `Message envoyé : ${message}\n`;
+            //addMessageToChat("Moi", message);
             wsMessageInput.value = "";
             console.log(`Message envoyé : ${message}`);
         } else {
-            wsLog.textContent += "WebSocket non connecté.\n";
+            addMessageToChat("System", "WebSocket non connecté.");
             console.warn("WebSocket non connecté.");
         }
+    });
+
+    // Fonction pour ajouter un message à la liste des messages
+    function addMessageToChat(username, message) {
+        const messageItem = document.createElement("div");
+        messageItem.classList.add("message-item");
+        messageItem.innerHTML = `<strong>${username}:</strong> ${message}`;
+        messageList.appendChild(messageItem);
+        messageList.scrollTop = messageList.scrollHeight; // Scroller automatiquement en bas
+    }
+
+    privateMsgBtn.addEventListener("click", () => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            addMessageToChat("System", "WebSocket non connecté.");
+            return;
+        }
+        const message = wsMessageInput.value;
+        const targetUsername = targetUsernameInput.value.trim();
+        if (!message || !targetUsername) {
+            addMessageToChat("System", "Veuillez saisir un message et le pseudo du destinaire !");
+            return;
+        } // Send le message JSON (avec target id)
+        ws.send(JSON.stringify({
+            message: message,
+            target_username: targetUsername
+        }));
+        wsMessageInput.value = ""; // Vider le champ mess.
+        console.log(`Message privé envoyé à ${targetUsername}: ${message}`);
     });
 };

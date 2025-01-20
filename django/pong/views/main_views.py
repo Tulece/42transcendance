@@ -16,7 +16,6 @@ from django.http import HttpResponseForbidden
 from urllib.parse import urlparse
 import json
 
-
 def home_view(request):
     """
     Gère la page d'accueil et les fragments AJAX pour la SPA.
@@ -111,20 +110,20 @@ def game_view(request):
 
 
 def chat_view(request):
+    """
+    Vue pour tester JWT et WebSocket - nécessite authentification.
+    """
     if not request.user.is_authenticated:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({"error": "Vous devez être connecté pour accéder au chat."}, status=403)
-            #return HttpResponseForbidden("Vous devez être connecté pour accéder au chat.")
+            return HttpResponseForbidden()
         else:
-            #return render(request, "403.html", {"message": "Vous devez être connecté pour accéder au chat."}, status=403)
             return redirect('/')
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render(request, "chat.html")
+        return render(request, "chat.html")  # Fragment AJAX
     return render(request, "base.html", {"initial_fragment": "chat.html"})
 
-#if not request.user.is_authenticated:
-#        return HttpResponseForbidden("Vous devez être connecté pour accéder au chat.")
-#    return render(request, 'chat.html')
+
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])  # Géré par DRF : session OU JWT

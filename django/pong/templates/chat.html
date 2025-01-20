@@ -1,9 +1,34 @@
-<div>
-    <h2>Tester WebSocket avec JWT</h2>
-    <button id="connect-ws" disabled>Se connecter au WebSocket</button>
-    <pre id="ws-log"></pre>
+<div id="live-chat-container">
+    <h2>Live Chat</h2>
+    <!-- Connexion WebSocket -->
+    <div id="connection-section">
+        <button id="connect-ws" disabled>Se connecter au WebSocket</button>
+        <pre id="ws-log">Log des événements WebSocket...</pre>
+    </div>
+    <div id="private-message-section">
+        <h3>Message privé</h3>
+        <label for="target-username">Pseudo du destinataire :</label>
+        <input type="text" id="target-username" placeholder="Entrez le pseudo: " />
+        <button id="send-private-btn" disabled>Envoyer le message privé</button>
+    </div>
 
-    <h2>Envoyer un message via WebSocket</h2>
-    <input type="text" id="ws-message" placeholder="Entrez votre message" disabled />
-    <button id="send-ws-message" disabled>Envoyer</button>
+    <!-- Messages reçus -->
+    <div id="messages-section">
+        <h3>Messages</h3>
+        <div id="message-list">
+            <!-- Les messages reçus apparaîtront ici -->
+        </div>
+    </div>
+
+    <!-- Envoi de message -->
+    <div id="send-message-section">
+        <h3>Envoyer un message</h3>
+        <input 
+            type="text" 
+            id="ws-message" 
+            placeholder="Entrez votre message" 
+            disabled 
+        />
+        <button id="send-ws-message" disabled>Envoyer</button>
+    </div>
 </div>
