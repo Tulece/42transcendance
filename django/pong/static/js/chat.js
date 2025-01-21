@@ -8,7 +8,10 @@ window.initChat = () => {
     const messageList = document.getElementById("message-list"); // Conteneur pour les messages
     const privateMsgBtn = document.getElementById("send-private-btn");
     const targetUsernameInput = document.getElementById("target-username");
-
+    const blockUsernameInput = document.getElementById("block-username");
+    const blockBtn = document.getElementById("block-btn");
+    const unblockUsernameInput = document.getElementById("unblock-username");
+    const unblockBtn = document.getElementById("unblock-btn");
 
     // Fonction pour vérifier si l'utilisateur est authentifié
     async function checkAuthentication() {
@@ -56,10 +59,13 @@ window.initChat = () => {
             wsMessageInput.disabled = false;
             sendWsMessageButton.disabled = false;
             privateMsgBtn.disabled = false;
+            blockBtn.disabled = false;
+            unblockBtn.disabled = false;
             console.log("WebSocket connecté.");
         };
-
+        // Message reçu du serveur
         ws.onmessage = (event) => {
+            console.log("Message WebSocket reçu :", event.data);
             const data = JSON.parse(event.data);
             if (data.type === "chat_message") {
                 const UserAndTime = `[${data.timestamp}] - ${data.username}`;
@@ -127,4 +133,39 @@ window.initChat = () => {
         wsMessageInput.value = ""; // Vider le champ mess.
         console.log(`Message privé envoyé à ${targetUsername}: ${message}`);
     });
+
+    blockBtn.addEventListener("click", () => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            addMessageToChat("System", "WebSocket non connecté. Impossible de bloquer l'utilisateur.");
+            return;
+        }
+        const userToBlock = blockUsernameInput.value.trim();
+        if (!userToBlock) {
+            addMessageToChat("System", "Veuillez entrer un pseudo pour bloquer un utilisateur.");
+            return;
+        }
+        ws.send(JSON.stringify({
+            action: "block_user",
+            username_to_block: userToBlock
+        }));
+        console.log(`Requête pour bloquer l'utilisateur : ${userToBlock}`);
+    });
+    
+    unblockBtn.addEventListener("click", () => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            addMessageToChat("System", "WebSocket non connecté. Impossible de débloquer l'utilisateur.");
+            return;
+        }
+        const userToUnblock = unblockUsernameInput.value.trim();
+        if (!userToUnblock) {
+            addMessageToChat("System", "Veuillez entrer un pseudo pour débloquer un utilisateur.");
+            return;
+        }
+        ws.send(JSON.stringify({
+            action: "unblock_user",
+            username_to_unblock: userToUnblock
+        }));
+        console.log(`Requête pour débloquer l'utilisateur : ${userToUnblock}`);
+    });
+    
 };
