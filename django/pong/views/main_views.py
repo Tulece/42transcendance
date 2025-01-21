@@ -1,6 +1,6 @@
 # main_views.py
 from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
+from pong.models import CustomUser as User
 from django.contrib.auth.hashers import make_password
 from django.core.files.storage import FileSystemStorage
 from rest_framework_simplejwt.tokens import RefreshToken

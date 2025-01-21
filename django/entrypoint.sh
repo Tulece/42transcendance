@@ -8,13 +8,16 @@ done
 
 # Appliquer les migrations
 echo "Applying database migrations..."
+python manage.py makemigrations pong
 python manage.py migrate
 
 # Créer le superutilisateur
 echo "Creating superuser if not exists..."
 python manage.py shell <<EOF
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 import os
+
+User = get_user_model()
 
 username = os.getenv('DJANGO_SUPERUSER_USERNAME', 'admin')
 email = os.getenv('DJANGO_SUPERUSER_EMAIL', 'admin@example.com')

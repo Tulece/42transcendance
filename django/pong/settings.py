@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
-    'pong',
+    'pong.apps.PongConfig',
 ]
 
 
@@ -183,3 +183,5 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = '42transcendencemailer@gmail.com'
 EMAIL_HOST_PASSWORD = 'nnle uutz gqpn zduu'
+
+AUTH_USER_MODEL = 'pong.CustomUser'
