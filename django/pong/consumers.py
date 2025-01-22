@@ -9,76 +9,206 @@ import json
 from .logic.lobby import Lobby
 import uuid
 import asyncio
-
+from channels.db import database_sync_to_async
+from pong.models import CustomUser
+from datetime import datetime
 
 class ChatConsumer(AsyncWebsocketConsumer):
     """
-    Consommateur WebSocket pour le chat avec authentification basée sur la session.
+    Consommateur WebSocket pour le chat avec authentification basée sur la session et fonctionnalités avancées.
     """
+    room_group_name = None
+
     async def connect(self):
         print("Tentative de connexion WebSocket.")
+        self.user = self.scope.get("user", None)
 
-        # Afficher tout ce qui est disponible dans le scope
-        print("Scope complet :", self.scope)
-
-        user = self.scope.get("user", None)
-        print("Utilisateur récupéré depuis le scope :", user)
-
-        if not user or not user.is_authenticated:
+        if not self.user or not self.user.is_authenticated:
             print("Utilisateur non authentifié. Fermeture de la connexion.")
             await self.close(code=4003)
             return
 
-        print(f"Utilisateur authentifié : {user.username}")
-        self.username = user.username or "Anonyme"
+        self.username = self.user.username or "Anonyme"
 
-        # Extraction et affichage des query parameters
-        query_params = parse_qs(self.scope["query_string"].decode("utf-8"))
-        print("Query parameters reçus :", query_params)
-
-        token = query_params.get("token", [None])[0]
-        print(f"Token reçu : {token}")
-
-        if token:
-            try:
-                payload = jwt_decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-                print("Payload décodé du JWT :", payload)
-                self.username = payload.get("username", self.username)
-                print(f"Utilisateur authentifié via JWT : {self.username}")
-            except InvalidToken:
-                print("Token JWT invalide. Fermeture de la connexion.")
-                await self.close(code=4003)
-                return
-            except Exception as e:
-                print(f"Erreur inattendue lors du décodage du token : {e}")
-                await self.close(code=4003)
-                return
+        # Charger les utilisateurs bloqués
+        self.blocked_users_ids = await self.get_blocked_users_ids()
+        self.blocked_by_ids = await self.get_blocked_by_ids()
 
         await self.accept()
         print(f"Connexion WebSocket acceptée pour l'utilisateur : {self.username}")
+
+        # Définir les groupes
+        self.room_group_name = "chat_room"
+        self.personal_group = f"user_{self.user.id}"
+
+        # Joindre les groupes
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}")
+        await self.channel_layer.group_add(self.personal_group, self.channel_name)
+
+        # Envoi d’un message de bienvenue
         await self.send(json.dumps({
             "type": "welcome",
             "message": f"Bienvenue, {self.username} !"
         }))
 
     async def disconnect(self, close_code):
-        print(f"Déconnexion de l'utilisateur : {self.username}, code : {close_code}")
+        if self.room_group_name:
+            await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        if self.personal_group:
+            await self.channel_layer.group_discard(self.personal_group, self.channel_name)
+        print(f"Déconnexion de l'utilisateur {self.username} - code: {close_code}")
 
     async def receive(self, text_data):
         print("Message reçu brut :", text_data)
         try:
+            if not text_data:
+                await self.send(json.dumps({"type": "error", "message": "Message vide"}))
+                return
+
             data = json.loads(text_data)
-            print("Message parsé :", data)
+            action = data.get("action")
+
+            if action == "block_user":
+                username_to_block = data.get("username_to_block")
+                await self.block_user(username_to_block)
+                return
+            elif action == "unblock_user":
+                username_to_unblock = data.get("username_to_unblock")
+                await self.unblock_user(username_to_unblock)
+                return
+
             message = data.get("message", "")
-            print(f"Message à traiter : {message}")
-            await self.send(json.dumps({
-                "type": "chat_message",
-                "username": self.username,
-                "message": message
-            }))
+            target_username = data.get("target_username")
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            if target_username:
+                await self.send_private_message(target_username, message)
+            else:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "chat_message",
+                        "sender_id": self.user.id,
+                        "sender": self.username,
+                        "message": message,
+                        "timestamp": timestamp
+                    }
+                )
         except Exception as e:
             print(f"Erreur lors du traitement du message : {e}")
-            await self.send(json.dumps({"type": "error", "message": "Erreur lors du traitement du message."}))
+            await self.send(json.dumps({
+                "type": "error",
+                "message": "Erreur lors du traitement du message."
+            }))
+
+    async def chat_message(self, event):
+        sender_id = event["sender_id"]
+        if sender_id in self.blocked_users_ids:
+            print(f"Message ignoré car l'utilisateur {sender_id} est bloqué.")
+            return
+
+        sender = event["sender"]
+        message = event["message"]
+        timestamp = event["timestamp"]
+
+        await self.send(json.dumps({
+            "type": "chat_message",
+            "username": sender,
+            "message": message,
+            "timestamp": timestamp
+        }))
+
+    @database_sync_to_async
+    def get_blocked_users_ids(self):
+        return list(self.user.blocked_users.values_list('id', flat=True))
+
+    @database_sync_to_async
+    def get_blocked_by_ids(self):
+        return list(self.user.blocked_by.values_list('id', flat=True))
+
+    @database_sync_to_async
+    def block_user_in_db(self, user_to_block_username):
+        user_to_block = CustomUser.objects.get(username=user_to_block_username)
+        self.user.blocked_users.add(user_to_block)
+        return user_to_block
+
+    @database_sync_to_async
+    def unblock_user_in_db(self, user_to_unblock_username):
+        user_to_unblock = CustomUser.objects.get(username=user_to_unblock_username)
+        self.user.blocked_users.remove(user_to_unblock)
+        return user_to_unblock
+
+    async def send_private_message(self, target_username, message):
+        try:
+            found_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)
+        except CustomUser.DoesNotExist:
+            await self.send(json.dumps({
+                "type": "error",
+                "message": f"L'utilisateur '{target_username}' est introuvable."
+            }))
+            return
+
+        target_group = f"user_{found_user.id}"
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        await self.channel_layer.group_send(
+            target_group,
+            {
+                "type": "private_message",
+                "sender_id": self.user.id,
+                "sender": self.username,
+                "message": message,
+                "timestamp": timestamp
+            }
+        )
+
+    async def private_message(self, event):
+        sender_id = event["sender_id"]
+        if sender_id in self.blocked_users_ids:
+            return
+
+        sender = event["sender"]
+        message = event["message"]
+        timestamp = event["timestamp"]
+
+        await self.send(json.dumps({
+            "type": "private_message",
+            "username": sender,
+            "message": message,
+            "timestamp": timestamp
+        }))
+
+    async def block_user(self, username_to_block):
+        try:
+            blocked_user = await self.block_user_in_db(username_to_block)
+            self.blocked_users_ids.append(blocked_user.id)
+
+            await self.send(json.dumps({
+                "type": "system",
+                "message": f"Vous avez bloqué {blocked_user.username}"
+            }))
+        except CustomUser.DoesNotExist:
+            await self.send(json.dumps({
+                "type": "error",
+                "message": f"L’utilisateur {username_to_block} n’existe pas."
+            }))
+
+    async def unblock_user(self, username_to_unblock):
+        try:
+            unblocked_user = await self.unblock_user_in_db(username_to_unblock)
+            if unblocked_user.id in self.blocked_users_ids:
+                self.blocked_users_ids.remove(unblocked_user.id)
+
+            await self.send(json.dumps({
+                "type": "system",
+                "message": f"Vous avez débloqué {unblocked_user.username}"
+            }))
+        except CustomUser.DoesNotExist:
+            await self.send(json.dumps({
+                "type": "error",
+                "message": f"L’utilisateur {username_to_unblock} n’existe pas."
+            }))
 
 
 class LobbyConsumer(AsyncWebsocketConsumer):
