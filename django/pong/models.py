@@ -14,6 +14,7 @@ class CustomUser(AbstractUser):
         blank=True
     )
 
+    is_a2f_enabled = models.BooleanField(default=True)
     # Champs nécessaires pour l'authentification via 42
     is_42_user = models.BooleanField(default=False)
     intra_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
