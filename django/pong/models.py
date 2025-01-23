@@ -14,5 +14,12 @@ class CustomUser(AbstractUser):
         blank=True
     )
 
+    # Champs nécessaires pour l'authentification via 42
+    is_42_user = models.BooleanField(default=False)
+    intra_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    access_token = models.CharField(max_length=255, null=True, blank=True)
+    refresh_token = models.CharField(max_length=255, null=True, blank=True)
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+
     def __str__(self):
         return self.username
