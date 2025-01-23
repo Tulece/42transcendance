@@ -4,10 +4,11 @@ let gameSocket = null;
 let game_running = false;
 let key_pressed = {};
 let host = ""
+let role = ""
 
 const ball = { x: 0, y: 0, radius: 5 };
-const player = { x: 0, y: 0, hp: 5 };
-const opponent = { x: 0, y: 0, hp: 5 };
+const player1 = { x: 0, y: 0, hp: 5 };
+const player2 = { x: 0, y: 0, hp: 5 };
 
 window.initPong = function () {
     console.log("Initialisation du jeu Pong...");
@@ -30,12 +31,10 @@ function setupCanvas() {
 function connectToLobby() {
 	host = window.location.hostname;
     lobbySocket = new WebSocket(`ws://${host}:8000/ws/matchmaking/`);
+	let dots = 0;
 
     lobbySocket.onopen = () => {
         console.log("Connexion au lobby établie.");
-		//?? Here I have to developp the message to tell the llobby either to add me to  the waiting queue or ton launch an AI bot and launch a game with it 
-        //?? For this, i meed to get the query part of the url that lead me here, can window.location helps ?
-		// Try :
 		const queryString = window.location.search;
         const params = new URLSearchParams(queryString);
         const mode = params.get("mode");
@@ -50,9 +49,12 @@ function connectToLobby() {
         if (data.type === "game_found") {
             console.log(`Partie trouvée : ${data.game_id}`);
             lobbySocket.close();
+			role = data.role;
             connectToGame(data.game_id, data.role);
         } else if (data.type === "waiting") {
-            displayWaitingMessage(data.message || "En attente d'un adversaire...");
+			dots %= 3;
+            displayWaitingMessage(data.message, dots);
+			++dots;
         }
     };
 
@@ -65,10 +67,17 @@ function connectToLobby() {
     };
 }
 
-function displayWaitingMessage(message) {
+function displayWaitingMessage(message, dots) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = "20px Arial";
-    ctx.fillText(message, canvas.width / 2 - 100, canvas.height / 2);
+	ctx.fillStyle = "white";
+	let x_pos = canvas.width / 2 - 100;
+    ctx.fillText(message, x_pos, canvas.height / 2);
+	const textMetrics = ctx.measureText(message);
+	const textWidth = textMetrics.width;
+	for (i = 0; i <= dots; ++i) {
+		ctx.fillText(".", x_pos + textWidth + (i * 10), canvas.height / 2);
+	}
 }
 
 function connectToGame(gameId, role) {
@@ -97,17 +106,15 @@ function connectToGame(gameId, role) {
 
 function handleGameMessage(data, role) {
 	console.log("Message received: ", data);
-	player_tmp = (role == "player1" ? data.player1_state : data.player2_state);
-	opponent_tmp = (role == "player1" ? data.player2_state : data.player1_state);
     if (data.type === "position_update") {
         ball.x = data.ball_position.x;
         ball.y = data.ball_position.y;
-        player.x = player_tmp.x;
-        player.y = player_tmp.y;
-        player.hp = player_tmp.lifepoints;
-        opponent.x = opponent_tmp.x;
-        opponent.y = opponent_tmp.y;
-        opponent.hp = opponent_tmp.lifepoints;
+        player1.x = data.player1_state.x;
+        player1.y = data.player1_state.y;
+        player1.hp = data.player1_state.lifepoints;
+        player2.x = data.player2_state.x;
+        player2.y = data.player2_state.y;
+        player2.hp = data.player2_state.lifepoints;
         updateCanvas();
     } else if (data.type === "game_over") {
         alert(data.message);
@@ -181,23 +188,27 @@ function updateCanvas() {
 }
 
 function drawPlayer() {
+	let color = role == "player1" ? "blue" : "red";
     ctx.font = "20px Arial";
+	ctx.fillStyle = color;
     ctx.fillText("hp:", 10, 20);
-    for (let i = 0; i < player.hp; ++i) {
+    for (let i = 0; i < player1.hp; ++i) {
         drawHeart(50 + i * 15, 10, 10);
     }
-    ctx.fillStyle = "blue";
-    ctx.fillRect(player.x, player.y, 10, 70);
+	ctx.fillStyle = color;
+    ctx.fillRect(player1.x, player1.y, 10, 70);
 }
 
 function drawOpponent() {
+	let color = role == "player2" ? "blue" : "red";
     ctx.font = "20px Arial";
+	ctx.fillStyle = color;
     ctx.fillText("hp:", canvas.width - 115, 20);
-    for (let i = 0; i < opponent.hp; ++i) {
+    for (let i = 0; i < player2.hp; ++i) {
         drawHeart(canvas.width - (5 - i) * 15, 10, 10);
     }
-    ctx.fillStyle = "red";
-    ctx.fillRect(opponent.x, opponent.y, 10, 70);
+	ctx.fillStyle = color;
+    ctx.fillRect(player2.x, player2.y, 10, 70);
 }
 
 function drawBall() {

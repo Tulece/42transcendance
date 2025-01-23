@@ -8,6 +8,7 @@ PADDLE_SIZE = 70
 PADDLE_WIDTH = 10
 CANVAS_WIDTH = 800
 CANVAS_HEIGHT = 400
+BALL_RADIUS = 5
 UPDATE_INTERVAL = 1 / 60
 
 DEFAULT_PLAYER_ONE_STATE = {
@@ -29,7 +30,7 @@ DEFAULT_BALL_STATE = {
     'x': CANVAS_WIDTH / 2,
     'dx': -5,
     'dy': 5,
-    'radius': 5,
+    'radius': BALL_RADIUS,
 }
 
 class Game:
@@ -37,14 +38,16 @@ class Game:
         self.game_id = game_id
         self.player1 = player1
         self.player2 = player2
+        self.game_over = False
         self.players = {
-            "player1": {**DEFAULT_PLAYER_ONE_STATE, 'lifepoints': 5},
-            "player2": {**DEFAULT_PLAYER_TWO_STATE, 'lifepoints': 5},
+            "player1": {**DEFAULT_PLAYER_ONE_STATE, 'lifepoints': 5, 'disconnected': False},
+            "player2": {**DEFAULT_PLAYER_TWO_STATE, 'lifepoints': 5, 'disconnected': False},
         }
         self.ball_state = DEFAULT_BALL_STATE.copy()
         self.paused = False
         self.running = False
         self.channel_layer = get_channel_layer()
+        self.send_game_state()
 
     async def start(self):
         """Démarre la boucle de jeu."""
@@ -56,7 +59,7 @@ class Game:
                     await self.send_game_state()
                 await asyncio.sleep(1 / 60)
         except asyncio.CancelledError:
-            print(f"Game {self.game_id} annulée.")
+            print(f"Game {self.game_id} annulée.", flush=True)
 
     def stop(self):
         """Arrête la boucle de jeu."""
@@ -64,9 +67,36 @@ class Game:
 
     def update_game_state(self):
         """Mise à jour de la logique du jeu (balle, paddles, etc.)."""
-        ball_updater(self)
+        if (self.players['player1']['lifepoints'] <= 0
+            or self.players['player2']['lifepoints'] <= 0
+            or self.players['player1']['disconnected']
+            or self.players['player2']['disconnected']):
+            self.game_over = True
+        else:
+            ball_updater(self)
 
     async def send_game_state(self):
+        if self.game_over == True:
+            if self.players['player1']['lifepoints'] <= 0:
+                reason, player = "lifepoints", "player1"
+            elif self.players['player2']['lifepoints'] <= 0:
+                reason, player = "lifepoints", "player2"
+            elif self.players['player1']['disconnected']:
+                reason, player = "disconnected", "player1"
+            elif self.players['player2']['disconnected']:
+                reason, player = "disconnected", "player2"
+            await self.channel_layer.group_send(
+                self.game_id,
+                {
+                    "type": "game_update",
+                    "message": {
+                        "type": "game_over",
+                        "message": f"{player} {reason}"
+                    }
+                }
+            )
+            self.stop()
+            return
         await self.channel_layer.group_send(
             self.game_id,
             {
@@ -93,6 +123,19 @@ class Game:
             }
         )
 
+    async def send_game_over(self, reason, player):
+        print("send_game_over called", flush=True)
+        await self.channel_layer.group_send(
+            self.game_id,
+            {
+                "type": "game_update",
+                "message": {
+                    "type": "game_over",
+                    "message": f"{player} {reason}"
+                }
+            }
+        )
+
 
     def handle_player_action(self, player_id, action):
         """Gère les actions des joueurs (déplacements, pause, etc.)."""
@@ -107,6 +150,14 @@ class Game:
             player_state["dy"] = 0
         elif action == "pause_game":
             self.paused = not self.paused
+
+    def handle_player_disconnect(self, player_id):
+        if player_id not in self.players:
+            print("not the good id", flush = True)
+            return
+        disconnected = self.players[player_id]
+        disconnected['disconnected'] = True
+
 
     def reset_pos(self):
         self.players['player1'].update(DEFAULT_PLAYER_ONE_STATE)

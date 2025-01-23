@@ -89,7 +89,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         self.game_id = None
 
         await self.accept()
-        print(f"Joueur {self.player_id} connecté au lobby.")
+        print(f"Joueur {self.player_id} connecté au lobby.", flush=True)
 
     async def disconnect(self, close_code):
         """Gère la déconnexion d'un joueur du lobby."""
@@ -106,8 +106,8 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         elif action == "quit_queue":
             await self.handle_quit_queue()
 
-    async def handle_find_game(self, mode):
-        """Gère la demande de recherche d'une partie."""
+    async def handle_find_game(self, mode, elo = 1000):
+        """Gère la demande de recherche d'une partie en fonction de l'ELO."""
         if mode == 'solo':
             game_id, player1 = await self.lobby.create_solo_game(self)
             await player1.send(json.dumps({
@@ -115,32 +115,36 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 "game_id": game_id,
                 "role": "player1"
             }))
-            return
-        self.lobby.add_player_to_queue(self)
-        print(f"Joueur {self.player_id} en attente d'une partie.")
+        else:
+            self.lobby.add_player_to_queue(self, elo)
 
-        if self.lobby.get_queue_len() >= 2:
-            game_id, player1, player2 = await self.lobby.create_game()
+            self.waiting_task = asyncio.create_task(self.send_waiting_messages())
 
-            await player1.send(json.dumps({
-                "type": "game_found",
-                "game_id": game_id,
-                "role": "player1"
-            }))
-            await player2.send(json.dumps({
-                "type": "game_found",
-                "game_id": game_id,
-                "role": "player2"
-            }))
+            print(f"Joueur {self.player_id} en attente d'une partie (ELO {elo}).", flush=True)
 
     async def handle_quit_queue(self):
         """Gère la demande de quitter la file d'attente."""
+        if self.waiting_task:
+            self.waiting_task.cancel()
+
         self.lobby.remove_player_from_queue(self)
         await self.send(json.dumps({
             "type": "queue_left",
             "message": "Vous avez quitté la file d'attente."
         }))
-        print(f"Joueur {self.player_id} a quitté la file d'attente.")
+        print(f"Joueur {self.player_id} a quitté la file d'attente.", flush=True)
+
+    async def send_waiting_messages(self):
+        """Envoie des messages de statut régulièrement."""
+        try:
+            while True:
+                await self.send(json.dumps({
+                    "type": "waiting",
+                    "message": "En attente d'un adversaire"
+                }))
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            pass
 
 
 class PongConsumer(AsyncWebsocketConsumer):
@@ -156,6 +160,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
         self.player_id = query_params.get('player_id', [None])[0]
+        self.is_ai = query_params.get('mode', ['human'])[0] == 'solo' and self.player_id == 'player2'
 
         if not self.player_id or self.player_id not in ["player1", "player2"]:
             await self.close()
@@ -164,16 +169,16 @@ class PongConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.game_id, self.channel_name)
 
         await self.accept()
-        print(f"Joueur {self.player_id} connecté à la partie {self.game_id}.")
+        print(f"Joueur {self.player_id} connecté à la partie {self.game_id}.", flush=True)
 
     async def disconnect(self, close_code):
         """Gère la déconnexion d'un joueur."""
         await self.channel_layer.group_discard(self.game_id, self.channel_name)
-        print(f"Joueur {self.player_id} déconnecté de la partie {self.game_id}.")
+        print(f"Joueur {self.player_id} déconnecté de la partie {self.game_id}.", flush=True)
 
         # Si nécessaire, notifier la classe Game ou le Lobby
-        # if self.game:
-        #     self.game.handle_player_disconnect(self.player_id)
+        if self.game:
+            self.game.handle_player_disconnect(self.player_id)
 
     async def receive(self, text_data):
         """Reçoit les actions des joueurs et les transmet à la classe Game."""
@@ -191,5 +196,6 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def game_update(self, event):
         """Envoie les mises à jour du jeu aux joueurs via WebSocket."""
+        # print("Received game update:", event, flush=True)
         await self.send(json.dumps(event["message"]))
 
