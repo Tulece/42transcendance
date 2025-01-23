@@ -7,3 +7,4 @@ daphne
 whitenoise
 websockets
 pyotp
+Pillow

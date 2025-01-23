@@ -18,12 +18,14 @@
     });
 
     async function navigateTo(url, pushState = true) {
-        console.log("[navigateTo]", url);
+        console.log("[navigateTo]", url, " From : ", location.pathname);
 
-        if (location.pathname === url && pushState) {
+        if (location.pathname === url.split("?")[0] && pushState) {
             console.log("[navigateTo] Déjà sur l'URL:", url);
             return;
         }
+
+        handlePageUnload(location.pathname);
 
         if (pushState) {
             history.pushState(null, "", url);
@@ -59,6 +61,21 @@
         }
     }
 
+    function handlePageUnload(oldUrl) {
+        if (!oldUrl) return;
+    
+        if (oldUrl.includes("/game")) {
+            if (typeof window.destroyPong === "function") {
+                window.destroyPong();
+            }
+            let oldScript = document.querySelector('script[src="/static/js/pong.js"]');
+            if (oldScript) {
+                console.log("old script removed");
+                oldScript.remove();
+            }
+        }
+    }
+
 
     function handlePageSpecificScripts(url) {
         if (url.includes("/game")) {
@@ -72,6 +89,10 @@
         } else if (url.includes("/login")) {
             loadScriptOnce("/static/js/login.js", () => {
                 console.log("Script de connexion chargé.");
+            });
+        } else if (url.includes("/account")) {
+            loadScriptOnce("/static/js/account.js", () => {
+                console.log("Script de la page compte chargé.");
             });
         }
     }

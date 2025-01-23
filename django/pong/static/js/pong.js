@@ -3,6 +3,7 @@ let lobbySocket = null;
 let gameSocket = null;
 let game_running = false;
 let key_pressed = {};
+let host = ""
 
 const ball = { x: 0, y: 0, radius: 5 };
 const player = { x: 0, y: 0, hp: 5 };
@@ -27,11 +28,20 @@ function setupCanvas() {
 }
 
 function connectToLobby() {
-    lobbySocket = new WebSocket('ws://localhost:8000/ws/matchmaking/');
+	host = window.location.hostname;
+    lobbySocket = new WebSocket(`ws://${host}:8000/ws/matchmaking/`);
 
     lobbySocket.onopen = () => {
         console.log("Connexion au lobby établie.");
-        lobbySocket.send(JSON.stringify({ action: "find_game" }));
+		//?? Here I have to developp the message to tell the llobby either to add me to  the waiting queue or ton launch an AI bot and launch a game with it 
+        //?? For this, i meed to get the query part of the url that lead me here, can window.location helps ?
+		// Try :
+		const queryString = window.location.search;
+        const params = new URLSearchParams(queryString);
+        const mode = params.get("mode");
+		console.log(mode);
+		console.log(mode);
+		lobbySocket.send(JSON.stringify({ action: "find_game", mode: mode }));
     };
 
     lobbySocket.onmessage = (event) => {
@@ -62,7 +72,7 @@ function displayWaitingMessage(message) {
 }
 
 function connectToGame(gameId, role) {
-    gameSocket = new WebSocket(`ws://localhost:8000/ws/game/${gameId}/?player_id=${role}`);
+    gameSocket = new WebSocket(`ws://${host}:8000/ws/game/${gameId}/?player_id=${role}`);
 
     gameSocket.onopen = () => {
         console.log(`Connecté à la partie : ${gameId}, rôle : ${role}`);
@@ -210,7 +220,7 @@ function drawHeart(x, y, size) {
 window.destroyPong = function () {
     console.log("destroyPong() called.");
 	destroyGameControls();
-	// destroyLobbySocket(); 
+	destroyLobbySocket(); 
 	destroyGameSocket();
     if (gameSocket && gameSocket.readyState === WebSocket.OPEN) {
         gameSocket.send(JSON.stringify({ action: "quit_game" }));

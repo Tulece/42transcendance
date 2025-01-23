@@ -1,0 +1,10 @@
+<div class="menu-account">
+    <h1 class="menu-title">Mon compte</h1>
+    <label for="user">Nom : {{ user.display_name }}</label>
+    <br>
+    <label for="a2f">Activer l'authentification à deux facteurs : </label>
+    <input type="checkbox" id="a2f" {% if user.is_a2f_enabled %}checked{% endif %} onchange="toggleA2F()">
+    <span id="a2f-status">{% if user.is_a2f_enabled %}Activé{% else %}Désactivé{% endif %}</span>
+    <br>
+    <button id="save-btn" onclick="saveChanges()">Enregistrer</button>
+</div>

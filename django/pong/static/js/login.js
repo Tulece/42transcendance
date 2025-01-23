@@ -22,11 +22,11 @@
                     "Content-Type": "application/json",
                     "X-CSRFToken": getCSRFToken()
                 },
-                body: JSON.stringify({ 
-                    username, 
+                body: JSON.stringify({
+                    username,
                     password,
                     otp_code: otpCode,
-                    next: nextUrl 
+                    next: nextUrl
                 })
             });
 
@@ -48,7 +48,7 @@
                 loginError.textContent = data.error || "Erreur inconnue";
                 loginError.style.color = "red";
                 if (data.error.includes("Code de vérification")) {
-                    // reset si ya error
+                    // Réinitialise le champ OTP en cas d'erreur
                     document.getElementById("otp_code").value = "";
                 }
             }
