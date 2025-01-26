@@ -18,12 +18,14 @@
     });
 
     async function navigateTo(url, pushState = true) {
-        console.log("[navigateTo]", url);
+        console.log("[navigateTo]", url, " From : ", location.pathname);
 
-        if (location.pathname === url && pushState) {
+        if (location.pathname === url.split("?")[0] && pushState) {
             console.log("[navigateTo] Déjà sur l'URL:", url);
             return;
         }
+
+        handlePageUnload(location.pathname);
 
         if (pushState) {
             history.pushState(null, "", url);
@@ -56,6 +58,21 @@
 
         } catch (error) {
             console.error("Erreur réseau :", error);
+        }
+    }
+
+    function handlePageUnload(oldUrl) {
+        if (!oldUrl) return;
+    
+        if (oldUrl.includes("/game")) {
+            if (typeof window.destroyPong === "function") {
+                window.destroyPong();
+            }
+            let oldScript = document.querySelector('script[src="/static/js/pong.js"]');
+            if (oldScript) {
+                console.log("old script removed");
+                oldScript.remove();
+            }
         }
     }
 

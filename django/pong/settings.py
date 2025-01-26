@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
-    'pong',
+    'pong.apps.PongConfig',
 ]
 
 
@@ -175,3 +175,13 @@ CHANNEL_LAYERS = {
 CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
+
+# Configuration de l'email pour l'A2F
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = '42transcendencemailer@gmail.com'
+EMAIL_HOST_PASSWORD = 'nnle uutz gqpn zduu'
+
+AUTH_USER_MODEL = 'pong.CustomUser'

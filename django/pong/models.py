@@ -1,24 +1,25 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.contrib.auth.models import User
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
-# Pour créer auto un profil lors de la création d'un user.
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(user=instance)
+class CustomUser(AbstractUser):
+    display_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    avatar = models.ImageField(upload_to='avatars/', default='avatars/default.jpg')
+    online_status = models.BooleanField(default=False)
 
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    instance.profile.save()
+    # Un utilisateur peut bloquer d'autres utilisateurs
+    blocked_users = models.ManyToManyField(
+        'self',
+        symmetrical=False,
+        related_name='blocked_by',
+        blank=True
+    )
 
-# Profile.blocked_users est un ManyToManyFiled vers User
-# User a donc un champ blocked_by, ce qui indique "qui m'a bloqué"
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile') # Il existe une instance de Profile pour un User.
-    blocked_users = models.ManyToManyField(User, related_name='blocked_by', blank=True) # Un profil peut contenir une liste de users bloqués.
+    # Champs nécessaires pour l'authentification via 42
+    is_42_user = models.BooleanField(default=False)
+    intra_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    access_token = models.CharField(max_length=255, null=True, blank=True)
+    refresh_token = models.CharField(max_length=255, null=True, blank=True)
+    token_expires_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Profil de {self.user.username}"
-
+        return self.username

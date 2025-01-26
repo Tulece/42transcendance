@@ -1,13 +1,18 @@
+// login.js
 (function () {
     const form = document.getElementById("login-form");
     if (!form) return;
 
-    form.addEventListener("submit", async function (event) {
-        event.preventDefault(); // Pas de form HTML classique
+    let waitingForOTP = false;
+    const otpContainer = document.getElementById("otp-container");
+    const loginError = document.getElementById("login-error");
 
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
         const formData = new FormData(form);
         const username = formData.get("username");
         const password = formData.get("password");
+        const otpCode = formData.get("otp_code");
         const nextUrl = formData.get("next") || "/";
 
         try {
@@ -17,31 +22,40 @@
                     "Content-Type": "application/json",
                     "X-CSRFToken": getCSRFToken()
                 },
-                body: JSON.stringify({ username, password, next: nextUrl })
+                body: JSON.stringify({
+                    username,
+                    password,
+                    otp_code: otpCode,
+                    next: nextUrl
+                })
             });
 
+            const data = await response.json();
+
             if (response.ok) {
-                const data = await response.json();
-                if (data.success) {
+                if (data.requires_otp) {
+                    // Affiche le champ OTP
+                    waitingForOTP = true;
+                    otpContainer.style.display = "block";
+                    loginError.textContent = data.message;
+                    loginError.style.color = "green";
+                } else if (data.success) {
                     alert("Connexion réussie !");
                     await updateUserInfo();
                     window.location.href = data.redirect || "/";
-                } else {
-                    alert(data.error || "Erreur inconnue");
                 }
             } else {
-                let errorMessage = "Erreur de connexion.";
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.error || errorMessage;
-                } catch (e) {
-                    console.error("Réponse non JSON :", e);
+                loginError.textContent = data.error || "Erreur inconnue";
+                loginError.style.color = "red";
+                if (data.error.includes("Code de vérification")) {
+                    // Réinitialise le champ OTP en cas d'erreur
+                    document.getElementById("otp_code").value = "";
                 }
-                alert(errorMessage);
             }
         } catch (error) {
             console.error("Erreur réseau :", error);
-            alert("Erreur réseau. Impossible de se connecter.");
+            loginError.textContent = "Erreur réseau. Impossible de se connecter.";
+            loginError.style.color = "red";
         }
     });
 })();

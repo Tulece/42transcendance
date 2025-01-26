@@ -1,0 +1,71 @@
+<div id="live-chat-container">
+    <div class="row">
+        <div class="col">
+            <h2>Live Chat</h2>
+            <!-- Connexion WebSocket -->
+            <div id="connection-section">
+                <button id="connect-ws" disabled>Se connecter au WebSocket</button>
+                <pre id="ws-log">Log des événements WebSocket...</pre>
+            </div>
+        </div>
+
+        <div class="col">
+            <!-- Messages reçus -->
+            <div id="messages-section">
+                <h3>Messages</h3>
+                <div id="message-list">
+                    <!-- Les messages reçus apparaîtront ici -->
+                </div>
+            </div>
+
+            <div id="private-message-section">
+                <h3>Message privé</h3>
+                <label for="target-username">Pseudo du destinataire :</label>
+                <input type="text" id="target-username" placeholder="Entrez le pseudo: " />
+                <button id="send-private-btn" disabled>Envoyer le message privé</button>
+            </div>
+
+            <!-- Envoi de message -->
+            <div id="send-message-section">
+                <h3>Envoyer un message</h3>
+                <input
+                    type="text"
+                    id="ws-message"
+                    placeholder="Entrez votre message"
+                    disabled
+                />
+                <button id="send-ws-message" disabled>Envoyer</button>
+            </div>
+        </div>
+
+        <div class="col">
+            <!-- Gestion blocage/déblocage user -->
+            <div>
+                <h3>Bloquer un utilisateur</h3>
+                <input type="text" id="block-username" placeholder="Pseudo à bloquer" />
+                <button id="block-btn" disabled>Bloquer</button>
+            </div>
+            <div>
+                <h3>Débloquer un utilisateur</h3>
+                <input type="text" id="unblock-username" placeholder="Pseudo à débloquer" />
+                <button id="unblock-btn" disabled>Débloquer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!--
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+            Première colonne
+            <h1>Bienvenue sur Proxyjeza</h1>
+        </div>
+        <div class="col">
+            Deuxième colonne
+            <p>Explorez notre application et commencez à jouer à Pong !</p>
+        </div>
+    </div>
+</div>
+-->

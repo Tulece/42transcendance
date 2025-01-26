@@ -1,7 +1,8 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import AccessToken
-from django.contrib.auth.models import User
+from pong.models import CustomUser as User
+
 
 
 class CookieJWTAuthentication(JWTAuthentication):
