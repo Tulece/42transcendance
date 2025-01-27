@@ -39,6 +39,7 @@
                     otpContainer.style.display = "block";
                     loginError.textContent = data.message;
                     loginError.style.color = "green";
+                    loginError.style.display = "block";
                 } else if (data.success) {
                     alert("Connexion réussie !");
                     await updateUserInfo();
@@ -47,6 +48,7 @@
             } else {
                 loginError.textContent = data.error || "Erreur inconnue";
                 loginError.style.color = "red";
+                loginError.style.display = "block";
                 if (data.error.includes("Code de vérification")) {
                     // Réinitialise le champ OTP en cas d'erreur
                     document.getElementById("otp_code").value = "";
@@ -56,6 +58,7 @@
             console.error("Erreur réseau :", error);
             loginError.textContent = "Erreur réseau. Impossible de se connecter.";
             loginError.style.color = "red";
+            loginError.style.display = "block";
         }
     });
 })();

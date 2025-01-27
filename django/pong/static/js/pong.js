@@ -24,7 +24,7 @@ function setupCanvas() {
     ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = "20px Arial";
-    ctx.fillText("Connexion au lobby en cours...", canvas.width / 2 - 100, canvas.height / 2);
+    ctx.fillText("Connexion au lobby en cours...", canvas.width / 2 - 100, canvas.height / 2);   
 }
 
 function connectToLobby() {

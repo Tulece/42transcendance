@@ -1,19 +1,14 @@
 <div id="live-chat-container" class="container py-4">
-    <!-- Connexion WebSocket -->
     <div class="row mb-4">
         <div class="col-12 text-center">
-            <button id="connect-ws" class="btn btn-primary" disabled>Se connecter au WebSocket</button>
-            <pre id="ws-log" class="mt-3 p-3 bg-light border">Log des événements WebSocket...</pre>
+            <button id="connect-ws" class="btn btn-warning" disabled>Se connecter au Websocket</button>
+            <pre id="ws-log" class="mt-3 p-3 bg-light border">Log des évènements Websocket ...</pre>
         </div>
     </div>
-
-    <!-- Zone principale -->
-    <div class="row">
-        <!-- Zone des messages -->
-        <div class="col-12 col-md-6 mb-4">
+    <div class="row mb-4">
+        <div class="col-12 col-md-6">
             <h3>Messages</h3>
             <div id="message-list" class="border p-3 mb-3" style="height: 200px; overflow-y: auto;">
-                <!-- Les messages reçus apparaîtront ici -->
             </div>
             <div id="send-message-section" class="d-flex">
                 <input
@@ -23,45 +18,45 @@
                     placeholder="Entrez votre message"
                     disabled
                 />
-                <button id="send-ws-message" class="btn btn-success" disabled>Envoyer</button>
+                <button id="send-ws-message" class="btn btn-primary" disabled>Envoyer</button>
             </div>
+            
         </div>
-
-        <!-- Zone des messages privés -->
-        <div class="col-12 col-md-6 mb-4">
-            <h3>Message privé</h3>
-            <div class="d-flex mb-3">
-                <input 
-                    type="text" 
-                    id="target-username" 
-                    class="form-control me-2" 
-                    placeholder="Pseudo du destinataire" 
-                />
-                <button id="send-private-btn" class="btn btn-warning" disabled>Envoyer</button>
-            </div>
-        </div>
-
-        <!-- Zone blocage/déblocage -->
-        <div class="col-12 col-md-6 mb-4">
+        <div class="col-12 col-md-6">
             <h3>Bloquer un utilisateur</h3>
             <div class="d-flex mb-3">
-                <input 
-                    type="text" 
-                    id="block-username" 
-                    class="form-control me-2" 
-                    placeholder="Pseudo à bloquer" 
+                <input
+                    type="text"
+                    id="block-username"
+                    class="form-control me-2"
+                    placeholder="Pseudo à bloquer"
                 />
                 <button id="block-btn" class="btn btn-danger" disabled>Bloquer</button>
             </div>
             <h3>Débloquer un utilisateur</h3>
-            <div class="d-flex">
-                <input 
-                    type="text" 
-                    id="unblock-username" 
-                    class="form-control me-2" 
-                    placeholder="Pseudo à débloquer" 
+            <div class="d-flex mb-3">
+                <input
+                    type="text"
+                    id="unblock-username"
+                    class="form-control me-2"
+                    placeholder="Pseudo à débloquer"
                 />
-                <button id="unblock-btn" class="btn btn-info" disabled>Débloquer</button>
+                <button id="unblock-btn" class="btn btn-danger" disabled>Débloquer</button>
+            </div>
+        </div>
+        
+    </div>
+    <div class="row mb-4"> <!-- Marge bottom -->
+        <div class="col-12 col-md-6">
+            <h3>Envoyer un message privé</h3>
+            <div class="d-flex mb-3"> <!-- d-flex: dispose champ & bouton sur une même ligne / Tech. de mise en pace CSS qui permet d'orga les éléments enfants dans un conteneur (aligner les éléments, ajuster la taille, espace entre éléments, etc.)-->
+                <input
+                    type="text"
+                    id="target-username"
+                    class="form-control me-2"
+                    placeholder="Pseudo du destinataire"
+                /> <!-- form-control : apply un style cohérent aux éléments du form (champs texte, zones de texte, listes, etc.), ici étire le champ pour occuper la largeur - me-2: add un espace entre le champ et le bouton -->
+                <button id="send-private-btn" class="btn btn-warning" disabled>Envoyer</button>
             </div>
         </div>
     </div>
