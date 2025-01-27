@@ -24,3 +24,19 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.username
+
+
+class Tournament(models.Model):
+    name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    players = models.ManyToManyField(CustomUser, related_name="tournaments")
+    is_active = models.BooleanField(default=True)
+
+class Match(models.Model):
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name="matches")
+    player1 = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="match_player1")
+    player2 = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="match_player2", null=True, blank=True)
+    winner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name="won_matches")
+    round_number = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
