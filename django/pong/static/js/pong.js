@@ -71,10 +71,10 @@ function displayWaitingMessage(message, dots) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = "20px Arial";
 	ctx.fillStyle = "white";
-	let x_pos = canvas.width / 2 - 100;
-    ctx.fillText(message, x_pos, canvas.height / 2);
 	const textMetrics = ctx.measureText(message);
 	const textWidth = textMetrics.width;
+	let x_pos = (canvas.width / 2) - (textWidth / 2);
+    ctx.fillText(message, x_pos, canvas.height / 2);
 	for (i = 0; i <= dots; ++i) {
 		ctx.fillText(".", x_pos + textWidth + (i * 10), canvas.height / 2);
 	}
@@ -119,6 +119,8 @@ function handleGameMessage(data, role) {
     } else if (data.type === "game_over") {
         alert(data.message);
         game_running = false;
+    }  else if (data.type === "waiting") {
+        displayWaitingMessage(data.message, -1);
     }
 }
 

@@ -1,7 +1,7 @@
 import asyncio
 import websockets
 import json
-from .game import CANVAS_HEIGHT, CANVAS_WIDTH, PADDLE_SIZE, PADDLE_WIDTH, DEFAULT_PLAYER_TWO_STATE, BALL_RADIUS, absadd
+from .game import CANVAS_HEIGHT, CANVAS_WIDTH, PADDLE_SIZE, PADDLE_WIDTH, DEFAULT_PLAYER_TWO_STATE, BALL_RADIUS, PLAYER_SPEED, absadd
 
 
 class AIPlayer:
@@ -11,7 +11,7 @@ class AIPlayer:
         self.ws = f"ws://{host}:8000/ws/game/{game_id}/?player_id=player2&mode=solo"
         AIPlayer.instance_count += 1
         self.ball_position = {'x': 0, 'y': 0, 'dx': 0, 'dy': 0}
-        self.paddle_position = {'x': 0, 'y': 0, 'speed': 8}
+        self.paddle_position = {'x': 0, 'y': 0, 'speed': PLAYER_SPEED}
         self.opponent_position = {'x': 0, 'y': 0}
         self.paddle_size = PADDLE_SIZE
         self.running = True
@@ -57,8 +57,10 @@ class AIPlayer:
                     print("Fin de la partie détectée, arrêt de l'IA.", flush=True)
                     self.running = False
                     break 
-                async with self.lock:
+                elif data.get("type") == "position_update":
+                    # async with self.lock:
                     self.latest_message = data
+                    
         except asyncio.CancelledError:
             print("Réception annulée.", flush=True)
         except Exception as e:
@@ -69,10 +71,10 @@ class AIPlayer:
         while self.running:
             message = None
             time_to_sleep = 0
-            async with self.lock:
-                if self.latest_message is not None:
-                    message = self.latest_message.copy()
-                    self.latest_message = None
+            # async with self.lock:
+            if self.latest_message is not None:
+                message = self.latest_message.copy()
+                self.latest_message = None
             if message is not None:
                 print(f"Traitement des données : {message}", flush=True)
                 self.update_positions(message)
@@ -103,8 +105,8 @@ class AIPlayer:
 
     def update_positions(self, data):
         self.ball_position.update(data["ball_position"])
-        self.paddle_position.update(data["player1_state"])
-        self.opponent_position.update(data["player2_state"])
+        self.paddle_position.update(data["player2_state"])
+        self.opponent_position.update(data["player1_state"])
 
 
     def estimate_next_point(self):
@@ -116,7 +118,7 @@ class AIPlayer:
                 self.next_estimation['x'] = act_pos['x']
                 self.next_estimation['y'] = act_pos['y']
                 return
-            if frames >= 59 or act_pos['x'] <= CANVAS_WIDTH / 100:
+            if frames >= 59 or act_pos['x'] + self.ball_position['dx'] <= CANVAS_WIDTH / 100:
                 self.next_estimation['fbi'] = frames
                 self.next_estimation['x'] = act_pos['x']
                 self.next_estimation['y'] = CANVAS_HEIGHT // 2
