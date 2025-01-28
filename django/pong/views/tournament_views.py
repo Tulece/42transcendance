@@ -4,13 +4,17 @@ from django.views.decorators.http import require_POST, require_GET
 from ..models import Tournament, Match, CustomUser
 from ..logic.tournament_lobby import TournamentLobby
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
+from django.views.decorators.http import require_http_methods
 
 lobby = TournamentLobby()  # On instancie 1 lobby global (optionnel)
 
-@require_POST
 @csrf_exempt
 def create_tournament_view(request):
     """Crée un tournoi et renvoie un JSON avec l'ID du tournoi."""
+    if request.method == "GET":
+        users = CustomUser.objects.all()
+        return render(request, "tournaments/create_tournament.html", {"users": users})
     name = request.POST.get("name")
     player_ids = request.POST.getlist("players")  # liste d'IDs
     players = CustomUser.objects.filter(id__in=player_ids)
@@ -40,7 +44,9 @@ def get_tournament_detail_view(request, tournament_id):
         matches_data.append({
             "match_id": m.id,
             "player1": m.player1.username,
+            "player1_id": m.player1.id,
             "player2": m.player2.username if m.player2 else None,
+            "player2_id": m.player2.id if m.player2 else None,
             "winner": m.winner.username if m.winner else None,
             "round_number": m.round_number
         })

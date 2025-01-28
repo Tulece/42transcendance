@@ -51,7 +51,6 @@ async function loadTournamentDetail(tournamentId) {
     }
 }
 
-// Exemple : afficher la liste des matchs dans un container #tournamentContainer
 function displayTournament(tournamentData) {
     const container = document.getElementById("tournamentContainer");
     if (!container) return;
@@ -63,31 +62,29 @@ function displayTournament(tournamentData) {
     const matchList = container.querySelector("#matchList");
 
     tournamentData.matches.forEach((match) => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-          Round ${match.round_number} : ${match.player1} vs ${match.player2 ? match.player2 : "Bye"}
-          ${match.winner ? "(Gagnant : " + match.winner + ")" : ""}
-          ${!match.winner && match.player2 ? `
-            <button onclick="reportMatch(${match.match_id}, '${match.player1}')">
-              Gagnant: ${match.player1}
-            </button>
-            <button onclick="reportMatch(${match.match_id}, '${match.player2}')">
-              Gagnant: ${match.player2}
-            </button>
-          ` : ""}
-        `;
-        matchList.appendChild(li);
+      const li = document.createElement("li");
+      li.innerHTML = `
+        Round ${match.round_number} : ${match.player1} vs ${match.player2 ? match.player2 : "Bye"}
+        ${match.winner ? "(Gagnant : " + match.winner + ")" : ""}
+        ${
+          !match.winner && match.player2
+            ? `
+              <button onclick="reportMatch(${match.match_id}, ${match.player1_id}, ${tournamentData.id})">
+                Gagnant: ${match.player1}
+              </button>
+              <button onclick="reportMatch(${match.match_id}, ${match.player2_id}, ${tournamentData.id})">
+                Gagnant: ${match.player2}
+              </button>`
+            : ""
+        }
+      `;
+      matchList.appendChild(li);
     });
-}
+  }
+
 
 // Fonction pour reporter le vainqueur d’un match
-async function reportMatch(matchId, winnerName) {
-    // On a le nom du gagnant, il faut son ID => on peut ajuster selon ta structure
-    // Soit tu transmets déjà l'ID, soit tu fais un fetch sur un endpoint /api/users?username=???
-    // Pour simplifier, imaginons que winnerName soit un ID en base ...
-    // Ou on peut utiliser un data-* attribute si besoin.
-
-    const winnerId = winnerName;  // si winnerName === winnerId
+async function reportMatch(matchId, winnerId, tournamentId) {
     const formData = new FormData();
     formData.append("winner_id", winnerId);
 
@@ -100,9 +97,8 @@ async function reportMatch(matchId, winnerName) {
         const data = await resp.json();
         if (resp.ok && data.success) {
             alert(data.message);
-            // Recharger les détails du tournoi si on a l'ID
-            // => On a besoin du tournamentId => on peut le stocker globalement ou le passer en param
-            // ex: loadTournamentDetail(currentTournamentId);
+            // <-- Ici, on recharge l’affichage du tournoi
+            loadTournamentDetail(tournamentId);
         } else {
             console.error("Erreur:", data.error);
         }
@@ -110,3 +106,4 @@ async function reportMatch(matchId, winnerName) {
         console.error(err);
     }
 }
+
