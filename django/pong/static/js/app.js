@@ -63,7 +63,7 @@
 
     function handlePageUnload(oldUrl) {
         if (!oldUrl) return;
-    
+
         if (oldUrl.includes("/game")) {
             if (typeof window.destroyPong === "function") {
                 window.destroyPong();
@@ -89,6 +89,10 @@
         } else if (url.includes("/login")) {
             loadScriptOnce("/static/js/login.js", () => {
                 console.log("Script de connexion chargé.");
+            });
+        } else if (url.includes("/account")) {
+            loadScriptOnce("/static/js/account.js", () => {
+                console.log("Script de la page compte chargé.");
             });
         }
     }

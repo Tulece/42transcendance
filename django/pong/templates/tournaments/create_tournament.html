@@ -1,0 +1,21 @@
+<!-- templates/tournaments/create_tournament.html -->
+{% load static %}
+<form id="createTournamentForm" action="/api/tournaments/create/" method="POST">
+	{% csrf_token %}
+	<label for="name">Nom du tournoi :</label>
+	<input type="text" id="name" name="name" required>
+	<br />
+
+	<label for="players">Sélection des joueurs :</label>
+	<select multiple id="players" name="players">
+	  {% for user in users %}
+	  <option value="{{ user.id }}">{{ user.username }}</option>
+	  {% endfor %}
+	</select>
+	<br />
+
+	<button type="submit">Créer</button>
+  </form>
+
+  <div id="tournamentContainer"></div> <!-- Pour l'affichage AJAX -->
+  <script src="{% static 'js/tournaments.js' %}"></script>

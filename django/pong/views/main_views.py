@@ -1,5 +1,5 @@
 # main_views.py
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from pong.models import CustomUser as User
 from django.contrib.auth.hashers import make_password
 from django.core.files.storage import FileSystemStorage
@@ -19,6 +19,21 @@ import pyotp
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import datetime, timedelta
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_a2f(request):
+    """Met à jour le statut de l'A2F pour l'utilisateur authentifié"""
+    user = request.user
+    is_a2f_enabled = request.data.get("is_a2f_enabled")
+
+    if is_a2f_enabled is None:
+        return JsonResponse({"success": False, "error": "Paramètre 'is_a2f_enabled' manquant."}, status=400)
+
+    user.is_a2f_enabled = is_a2f_enabled
+    user.save()
+
+    return JsonResponse({"success": True, "message": "Paramètres de l'A2F mis à jour."})
 
 # Modèle pour stocker les codes OTP temporaires
 class OTPStore:
@@ -153,6 +168,37 @@ def login_view(request):
                 "error": "Cet utilisateur n'a pas d'adresse email configurée"
             }, status=400)
 
+        # Si la 2FA n'est pas activée, connecter l'utilisateur directement
+        if not user.is_a2f_enabled:
+            # Connecter l'utilisateur sans demander de code OTP
+            django_login(request, user)
+            refresh = RefreshToken.for_user(user)
+
+            response = JsonResponse({
+                "success": True,
+                "message": "Connexion réussie !",
+                "redirect": next_url
+            })
+
+            # Configuration des cookies JWT
+            response.set_cookie(
+                "access_token",
+                str(refresh.access_token),
+                httponly=True,
+                secure=False,  # Mettre à True en production avec HTTPS
+                samesite="Lax",
+                max_age=3600
+            )
+            response.set_cookie(
+                "refresh_token",
+                str(refresh),
+                httponly=True,
+                secure=False,  # Mettre à True en production avec HTTPS
+                samesite="Lax",
+                max_age=7 * 24 * 3600
+            )
+            return response
+
         # Première étape : envoi de l'OTP si aucun code fourni
         if not otp_code:
             if generate_and_send_otp(user):
@@ -207,6 +253,7 @@ def login_view(request):
         "success": False,
         "error": "Méthode non autorisée"
     }, status=405)
+
 
 def home_view(request):
     """Gère la page d'accueil et les fragments AJAX pour la SPA."""
@@ -291,6 +338,28 @@ def game_view(request):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, 'pong.html')  # Fragment AJAX
     return render(request, 'base.html', {"initial_fragment": "pong.html"})
+
+def account_view(request, username=None):
+    """Access to account"""
+    if not request.user.is_authenticated:
+        # Si la requête est AJAX, renvoyer 403 ; sinon rediriger vers home
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return HttpResponseForbidden("Vous devez être connecté pour voir ce profil.")
+        else:
+            return redirect('/')  # redirige vers la page d'accueil
+    
+    if username is None or username == request.user.username:
+        user_profile = request.user
+    else:
+        user_profile = get_object_or_404(User, username=username)
+
+    context = {
+        "user_profile": user_profile
+    }
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, 'account.html', context)  # Fragment AJAX
+    return render(request, 'base.html', {"initial_fragment": "account.html", "user_profile":user_profile})
 
 def chat_view(request):
     """Vue pour tester JWT et WebSocket - nécessite authentification."""
