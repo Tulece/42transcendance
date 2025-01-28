@@ -48,6 +48,17 @@ class Lobby:
                 game.stop()
                 print(f"Partie {game_id} supprimée.")
 
+    def API_start_game(self):
+        game_id = str(uuid.uuid4())
+
+        game = Game(game_id)
+        self.active_games[game_id] = game
+
+        asyncio.create_task(game.start())
+
+        print(f"Partie créée avec l'ID {game_id}", flush=True)
+        return game_id
+
      
     async def matchmaking(self):
         """Effectue un matchmaking progressif basé sur l'ELO."""
@@ -86,7 +97,7 @@ class Lobby:
 
         game_id = str(uuid.uuid4())
 
-        game = Game(game_id, player1, player2)
+        game = Game(game_id)
         self.active_games[game_id] = game
         self.remove_player_from_queue(player1)
         self.remove_player_from_queue(player2)
@@ -132,7 +143,7 @@ class Lobby:
 
         ai_bot = asyncio.create_task(launch_ai("localhost", game_id))
 
-        game = Game(game_id, player_consumer, ai_bot)
+        game = Game(game_id)
         self.active_games[game_id] = game
 
         asyncio.create_task(game.start())

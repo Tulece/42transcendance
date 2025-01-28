@@ -35,10 +35,10 @@ DEFAULT_BALL_STATE = {
 }
 
 class Game:
-    def __init__(self, game_id, player1, player2):
+    def __init__(self, game_id):
         self.game_id = game_id
-        self.player1 = player1
-        self.player2 = player2
+        # self.player1 = player1
+        # self.player2 = player2
         self.game_over = False
         self.players = {
             "player1": {**DEFAULT_PLAYER_ONE_STATE, 'lifepoints': 5, 'disconnected': False},
@@ -117,33 +117,32 @@ class Game:
                 )
                 await asyncio.sleep(1)
             self.resetting = False
-            
             self.paused = False
-
-        await self.channel_layer.group_send(
-            self.game_id,
-            {
-                "type": "game_update",
-                "message": {
-                    "type": "position_update",
-                    "ball_position": {
-                        "x": self.ball_state["x"],
-                        "y": self.ball_state["y"],
-                        "dy": self.ball_state["dy"],
-                        "dx": self.ball_state["dx"],
+        else:
+            await self.channel_layer.group_send(
+                self.game_id,
+                {
+                    "type": "game_update",
+                    "message": {
+                        "type": "position_update",
+                        "ball_position": {
+                            "x": self.ball_state["x"],
+                            "y": self.ball_state["y"],
+                            "dy": self.ball_state["dy"],
+                            "dx": self.ball_state["dx"],
+                        },
+                        "player1_state": {
+                            "x": self.players["player1"]["x"],
+                            "y": self.players["player1"]["y"],
+                            "lifepoints": self.players["player1"]["lifepoints"],
+                        },
+                        "player2_state": {
+                            "x": self.players["player2"]["x"],
+                            "y": self.players["player2"]["y"],
+                            "lifepoints": self.players["player2"]["lifepoints"],
+                        },
                     },
-                    "player1_state": {
-                        "x": self.players["player1"]["x"],
-                        "y": self.players["player1"]["y"],
-                        "lifepoints": self.players["player1"]["lifepoints"],
-                    },
-                    "player2_state": {
-                        "x": self.players["player2"]["x"],
-                        "y": self.players["player2"]["y"],
-                        "lifepoints": self.players["player2"]["lifepoints"],
-                    },
-                },
-            }
+                }
         )
 
     async def send_game_over(self, reason, player):
@@ -254,12 +253,11 @@ class Game:
             players['player2']['lifepoints'] -= 1
             game.reset_pos()
 
-        if ball_state['x'] + ball_state['radius'] > CANVAS_WIDTH or \
-            ball_state['x'] - ball_state['radius'] < 0:
-            ball_state['dx'] *= -1
-
-        if ball_state['y'] + ball_state['radius'] > CANVAS_HEIGHT or \
-            ball_state['y'] - ball_state['radius'] < 0:
+        if ball_state['y'] + ball_state['radius'] > CANVAS_HEIGHT:
+            ball_state['y'] -= (ball_state['y'] + ball_state['radius']) - CANVAS_HEIGHT
+            ball_state['dy'] *= -1
+        if ball_state['y'] - ball_state['radius'] < 0:
+            ball_state['y'] = abs(ball_state['y'] - ball_state['radius']) 
             ball_state['dy'] *= -1
 
 def absadd(number, n):

@@ -85,20 +85,17 @@ class AIPlayer:
 
     def actualise_pos(self, pos, dx, dy):
         pos['x'] += dx
-        # if (pos['x'] > CANVAS_WIDTH):
-        #     pos['x'] = CANVAS_WIDTH - (pos['x'] - CANVAS_WIDTH)
+        # if (pos['x'] < PADDLE_WIDTH + (CANVAS_WIDTH // 100)):
+        #     pos['x'] += (PADDLE_WIDTH + (CANVAS_WIDTH // 100)) - pos['x'] 
+        #     dy = 0
+        #     dx = absadd(dx, 1)
         #     dx *= -1
-        if (pos['x'] < PADDLE_WIDTH + (CANVAS_WIDTH // 100)):
-            pos['x'] += (PADDLE_WIDTH + (CANVAS_WIDTH // 100)) - pos['x'] 
-            dy = 0
-            # dx = absadd(dx, 1)
-            dx *= -1
         pos['y'] += dy
-        if (pos['y'] + BALL_RADIUS >= CANVAS_HEIGHT):
-            pos['y'] = CANVAS_HEIGHT - (pos['y'] - CANVAS_HEIGHT)
+        if (pos['y'] + BALL_RADIUS > CANVAS_HEIGHT):
+            pos['y'] -= (pos['y'] + BALL_RADIUS) - CANVAS_HEIGHT
             dy *= -1
-        elif (pos['y'] - BALL_RADIUS <= 0):
-            pos['y'] = -pos['y']
+        elif (pos['y'] - BALL_RADIUS < 0):
+            pos['y'] = abs(pos['y'] - BALL_RADIUS)
             dy *= -1
         return {'x': pos['x'], 'y': pos['y']}
 
@@ -118,7 +115,7 @@ class AIPlayer:
                 self.next_estimation['x'] = act_pos['x']
                 self.next_estimation['y'] = act_pos['y']
                 return
-            if frames >= 59 or act_pos['x'] + self.ball_position['dx'] <= CANVAS_WIDTH / 100:
+            if frames >= 59 or act_pos['x'] - BALL_RADIUS <= (CANVAS_WIDTH // 100 ) + PADDLE_WIDTH:
                 self.next_estimation['fbi'] = frames
                 self.next_estimation['x'] = act_pos['x']
                 self.next_estimation['y'] = CANVAS_HEIGHT // 2
@@ -139,7 +136,7 @@ class AIPlayer:
         else:
             action.append(None)
         if action[0] is not None:
-            frames_to_reach = int(diff // self.paddle_position['speed'])
+            frames_to_reach = int(diff // PLAYER_SPEED) + 1
             action.append(min(frames_to_reach, 59))
             action.append(f"stop_{action[0]}")
         return action
