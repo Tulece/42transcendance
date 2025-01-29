@@ -1,5 +1,5 @@
 # main_views.py
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from pong.models import CustomUser as User
 from django.contrib.auth.hashers import make_password
 from django.core.files.storage import FileSystemStorage
@@ -339,17 +339,27 @@ def game_view(request):
         return render(request, 'pong.html')  # Fragment AJAX
     return render(request, 'base.html', {"initial_fragment": "pong.html"})
 
-def account_view(request):
-    """Acces to account"""
+def account_view(request, username=None):
+    """Access to account"""
     if not request.user.is_authenticated:
         # Si la requête est AJAX, renvoyer 403 ; sinon rediriger vers home
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return HttpResponseForbidden()
+            return HttpResponseForbidden("Vous devez être connecté pour voir ce profil.")
         else:
             return redirect('/')  # redirige vers la page d'accueil
+    
+    if username is None or username == request.user.username:
+        user_profile = request.user
+    else:
+        user_profile = get_object_or_404(User, username=username)
+
+    context = {
+        "user_profile": user_profile
+    }
+    
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render(request, 'account.html')  # Fragment AJAX
-    return render(request, 'base.html', {"initial_fragment": "account.html"})
+        return render(request, 'account.html', context)  # Fragment AJAX
+    return render(request, 'base.html', {"initial_fragment": "account.html", "user_profile":user_profile})
 
 def chat_view(request):
     """Vue pour tester JWT et WebSocket - nécessite authentification."""

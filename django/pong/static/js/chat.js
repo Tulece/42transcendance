@@ -67,11 +67,11 @@ window.initChat = () => {
             console.log("Message WebSocket reçu :", event.data);
             const data = JSON.parse(event.data);
             if (data.type === "chat_message") {
-                const userAndTime = `[${data.timestamp}] - ${data.username}`;
-                addMessageToChat(userAndTime, data.message);
+                //const userAndTime = `[${data.timestamp}] - ${data.username}`;
+                addMessageToChat(data.username, data.timestamp, data.message);
             } else if (data.type === "private_message") {
-                const userAndTime = `[${data.timestamp}] - ${data.username}`;
-                addMessageToChat(userAndTime, data.message);
+                //const userAndTime = `[${data.timestamp}] - ${data.username}`;
+                addMessageToChat(data.username, data.timestamp, data.message);
             } else if (data.type === "welcome") {
                 addMessageToChat("System", data.message);
             }
@@ -107,10 +107,18 @@ window.initChat = () => {
     });
 
     // Ajouter un message à la liste des messages
-    function addMessageToChat(username, message) {
+    function addMessageToChat(actualUsername, timestamp, message) {
         const messageItem = document.createElement("div");
         messageItem.classList.add("message-item");
-        messageItem.innerHTML = `<strong>${username}:</strong> ${message}`;
+        const displayText = `[${timestamp}] - ${actualUsername}`;
+
+        const usernameSpan = `
+        <span class="chat-username" data-username="${actualUsername}">
+            ${displayText}
+        </span>
+    `;
+
+        messageItem.innerHTML = `<strong>${usernameSpan}:</strong> ${message}`;
         messageList.appendChild(messageItem);
         messageList.scrollTop = messageList.scrollHeight;
     }
@@ -146,6 +154,7 @@ window.initChat = () => {
             addMessageToChat("System", "Veuillez entrer un pseudo pour bloquer un utilisateur.");
             return;
         }
+        addMessageToChat("System", `L'utilisateur ${userToBlock} a été bloqué.`);
         ws.send(JSON.stringify({
             action: "block_user",
             username_to_block: userToBlock,
@@ -164,10 +173,19 @@ window.initChat = () => {
             addMessageToChat("System", "Veuillez entrer un pseudo pour débloquer un utilisateur.");
             return;
         }
+        addMessageToChat("System", `L'utilisateur ${userToUnblock} a été débloqué.`);
         ws.send(JSON.stringify({
             action: "unblock_user",
             username_to_unblock: userToUnblock,
         }));
         console.log(`Requête pour débloquer l'utilisateur : ${userToUnblock}`);
     });
+
+    document.addEventListener("click", (evt) => {
+        const target = evt.target;
+        if (target.classList.contains("chat-username")) { // Check si l'élément clicked est un .chat-username
+            const userClicked = target.dataset.username; // Récup' pseudo
+            navigateTo(`/account/${userClicked}`); // Naviguer en SPA
+        }
+    })
 };

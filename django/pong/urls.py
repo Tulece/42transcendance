@@ -45,6 +45,7 @@ urlpatterns = [
     path('game/', game_view, name='game'),
     path('chat/', chat_view, name='chat'),
     path('account/', account_view, name='account'),
+    path('account/<str:username>/', account_view, name='account_other'),
     path('admin/', admin.site.urls),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
