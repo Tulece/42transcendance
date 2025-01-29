@@ -85,7 +85,7 @@
         } else if (url.includes("/chat")) {
             loadScriptOnce("/static/js/chat.js", () => {
                 if (window.initChat) window.initChat();
-            });
+            });            
         } else if (url.includes("/login")) {
             loadScriptOnce("/static/js/login.js", () => {
                 console.log("Script de connexion chargé.");

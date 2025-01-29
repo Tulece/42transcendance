@@ -20,7 +20,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
     room_group_name = None
 
     async def connect(self):
-        print("Tentative de connexion WebSocket.")
         self.user = self.scope.get("user", None)
 
         if not self.user or not self.user.is_authenticated:
@@ -37,6 +36,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
         print(f"Connexion WebSocket acceptée pour l'utilisateur : {self.username}")
 
+        # Charger la liste des users
+        users = await self.get_all_connected_users()
+        await self.send(json.dumps({
+            "type": "user_list",
+            "users": users
+        }))
+
+
         # Définir les groupes
         self.room_group_name = "chat_room"
         self.personal_group = f"user_{self.user.id}"
@@ -45,7 +52,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}")
         await self.channel_layer.group_add(self.personal_group, self.channel_name)
-
+        
         # Envoi d’un message de bienvenue
         await self.send(json.dumps({
             "type": "welcome",
@@ -138,6 +145,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user_to_unblock = CustomUser.objects.get(username=user_to_unblock_username)
         self.user.blocked_users.remove(user_to_unblock)
         return user_to_unblock
+
+    @database_sync_to_async
+    def get_all_connected_users(self):
+        return list(CustomUser.objects.values("username"))
 
     async def send_private_message(self, target_username, message):
         try:
