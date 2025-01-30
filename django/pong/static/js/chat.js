@@ -11,8 +11,8 @@ window.initChat = () => {
     const sendPrivateBtn = document.getElementById("send-private-btn");
   
     let ws = null;
+    let blockedUsers = new Set(); // Stocker users bloqués
 
-    // Fonction pour vérifier si l'utilisateur est authentifié
     async function checkAuthentication() {
         try {
             const response = await fetch("/api/user_info/", {
@@ -38,34 +38,28 @@ window.initChat = () => {
         }
     }
 
-    // Appeler la fonction de vérification au chargement
     checkAuthentication();
   
-    // Étape 1 : Connexion au WebSocket
     function connectWebSocket() {
       ws = new WebSocket(`ws://${window.location.host}/ws/chat/`);
   
-      // Événement : connexion ouverte
       ws.onopen = () => {
         console.log("WebSocket connecté.");
         addSystemMessage("Vous êtes connecté au chat !");
         
       };
   
-      // Événement : réception d'un message
       ws.onmessage = (event) => {
         console.log("📩 Message reçu :", event.data);
-        const data = JSON.parse(event.data); // Les messages sont reçus sous forme JSON
+        const data = JSON.parse(event.data);
         handleMessage(data); // Gérer le message reçu
       };
   
-      // Événement : erreur
       ws.onerror = (error) => {
         console.error("Erreur WebSocket :", error);
         addSystemMessage("Erreur de connexion au WebSocket.");
       };
   
-      // Événement : déconnexion
       ws.onclose = () => {
         console.log("WebSocket déconnecté.");
         addSystemMessage("Connexion au chat perdue.");
@@ -81,11 +75,11 @@ window.initChat = () => {
       } else if (data.type === "system") {
         addSystemMessage(data.message);
       } else if (data.type === "user_list") {
-        updateUserList(data.users);
+        updateUserList(data.users, data.blocked_users || []);
       }
     }
   
-    // Étape 3 : Ajouter un message utilisateur
+    // Add un message utilisateur
     function addMessageToChat(username, message) {
       console.log("🖊️ Ajout d'un message dans le chat :", username, message);
       const messageDiv = document.createElement("div");
@@ -95,7 +89,7 @@ window.initChat = () => {
       scrollToBottom();
     }
   
-    // Étape 4 : Ajouter un message privé
+    // Add un message privé
     function addPrivateMessageToChat(username, message) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", "private");
@@ -104,7 +98,7 @@ window.initChat = () => {
       scrollToBottom();
     }
   
-    // Étape 5 : Ajouter un message système
+    // Add un message système
     function addSystemMessage(message) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", "system");
@@ -113,12 +107,12 @@ window.initChat = () => {
       scrollToBottom();
     }
   
-    // Étape 6 : Scroller automatiquement vers le bas
+    // Scroller automatiquement vers le bas
     function scrollToBottom() {
       messageArea.scrollTop = messageArea.scrollHeight;
     }
   
-    // Étape 7 : Envoi d'un message utilisateur
+    // Envoi d'un message user
     sendMessageBtn.addEventListener("click", () => {
       console.log("🖱️ Bouton Envoyer cliqué !");
       const message = messageInput.value;
@@ -134,7 +128,7 @@ window.initChat = () => {
       }
     });
   
-    // Étape 8 : Gestion du bouton "Réduire"
+    // Bouton "Réduire"
     chatToggle.addEventListener("click", () => {
       if (messageArea.style.display === "none") {
         messageArea.style.display = "block";
@@ -167,60 +161,78 @@ window.initChat = () => {
         addSystemMessage("Websocket non connecté.");
       }
     });
-
+    // Check chq user de la liste et crée un élément html pour le display
     function updateUserList(users) {
       console.log("👥 Mise à jour de la liste des utilisateurs :", users);
-      userList.innerHTML = "";
-    
+      //blockedUsers = new Set(blockedList.map(user => user.username)); // Mettre à jour la liste locale
+
+      userList.innerHTML = ""; // On réinitialise la liste
+  
       users.forEach((user) => {
           const userItem = document.createElement("li");
           userItem.className = "list-group-item d-flex justify-content-between align-items-center";
           userItem.textContent = user.username;
-    
-          // Bouton de blocage/déblocage
+  
+          // Vérifier si l'utilisateur est bloqué
+          const isBlocked = blockedUsers.has(user.username);
+  
+          // Création du bouton de blocage/déblocage
           const blockButton = document.createElement("button");
-          blockButton.className = "btn btn-sm btn-danger";
-          blockButton.textContent = "Bloquer";
+          blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
+          blockButton.textContent = isBlocked ? "Débloquer" : "Bloquer";
+          blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
           blockButton.addEventListener("click", () => toggleBlockUser(user.username));
-    
+  
           userItem.appendChild(blockButton);
           userList.appendChild(userItem);
       });
-    
+  
       updatePrivateRecipientList(users);
     }
     
 
     function updatePrivateRecipientList(users) {
       privateRecipient.innerHTML = '<option value="" disabled selected>Choisir un destinataire</option>';
+      
+      if (users.length === 0) {
+          privateRecipient.setAttribute("disabled", "true");
+          return;
+      }
+      privateRecipient.removeAttribute("disabled");
+  
       users.forEach((user) => {
-        const option = document.createElement("option");
-        option.value = user.username;
-        option.textContent = user.username;
-        privateRecipient.appendChild(option);
+          const option = document.createElement("option");
+          option.value = user.username;
+          option.textContent = user.username;
+          privateRecipient.appendChild(option);
       });
     }
 
     function toggleBlockUser(username) {
       console.log(`🔒 Tentative de blocage/déblocage de ${username}...`);
-      // Check si user est déjà bloqué
+  
+      // Trouver le bon bouton
       const userButton = document.querySelector(`button[data-username="${username}"]`);
-      const isBlocked = userButton && userButton.classList.contains("btn-secondary");
-
-      // Définir l'action à envoyer au WebSocket
+      if (!userButton) return; // Si le bouton n'existe pas, on arrête
+  
+      // Déterminer l'action à envoyer au serveur
+      const isBlocked = blockedUsers.has(username);
       const action = isBlocked ? "unblock_user" : "block_user";
-
+  
       ws.send(JSON.stringify({
           action: action,
-          username_to_block: username
+          username_to_unblock: isBlocked ? username : undefined,
+          username_to_block: isBlocked ? undefined : username
       }));
-
-      // MAJ le btn
+  
+      // Mettre à jour la liste des utilisateurs bloqués
       if (isBlocked) {
+          blockedUsers.delete(username);
           userButton.textContent = "Bloquer";
           userButton.classList.remove("btn-secondary");
           userButton.classList.add("btn-danger");
       } else {
+          blockedUsers.add(username);
           userButton.textContent = "Débloquer";
           userButton.classList.remove("btn-danger");
           userButton.classList.add("btn-secondary");
