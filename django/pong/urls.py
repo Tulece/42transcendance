@@ -54,9 +54,9 @@ urlpatterns = [
     path('login/', login_view, name='login'),
     path("api/logout/", logout_view, name="logout"),
     path('api/account/update_a2f/', update_a2f, name='update_a2f'),
-    path('api/tournaments/create/', create_tournament_view, name='create_tournament'),
-    path('api/tournaments/<int:tournament_id>/', get_tournament_detail_view, name='tournament_detail_json'),
-    path('api/tournaments/match/<int:match_id>/report/', report_match_result_view, name='report_match_result'),
+    path('tournaments/create/', create_tournament_view, name='create_tournament'),
+    path('tournaments/<int:tournament_id>/', get_tournament_detail_view, name='tournament_detail_json'),
+    path('tournaments/match/<int:match_id>/report/', report_match_result_view, name='report_match_result'),
 ]
 
 if settings.DEBUG:

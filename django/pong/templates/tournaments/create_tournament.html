@@ -1,6 +1,6 @@
 <!-- templates/tournaments/create_tournament.html -->
 {% load static %}
-<form id="createTournamentForm" action="/api/tournaments/create/" method="POST">
+<form id="createTournamentForm" action="/tournaments/create/" method="POST">
 	{% csrf_token %}
 	<label for="name">Nom du tournoi :</label>
 	<input type="text" id="name" name="name" required>

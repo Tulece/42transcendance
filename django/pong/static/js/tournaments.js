@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const formData = new FormData(createForm);
 
             try {
-                const response = await fetch("/api/tournaments/create/", {
+                const response = await fetch("/tournaments/create/", {
                     method: "POST",
                     body: formData,
                     credentials: "include", // si tu utilises CSRF / cookies
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // Fonction pour charger le détail d’un tournoi et l’afficher
 async function loadTournamentDetail(tournamentId) {
     try {
-        const resp = await fetch(`/api/tournaments/${tournamentId}/`, {
+        const resp = await fetch(`/tournaments/${tournamentId}/`, {
             method: "GET",
             credentials: "include",
             headers: { "X-Requested-With": "XMLHttpRequest" }
@@ -89,7 +89,7 @@ async function reportMatch(matchId, winnerId, tournamentId) {
     formData.append("winner_id", winnerId);
 
     try {
-        const resp = await fetch(`/api/tournaments/match/${matchId}/report/`, {
+        const resp = await fetch(`/tournaments/match/${matchId}/report/`, {
             method: "POST",
             body: formData,
             credentials: "include"
