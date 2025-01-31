@@ -84,7 +84,20 @@ window.initChat = () => {
       console.log("🖊️ Ajout d'un message dans le chat :", username, message);
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message");
-      messageDiv.innerHTML = `<span class="username">${username} :</span> ${message}`;
+
+      const usernameLink = document.createElement("a");
+      usernameLink.href = '/account/${username}';
+      usernameLink.textContent = username;
+      usernameLink.classList.add("chat-username");
+      usernameLink.style.cursor = "pointer";
+      usernameLink.style.fontWeight = "bold";
+      usernameLink.addEventListener("click", (event) => {
+        event.preventDefault(); // Skip rechargement page
+        navigateTo('/account/${username}');
+      });
+
+      messageDiv.appendChild(usernameLink);
+      messageDiv.innerHTML += ' : ${message}';
       messageList.appendChild(messageDiv);
       scrollToBottom();
     }
@@ -161,18 +174,31 @@ window.initChat = () => {
         addSystemMessage("Websocket non connecté.");
       }
     });
+
     // Check chq user de la liste et crée un élément html pour le display
     function updateUserList(users) {
       console.log("👥 Mise à jour de la liste des utilisateurs :", users);
-      //blockedUsers = new Set(blockedList.map(user => user.username)); // Mettre à jour la liste locale
 
       userList.innerHTML = ""; // On réinitialise la liste
   
       users.forEach((user) => {
           const userItem = document.createElement("li");
           userItem.className = "list-group-item d-flex justify-content-between align-items-center";
-          userItem.textContent = user.username;
   
+           // Crée un lien cliquable vers le profil
+          const usernameLink = document.createElement("a");
+          usernameLink.href = `/account/${user.username}`;
+          usernameLink.textContent = user.username;
+          usernameLink.classList.add("chat-username");
+          usernameLink.style.cursor = "pointer";
+          usernameLink.style.fontWeight = "bold";
+          usernameLink.addEventListener("click", (event) => {
+            event.preventDefault(); // Empêche le rechargement de la page
+            navigateTo(`/account/${user.username}`); // Charge le profil en SPA
+          });
+
+          userItem.appendChild(usernameLink);
+
           // Vérifier si l'utilisateur est bloqué
           const isBlocked = blockedUsers.has(user.username);
   
@@ -184,11 +210,23 @@ window.initChat = () => {
           blockButton.addEventListener("click", () => toggleBlockUser(user.username));
   
           userItem.appendChild(blockButton);
-          userList.appendChild(userItem);
+          userList.appendChild(userItem); // Exp.
       });
   
       updatePrivateRecipientList(users);
     }
+
+    function navigateTo(url) {
+      history.pushState(null, "", url); // Change l'URL sans recharger
+      fetch(url)
+        .then((response) => response.text())
+        .then((html) => {
+          document.body.innerHTML = html; // Remplace le contenu de la page
+          window.initChat(); // Recharge le chat après le changement de page
+        })
+        .catch((error) => console.error("Erreur de navigation :", error));
+    }
+    
     
 
     function updatePrivateRecipientList(users) {
