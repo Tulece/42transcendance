@@ -1,14 +1,21 @@
-<h2>{{ tournament.name }}</h2>
-<ul>
-    {% for match in matches %}
-    <li>
-        Round {{ match.round_number }} : {{ match.player1.username }} vs
-        {% if match.player2 %}{{ match.player2.username }}{% else %}Bye{% endif %}
-        {% if match.winner %}
-        (Gagnant : {{ match.winner.username }})
-        {% else %}
-        <a href="{% url 'report_match_result' match.id %}">Signaler le gagnant</a>
-        {% endif %}
-    </li>
-    {% endfor %}
-</ul>
+<!-- templates/tournaments/tournament_detail.html -->
+<div id="tournamentContainer" data-tournament-id="{{ tournament.id }}">
+	<h2>{{ tournament.name }}</h2>
+	<ul id="matchList">
+	  {% for match in matches %}
+		<li>
+		  Round {{ match.round_number }} :
+		  {{ match.player1.username }} vs
+		  {% if match.player2 %}{{ match.player2.username }}{% else %}Bye{% endif %}
+		  {% if match.winner %}
+			(Gagnant : {{ match.winner.username }})
+		  {% else %}
+			<button onclick="startMatch({{ match.id }}, {{ tournament.id }})">
+			  Lancer la partie
+			</button>
+		  {% endif %}
+		</li>
+	  {% endfor %}
+	</ul>
+  </div>
+  <script src="{% static 'js/tournaments.js' %}"></script>

@@ -6,6 +6,8 @@ from ..logic.tournament_lobby import TournamentLobby
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
+from pong.logic.lobby import Lobby
+from asgiref.sync import sync_to_async
 
 lobby = TournamentLobby()  # On instancie 1 lobby global (optionnel)
 
@@ -61,21 +63,15 @@ def get_tournament_detail_view(request, tournament_id):
         }
     })
 
-@require_POST
 @csrf_exempt
-def report_match_result_view(request, match_id):
-    """
-    Reporte le vainqueur d'un match et génère le round suivant si nécessaire.
-    Renvoie du JSON (success/error).
-    """
-    winner_id = request.POST.get("winner_id")
-    if not winner_id:
-        return JsonResponse({"success": False, "error": "winner_id manquant"}, status=400)
-
-    # On s’appuie sur la logique du TournamentLobby
+@require_http_methods(["POST"])
+async def start_match_game_view(request, match_id):
     try:
-        lobby.report_match_result(match_id, winner_id)
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+        match = await sync_to_async(Match.objects.get)(id=match_id)
+    except Match.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Match non trouvé"}, status=404)
 
-    return JsonResponse({"success": True, "message": "Résultat enregistré."})
+    lobby_instance = Lobby.get_instance()
+    # Appel de la méthode asynchrone et attente du résultat
+    game_id = await lobby_instance.API_start_game_async()
+    return JsonResponse({"success": True, "game_id": game_id})

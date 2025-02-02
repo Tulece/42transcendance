@@ -329,3 +329,24 @@ class PongConsumer(AsyncWebsocketConsumer):
         # print("Received game update:", event, flush=True)
         await self.send(json.dumps(event["message"]))
 
+
+
+class TournamentConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        # Récupère l'ID du tournoi depuis l'URL (définie dans le routing)
+        self.tournament_id = self.scope['url_route']['kwargs']['tournament_id']
+        self.group_name = f'tournament_{self.tournament_id}'
+        # On ajoute la connexion au groupe de ce tournoi
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+        print(f"Client connecté au tournoi {self.tournament_id}")
+
+    async def disconnect(self, close_code):
+        # On supprime la connexion du groupe
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        print(f"Client déconnecté du tournoi {self.tournament_id}")
+
+    # Cette méthode sera appelée lors d'un group_send avec le type 'tournament_update'
+    async def tournament_update(self, event):
+        message = event['message']
+        await self.send(text_data=json.dumps(message))
