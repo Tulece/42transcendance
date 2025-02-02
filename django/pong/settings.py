@@ -185,3 +185,7 @@ EMAIL_HOST_USER = '42transcendencemailer@gmail.com'
 EMAIL_HOST_PASSWORD = 'nnle uutz gqpn zduu'
 
 AUTH_USER_MODEL = 'pong.CustomUser'
+
+#MEDIA_URL = '/media/'
+#MEDIA_ROOT = BASE_DIR / 'media'
+

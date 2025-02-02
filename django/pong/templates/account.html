@@ -1,10 +1,27 @@
 <div class="menu-account">
-    <h1 class="menu-title">Mon compte</h1>
-    <label for="user">Nom : {{ user.display_name }}</label>
-    <br>
-    <label for="a2f">Activer l'authentification à deux facteurs : </label>
-    <input type="checkbox" id="a2f" {% if user.is_a2f_enabled %}checked{% endif %} onchange="toggleA2F()">
-    <span id="a2f-status">{% if user.is_a2f_enabled %}Activé{% else %}Désactivé{% endif %}</span>
-    <br>
-    <button id="save-btn" onclick="saveChanges()">Enregistrer</button>
+    {% if user_profile.id == user.id %}
+        <h1 class="menu-title">Mon compte</h1>
+        <br></br>
+        <img src="{{ avatar_url }}" alt="Avatar" width="100" height="100">
+        <br></br>
+        <p><strong>Nom d'utilisateur :</strong> {{ user.username }}</p>
+        <p><strong>Email :</strong> {{ user.email }}</p>
+
+        <label for="a2f">Activer l'authentification à deux facteurs :</label>
+        <input type="checkbox" id="a2f"
+            {% if user.is_a2f_enabled %}checked{% endif %}
+            onchange="toggleA2F()">
+        <span id="a2f-status">
+            {% if user.is_a2f_enabled %}Activé{% else %}Désactivé{% endif %}
+        </span>
+        <br></br>
+        <button id="save-btn" onclick="saveChanges()">Enregistrer</button>
+    {% else %}
+        <h1 class="menu-title">Profil de {{user_profile.username }}</h1>
+        <br></br>
+        <img src="{{ avatar_url }}" alt="Avatar" width="100" height="100">
+        <br></br>
+        <p><strong>Nom d'utilisateur :</strong> {{ user_profile.username }}</p>
+        <p><strong>Statut :</strong> {{ user_profile.online_status }}</p>
+    {% endif %}
 </div>

@@ -1,15 +1,27 @@
-<h1>Pong</h1>
+<div class="container text-center py-4">
+  <h1 class="mb-4">Pong</h1>
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="ratio ratio-16x9">
+        <canvas id="pong" width="800" height="400"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="row justify-content-center mt-3">
+    <div class="col-auto">
+      <button id="launch-button" class="btn btn-primary me-2">Start Game</button>
+      <button id="reset-button" class="btn btn-secondary">Réinitialiser</button>
+    </div>
+  </div>
+</div>
 
-<!-- Pour voir clairement le canvas -->
 <style>
   canvas {
-    background: black;
-    border: 2px solid white;
-    display: block;
-    margin: 20px auto; /* centré */
-  }
+  max-width: 100%;
+  height: auto;
+  background: black;
+  border: 2px solid white;
+  display: block;
+  margin: 0 auto;
+}
 </style>
-
-<canvas id="pong" width="800" height="400"></canvas>
-<button id="launch-button">Start Game</button>
-<button id="reset-button">Réinitialiser</button>

@@ -1,7 +1,7 @@
 import asyncio
 import websockets
 import json
-from .game import CANVAS_HEIGHT, CANVAS_WIDTH, PADDLE_SIZE, PADDLE_WIDTH, DEFAULT_PLAYER_TWO_STATE, absadd
+from .game import CANVAS_HEIGHT, CANVAS_WIDTH, PADDLE_SIZE, PADDLE_WIDTH, DEFAULT_PLAYER_TWO_STATE, BALL_RADIUS, PLAYER_SPEED, absadd
 
 
 class AIPlayer:
@@ -11,70 +11,100 @@ class AIPlayer:
         self.ws = f"ws://{host}:8000/ws/game/{game_id}/?player_id=player2&mode=solo"
         AIPlayer.instance_count += 1
         self.ball_position = {'x': 0, 'y': 0, 'dx': 0, 'dy': 0}
-        self.paddle_position = {'x': 0, 'y': 0, 'speed': 5}
+        self.paddle_position = {'x': 0, 'y': 0, 'speed': PLAYER_SPEED}
         self.opponent_position = {'x': 0, 'y': 0}
-        self.paddle_size = 100
+        self.paddle_size = PADDLE_SIZE
         self.running = True
+        self.latest_message = None 
         self.next_estimation = {'x': 0, 'y':0, 'fbi':0}
+        self.lock = asyncio.Lock()
         print(f"Instance AIPlayer créée : ID={AIPlayer.instance_count}", flush=True)
 
     async def connect(self):
         try:
             async with websockets.connect(self.ws) as websocket:
-                print("IA connectée au serveur")
+                print("IA connectée au serveur", flush=True)
+                self.websocket = websocket 
                 listener_task = asyncio.create_task(self.listen(websocket))
-                await listener_task
+                processer_task = asyncio.create_task(self.process())
+                done, pending = await asyncio.wait(
+                    [listener_task, processer_task],
+                    return_when=asyncio.FIRST_COMPLETED
+                )
+
+                if listener_task in done:
+                    print("Arrêt du traitement car WebSocket fermé.", flush=True)
+                    self.running = False
+                elif processer_task in done:
+                    print("Le traitement a terminé en premier, arrêt de l'IA.", flush=True)
+
+                for task in pending:
+                    task.cancel()
         except websockets.ConnectionClosed as e:
-            print("Connexion fermée :", e)
+            print(f"Connexion fermée : {e}", flush=True)
         except Exception as e:
-            print("Erreur dans la connexion :", e)
+            print(f"Erreur dans la connexion : {e}", flush=True)
         finally:
             self.running = False
+            print("Déconnexion propre de l'IA.", flush=True)
 
     async def listen(self, websocket):
         try:
             async for message in websocket:
                 data = json.loads(message)
-                # print("IA received data:", data, flush=True)
-                if data["type"] == "position_update":
-                    self.update_positions(data)
-                    try:
-                        await self.define_and_send(websocket)
-                    except Exception as e:
-                        print(f"Erreur dans define_and_send : {e}", flush=True)
-                elif data["type"] == "game_over":
-                    print(data["message"])
-                    break
-        except websockets.ConnectionClosed as e:
-            print("Connexion WebSocket fermée :", e)
+                
+                if data.get("type") == "game_over":
+                    print("Fin de la partie détectée, arrêt de l'IA.", flush=True)
+                    self.running = False
+                    break 
+                elif data.get("type") == "position_update":
+                    # async with self.lock:
+                    self.latest_message = data
+                    
+        except asyncio.CancelledError:
+            print("Réception annulée.", flush=True)
         except Exception as e:
-            print(f"Erreur dans listen : {e}", flush=True)
+            print(f"Erreur dans receive_data : {e}", flush=True)
+
+
+    async def process(self):
+        while self.running:
+            message = None
+            time_to_sleep = 0
+            # async with self.lock:
+            if self.latest_message is not None:
+                message = self.latest_message.copy()
+                self.latest_message = None
+            if message is not None:
+                print(f"Traitement des données : {message}", flush=True)
+                self.update_positions(message)
+
+                time_to_sleep = await self.define_and_send(self.websocket)
+            await asyncio.sleep((time_to_sleep + 1)/ 60)
 
 
     def actualise_pos(self, pos, dx, dy):
         pos['x'] += dx
-        if (pos['x'] > CANVAS_WIDTH):
-            pos['x'] = CANVAS_WIDTH - (pos['x'] - CANVAS_WIDTH)
-            dx *= -1
-        elif (pos['x'] < PADDLE_WIDTH + (CANVAS_WIDTH // 100)):
-            pos['x'] += (PADDLE_WIDTH + (CANVAS_WIDTH // 100)) - pos['x'] 
-            dy = 0
-            dx = absadd(dx, 1)
-            dx *= -1
+        # if (pos['x'] < PADDLE_WIDTH + (CANVAS_WIDTH // 100)):
+        #     pos['x'] += (PADDLE_WIDTH + (CANVAS_WIDTH // 100)) - pos['x'] 
+        #     dy = 0
+        #     dx = absadd(dx, 1)
+        #     dx *= -1
         pos['y'] += dy
-        if (pos['y'] > CANVAS_HEIGHT):
-            pos['y'] = CANVAS_HEIGHT - (pos['y'] - CANVAS_HEIGHT)
+        if (pos['y'] + BALL_RADIUS > CANVAS_HEIGHT):
+            pos['y'] -= (pos['y'] + BALL_RADIUS) - CANVAS_HEIGHT
             dy *= -1
-        elif (pos['y'] < 0):
-            pos['y'] = -pos['y']
+        elif (pos['y'] - BALL_RADIUS < 0):
+            pos['y'] = abs(pos['y'] - BALL_RADIUS)
             dy *= -1
         return {'x': pos['x'], 'y': pos['y']}
 
 
     def update_positions(self, data):
         self.ball_position.update(data["ball_position"])
-        self.paddle_position.update(data["player1_state"])
-        self.opponent_position.update(data["player2_state"])
+        self.paddle_position.update(data["player2_state"])
+        self.opponent_position.update(data["player1_state"])
+
 
     def estimate_next_point(self):
         act_pos = {'x': self.ball_position['x'], 'y': self.ball_position['y']}
@@ -85,30 +115,32 @@ class AIPlayer:
                 self.next_estimation['x'] = act_pos['x']
                 self.next_estimation['y'] = act_pos['y']
                 return
-            if frames == 59:
+            if frames >= 59 or act_pos['x'] - BALL_RADIUS <= (CANVAS_WIDTH // 100 ) + PADDLE_WIDTH:
                 self.next_estimation['fbi'] = frames
                 self.next_estimation['x'] = act_pos['x']
                 self.next_estimation['y'] = CANVAS_HEIGHT // 2
+
 
     async def compute_action(self, websocket):
         paddle_y = self.paddle_position["y"]
         action = []
 
         ball_y = self.next_estimation["y"]
-        diff = abs(ball_y - (paddle_y + (PADDLE_SIZE // 2)))
         
-        if ball_y < paddle_y + self.paddle_size // 2:
+        if ball_y < paddle_y:
             action.append("move_up")
-        elif ball_y > paddle_y + self.paddle_size // 2:
+            diff = (paddle_y + (PADDLE_SIZE // 2)) - ball_y
+        elif ball_y > paddle_y + self.paddle_size:
             action.append("move_down")
+            diff = ball_y - (paddle_y + (PADDLE_SIZE // 2))
         else:
             action.append(None)
         if action[0] is not None:
-            frames_to_reach = diff // self.paddle_position['speed']
-            frames_to_reach += 2 
+            frames_to_reach = int(diff // PLAYER_SPEED) + 1
             action.append(min(frames_to_reach, 59))
             action.append(f"stop_{action[0]}")
         return action
+
 
     async def define_and_send(self, websocket):
         self.estimate_next_point()
@@ -116,24 +148,28 @@ class AIPlayer:
         if actions:
             i = 0
             total_wait = 0
+            print(f"Actions envoyées : {actions} \n\n {self.ball_position} \n\n {self.next_estimation}", flush=True)
             while i < len(actions):
-                if isinstance(actions[i], int) or isinstance(actions[i], float):
-                    await asyncio.sleep(actions[i] / 60)
+                if isinstance(actions[i], int):
+                    await asyncio.sleep((actions[i])/ 60)
                     total_wait += actions[i]
                     i += 1
                 elif actions is None:
                     continue
                 else:
                     await websocket.send(json.dumps({"action": actions[i]}))
-                    print(f"Action envoyée : {actions[i]}")
                     i += 1
             if total_wait < 60:
-                await asyncio.sleep((60 - total_wait) / 60)
+                return 60 - total_wait
+            else:
+                return 0
+
 
 if __name__ == "__main__":
     ai = AIPlayer()
     asyncio.run(ai.connect())
-    
+
+     
 async def launch_ai(host, game_id):
     ai = AIPlayer(host, game_id)
     await ai.connect()

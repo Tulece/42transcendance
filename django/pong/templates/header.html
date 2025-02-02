@@ -1,67 +1,91 @@
-<!-- header.html -->
-<div id="header">
-    <nav>
-        <ul>
-            <li><a href="/" class="spa-link">Accueil</a></li>
-            <li class="dropdown">
-                <a href="#" class="spa-link">Jouer</a>
-                <ul class="dropdown-menu" style="display: none;">
-                    <li><a href="/game?mode=multi" class="spa-link">Play Duel</a></li>
-                    <li><a href="/game?mode=solo" class="spa-link">Play Solo</a></li>
+<div id="header" class="container-fluid">
+    <nav class="navbar navbar-expand-lg navbar-light bg-success-subtle">
+        <div class="container d-flex align-items-center justify-content-between flex-wrap">
+
+            <!-- Titre -->
+            <div class="d-flex align-items-center order-1 order-lg-1">
+                <a class="navbar-brand me-auto" href="/">
+                    ProxyFeatures
+                </a>
+                <!-- Bouton hamburger (visible uniquement sur petits écrans) -->
+                <button
+                    class="navbar-toggler d-lg-none"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarContent"
+                    aria-controls="navbarContent"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation"
+                >
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
+            <!-- Menu principal -->
+            <div class="collapse navbar-collapse order-3 order-lg-2" id="navbarContent">
+                <ul class="navbar-nav mx-lg-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a href="/" class="nav-link spa-link">Accueil</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a
+                            class="nav-link dropdown-toggle spa-link"
+                            id="navbarDropdown"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
+                        >
+                            Jouer
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <li>
+                                <a href="/game?mode=multi" class="dropdown-item spa-link">Play Duel</a>
+                            </li>
+                            <li>
+                                <a href="/game?mode=solo" class="dropdown-item spa-link">Play Solo</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/register" class="nav-link spa-link">S'inscrire</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/chat" class="nav-link spa-link">Chat</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/account" class="nav-link spa-link">Mon compte</a>
+                    </li>
                 </ul>
-            </li>
-            <li><a href="/register" class="spa-link">S'inscrire</a></li>
-            <li><a href="/chat" class="spa-link">Chat</a></li>
-            <li><a href="/account" class="spa-link">Mon compte</a></li>
-        </ul>
-        <div id="user-info" style="float: right;">
-            <span id="user-display">Non connecté</span>
-            <a href="/login" class="spa-link" id="login-link">Connexion</a>
-            <button id="logout-btn" style="display: none;">Déconnexion</button>
+            </div>
+
+            <!-- Bloc user-info -->
+            <div
+                id="user-info"
+                class="d-flex align-items-center order-2 order-lg-3 mt-3 mt-lg-0"
+            >
+                <span id="user-display" class="me-3">Non connecté</span>
+                <a href="/login" class="spa-link nav-link" id="login-link">Connexion</a>
+                <button
+                    id="logout-btn"
+                    class="btn btn-sm btn-outline-secondary ms-3"
+                    style="display: none;"
+                >
+                    Déconnexion
+                </button>
+            </div>
+
         </div>
     </nav>
 </div>
 
-<style>
-    #header nav ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: flex;
-    }
 
-    #header nav ul li {
-        position: relative;
-        margin: 0 10px;
-    }
+  <style>
+    /*
+       Par défaut, Bootstrap ouvre le menu dropdown au clic.
+       Si tu souhaites l’ouvrir au survol (hover) comme avant,
+       tu peux décommenter la règle ci-dessous (hack CSS) :
+    */
 
-    .dropdown {
-        cursor: pointer;
+    .navbar-nav .nav-item.dropdown:hover .dropdown-menu {
+      display: block;
     }
-
-    .dropdown-menu {
-        display: none;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        background: white;
-        border: 1px solid #ddd;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        padding: 0;
-        list-style: none;
-        z-index: 1000;
-    }
-
-    .dropdown-menu li {
-        margin: 0;
-    }
-
-    .dropdown-menu li a {
-        padding: 10px 15px;
-        color: black;
-    }
-
-    .dropdown:hover .dropdown-menu {
-        display: block!important;
-    }
-</style>
+  </style>

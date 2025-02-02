@@ -27,6 +27,11 @@ from .logic.game import *
 from django.conf import settings
 from django.conf.urls.static import static
 from pong.views.main_views import home_view, game_view, update_a2f, account_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view
+from .views.tournament_views import (
+    create_tournament_view,
+    get_tournament_detail_view,
+    report_match_result_view,
+)
 
 
 @api_view(['GET'])
@@ -40,6 +45,7 @@ urlpatterns = [
     path('game/', game_view, name='game'),
     path('chat/', chat_view, name='chat'),
     path('account/', account_view, name='account'),
+    path('account/<str:username>/', account_view, name='account_other'),
     path('admin/', admin.site.urls),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
@@ -48,6 +54,9 @@ urlpatterns = [
     path('login/', login_view, name='login'),
     path("api/logout/", logout_view, name="logout"),
     path('api/account/update_a2f/', update_a2f, name='update_a2f'),
+    path('tournaments/create/', create_tournament_view, name='create_tournament'),
+    path('tournaments/<int:tournament_id>/', get_tournament_detail_view, name='tournament_detail_json'),
+    path('tournaments/match/<int:match_id>/report/', report_match_result_view, name='report_match_result'),
 ]
 
 if settings.DEBUG:

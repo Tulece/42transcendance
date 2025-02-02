@@ -1,24 +1,67 @@
 {% load static %}
-<div>
-    <h1>Créer un compte</h1>
-    <!-- Message d'erreur inline supprimé -->
-    <form id="register-form" method="POST" action="/register/" enctype="multipart/form-data">
-        {% csrf_token %}
-        <label for="username">Nom d'utilisateur :</label>
-        <input type="text" id="username" name="username" required><br>
-
-        <label for="password">Mot de passe :</label>
-        <input type="password" id="password" name="password" required><br>
-
-        <label for="email">Email :</label>
-        <input type="email" id="email" name="email" required><br>
-
-        <label for="avatar">Avatar :</label>
-        <input type="file" id="avatar" name="avatar"><br>
-
-        <button type="submit">S'inscrire</button>
-    </form>
-    <a href="/" class="spa-link">Retour à l'accueil</a>
+<div id="register-container" class="container d-flex justify-content-center align-items-center vh-100" style="background-color: rgba(240, 248, 255, 0.5);">
+    <div class="card shadow-lg p-4" style="max-width: 500px; width: 100%; background-color: rgba(255, 255, 255, 0.9);">
+        <h1 class="text-center mb-4">Créer un compte</h1>
+        <form id="register-form" method="POST" action="/register/" enctype="multipart/form-data">
+            {% csrf_token %}
+            <!-- Nom utilisateur -->
+            <div class="mb-3">
+                <label for="username" class="form-label">Nom d'utilisateur</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    class="form-control" 
+                    placeholder="Entrez votre nom d'utilisateur" 
+                    required
+                >
+                <div id="username-error" class="form-text text-danger" style="display: none;"></div>
+            </div>
+            <!-- Mot de passe -->
+            <div class="mb-3">
+                <label for="password" class="form-label">Mot de passe</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-control" 
+                    placeholder="Entrez votre mot de passe" 
+                    minlength="8"
+                    required
+                >
+                <div id="password-error" class="form-text text-danger" style="display: none;"></div>
+            </div>
+            <!-- Email -->
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    class="form-control" 
+                    placeholder="Entrez votre email" 
+                    required
+                >
+                <div id="email-error" class="form-text text-danger" style="display: none;"></div>
+            </div>
+            <!-- Avatar -->
+            <div class="mb-3">
+                <label for="avatar" class="form-label">Avatar</label>
+                <input 
+                    type="file" 
+                    id="avatar" 
+                    name="avatar" 
+                    class="form-control"
+                >
+            </div>
+            <!-- Bouton inscription -->
+            <button type="submit" class="btn btn-primary w-100">S'inscrire</button>
+        </form>
+        <!-- Retour à l'accueil -->
+        <div class="text-center mt-3">
+            <a href="/" class="spa-link text-muted">Retour à l'accueil</a>
+        </div>
+    </div>
 </div>
 
 <script src="{% static 'js/register.js' %}"></script>

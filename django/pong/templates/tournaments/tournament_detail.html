@@ -1,0 +1,14 @@
+<h2>{{ tournament.name }}</h2>
+<ul>
+    {% for match in matches %}
+    <li>
+        Round {{ match.round_number }} : {{ match.player1.username }} vs
+        {% if match.player2 %}{{ match.player2.username }}{% else %}Bye{% endif %}
+        {% if match.winner %}
+        (Gagnant : {{ match.winner.username }})
+        {% else %}
+        <a href="{% url 'report_match_result' match.id %}">Signaler le gagnant</a>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>

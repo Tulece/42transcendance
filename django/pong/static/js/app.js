@@ -63,7 +63,7 @@
 
     function handlePageUnload(oldUrl) {
         if (!oldUrl) return;
-    
+
         if (oldUrl.includes("/game")) {
             if (typeof window.destroyPong === "function") {
                 window.destroyPong();
