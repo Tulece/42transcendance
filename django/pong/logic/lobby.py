@@ -10,7 +10,6 @@ class Lobby:
 
     @staticmethod
     def get_instance():
-        """Retourne l'instance unique de Lobby."""
         if Lobby._instance is None:
             Lobby()
         return Lobby._instance
@@ -19,10 +18,23 @@ class Lobby:
         if Lobby._instance is not None:
             raise Exception("Lobby est un singleton, utilisez get_instance() pour y accéder.")
         Lobby._instance = self
-        self.waiting_queue = {}  # File d'attente des joueurs
-        self.active_games = {}   # Dictionnaire {game_id: instance de Game}
-        #Launch a matchmaking loop, that will check elapsed_time and elo for each_player in queue, and 
-        asyncio.create_task(self.matchmaking())
+        self.waiting_queue = {}
+        self.active_games = {}
+        # On essaie de lancer le matchmaking s'il y a une boucle d'événements en cours
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self.matchmaking())
+        except RuntimeError:
+            print("Aucune boucle d'événements active lors de l'instanciation de Lobby.")
+
+    async def API_start_game_async(self):
+        game_id = str(uuid.uuid4())
+        game = Game(game_id)
+        self.active_games[game_id] = game
+        # Ici, nous sommes dans un contexte asynchrone, la boucle est garantie
+        asyncio.create_task(game.start())
+        print(f"Partie créée avec l'ID {game_id}", flush=True)
+        return game_id
 
     def get_queue_len(self):
         """Retourne la longueur de la file d'attente."""
@@ -59,7 +71,7 @@ class Lobby:
         print(f"Partie créée avec l'ID {game_id}", flush=True)
         return game_id
 
-     
+
     async def matchmaking(self):
         """Effectue un matchmaking progressif basé sur l'ELO."""
         while True:
@@ -135,7 +147,7 @@ class Lobby:
 
             return game_id, player1, player2
         return None, None, None
-    
+
     async def create_solo_game(self, player_consumer):
         """Crée une partie si deux joueurs sont disponibles."""
 

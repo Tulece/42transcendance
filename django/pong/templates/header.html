@@ -1,26 +1,26 @@
 <div id="header" class="container-fluid">
     <nav class="navbar navbar-expand-lg navbar-light bg-success-subtle">
         <div class="container d-flex align-items-center justify-content-between flex-wrap">
-            
+
             <!-- Titre -->
             <div class="d-flex align-items-center order-1 order-lg-1">
                 <a class="navbar-brand me-auto" href="/">
                     ProxyFeatures
                 </a>
                 <!-- Bouton hamburger (visible uniquement sur petits écrans) -->
-                <button 
-                    class="navbar-toggler d-lg-none" 
-                    type="button" 
-                    data-bs-toggle="collapse" 
+                <button
+                    class="navbar-toggler d-lg-none"
+                    type="button"
+                    data-bs-toggle="collapse"
                     data-bs-target="#navbarContent"
-                    aria-controls="navbarContent" 
-                    aria-expanded="false" 
+                    aria-controls="navbarContent"
+                    aria-expanded="false"
                     aria-label="Toggle navigation"
                 >
                     <span class="navbar-toggler-icon"></span>
                 </button>
             </div>
-            
+
             <!-- Menu principal -->
             <div class="collapse navbar-collapse order-3 order-lg-2" id="navbarContent">
                 <ul class="navbar-nav mx-lg-auto mb-2 mb-lg-0">
@@ -28,11 +28,10 @@
                         <a href="/" class="nav-link spa-link">Accueil</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a 
-                            class="nav-link dropdown-toggle spa-link" 
-                            href="#" 
-                            id="navbarDropdown" 
-                            data-bs-toggle="dropdown" 
+                        <a
+                            class="nav-link dropdown-toggle spa-link"
+                            id="navbarDropdown"
+                            data-bs-toggle="dropdown"
                             aria-expanded="false"
                         >
                             Jouer
@@ -57,37 +56,36 @@
                     </li>
                 </ul>
             </div>
-            
+
             <!-- Bloc user-info -->
-            <div 
-                id="user-info" 
+            <div
+                id="user-info"
                 class="d-flex align-items-center order-2 order-lg-3 mt-3 mt-lg-0"
             >
                 <span id="user-display" class="me-3">Non connecté</span>
                 <a href="/login" class="spa-link nav-link" id="login-link">Connexion</a>
-                <button 
-                    id="logout-btn" 
-                    class="btn btn-sm btn-outline-secondary ms-3" 
+                <button
+                    id="logout-btn"
+                    class="btn btn-sm btn-outline-secondary ms-3"
                     style="display: none;"
                 >
                     Déconnexion
                 </button>
             </div>
-            
+
         </div>
     </nav>
 </div>
 
-  
+
   <style>
-    /* 
+    /*
        Par défaut, Bootstrap ouvre le menu dropdown au clic.
        Si tu souhaites l’ouvrir au survol (hover) comme avant,
        tu peux décommenter la règle ci-dessous (hack CSS) :
     */
-  
+
     .navbar-nav .nav-item.dropdown:hover .dropdown-menu {
       display: block;
     }
   </style>
-  
