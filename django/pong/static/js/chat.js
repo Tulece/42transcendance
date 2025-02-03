@@ -1,10 +1,12 @@
 window.initChat = () => {
-  console.log("DEBUG: chat.js chargé");
-    // Initialisation des éléments HTML
+    // Init éléments HTML
     const messageList = document.getElementById("message-list");
     const messageInput = document.getElementById("message-input");
     const sendMessageBtn = document.getElementById("send-message-btn");
     const chatToggle = document.getElementById("chat-toggle");
+    const chatFooter = document.querySelector("#chat-container .card-footer");
+    //const chatContainer = document.getElementById("chat-container");
+    //const userListContainer = document.getElementById("user-list-container");
     const messageArea = document.getElementById("message-area");
     const userList = document.getElementById("user-list");
     const privateRecipient = document.getElementById("private-recipient");
@@ -72,6 +74,10 @@ window.initChat = () => {
         addMessageToChat(data.username, data.message);
       } else if (data.type === "private_message") {
         addPrivateMessageToChat(data.username, data.message);
+      } else if (data.type === "error") {
+        console.warn("Erreur reçue - Non affichée sur la page chat :", data.message);
+      } else if ( data.type === "error_private") {
+        addErrorMessage(data.message);
       } else if (data.type === "system") {
         addSystemMessage(data.message);
       } else if (data.type === "user_list") {
@@ -86,7 +92,7 @@ window.initChat = () => {
       messageDiv.classList.add("message");
 
       const usernameLink = document.createElement("a");
-      usernameLink.href = '/account/${username}';
+      usernameLink.href = `/account/${username}`;
       usernameLink.textContent = username;
       usernameLink.classList.add("chat-username");
       usernameLink.style.cursor = "pointer";
@@ -97,7 +103,7 @@ window.initChat = () => {
       });
 
       messageDiv.appendChild(usernameLink);
-      messageDiv.innerHTML += ' : ${message}';
+      messageDiv.innerHTML += ` : ${message}`;
       messageList.appendChild(messageDiv);
       scrollToBottom();
     }
@@ -119,6 +125,16 @@ window.initChat = () => {
       messageList.appendChild(messageDiv);
       scrollToBottom();
     }
+
+    // Error management
+    function addErrorMessage(message) {
+        const messageDiv = document.createElement("div");
+        messageDiv.classList.add("message", "error-message"); // Classe spé. pour la mise en forme
+        messageDiv.innerHTML = `⚠️ <strong>Erreur :</strong> ${message}`;        messageList.appendChild(messageDiv);
+        messageList.appendChild(messageDiv);
+        scrollToBottom();
+    }
+    
   
     // Scroller automatiquement vers le bas
     function scrollToBottom() {
@@ -135,21 +151,29 @@ window.initChat = () => {
   
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ message })); // Envoi du message sous forme JSON
-        messageInput.value = ""; // Réinitialise le champ input
+        messageInput.value = "";
       } else {
         addSystemMessage("WebSocket non connecté.");
       }
     });
   
     // Bouton "Réduire"
-    chatToggle.addEventListener("click", () => {
-      if (messageArea.style.display === "none") {
-        messageArea.style.display = "block";
-        chatToggle.innerText = "Réduire";
-      } else {
-        messageArea.style.display = "none";
-        chatToggle.innerText = "Ouvrir";
-      }
+    chatToggle.addEventListener("click", function () {
+        const isCollapsed = messageArea.classList.contains("d-none");
+
+        if (isCollapsed) {
+            // Réouvrir le chat
+            messageArea.classList.remove("d-none");
+            chatFooter.classList.remove("d-none");
+            chatFooter.style.maxHeight = "100px"; // Valeur ajustable selon la taille des champs
+            chatToggle.innerText = "Réduire";
+        } else {
+            // Réduire le chat
+            messageArea.classList.add("d-none");
+            chatFooter.classList.add("d-none");
+            chatFooter.style.maxHeight = "0";
+            chatToggle.innerText = "Ouvrir";
+        }
     });
 
     sendPrivateBtn.addEventListener("click", () => {

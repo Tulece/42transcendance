@@ -159,7 +159,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }))
             return
 
+        #Check si expéditeur is blocked
+        is_blocked = await database_sync_to_async(found_user.blocked_users.filter(id=self.user.id).exists)()
+        if is_blocked:
+            # Send error only à l'expéditeur
+            await self.send(json.dumps({
+                "type": "error_private",
+                "message": f"Impossible d'envoyer un message privé à {target_username}, car vous avez été bloqué."
+            }))
+            return
+
         target_group = f"user_{found_user.id}"
+        sender_group = self.personal_group
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         await self.channel_layer.group_send(
@@ -173,10 +184,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
+        await self.channel_layer.group_send(
+            sender_group,
+            {
+                "type": "private_message",
+                "sender_id": self.user.id,
+                "sender": self.username,
+                "target_username": target_username,
+                "message": message,
+                "timestamp": timestamp
+            }
+        )
+
     async def private_message(self, event):
         sender_id = event["sender_id"]
-        if sender_id in self.blocked_users_ids:
-            return
 
         sender = event["sender"]
         message = event["message"]
