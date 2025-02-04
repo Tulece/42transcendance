@@ -217,6 +217,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         self.lobby = Lobby.get_instance()
         self.player_id = str(uuid.uuid4())
         self.game_id = None
+        self.user = self.scope.get("user", None)
 
         await self.accept()
         print(f"Joueur {self.player_id} connecté au lobby.", flush=True)

@@ -41,11 +41,21 @@ class Lobby:
         return len(self.waiting_queue)
 
     def add_player_to_queue(self, player_consumer, elo):
-        """Ajoute un joueur avec son ELO et le timestamp d'entrée dans la file d'attente."""
+        """Ajoute un joueur avec son ELO et le timestamp d'entrée dans la file d'attente,
+           en évitant d'ajouter plusieurs fois le même utilisateur.
+        """
+        # Vérifier si un joueur avec le même username est déjà dans la file
+        for existing_consumer in self.waiting_queue.keys():
+            if hasattr(existing_consumer, 'user') and hasattr(player_consumer, 'user'):
+                if existing_consumer.user.username == player_consumer.user.username:
+                    print(f"L'utilisateur {player_consumer.user.username} est déjà dans la file.")
+                    return  # On ne l'ajoute pas à nouveau
+        # Si aucun doublon n'est trouvé, on ajoute le joueur dans la file
         self.waiting_queue[player_consumer] = {
             "elo": elo,
             "timestamp": time.time()
         }
+
 
     def remove_player_from_queue(self, player_consumer):
         """Retire un joueur de la file d'attente."""
