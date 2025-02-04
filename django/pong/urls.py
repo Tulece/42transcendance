@@ -31,6 +31,7 @@ from .views.tournament_views import (
     create_tournament_view,
     get_tournament_detail_view,
     start_match_game_view,
+    list_tournaments_view,
 )
 
 
@@ -57,6 +58,7 @@ urlpatterns = [
     path('tournaments/create/', create_tournament_view, name='create_tournament'),
     path('tournaments/<int:tournament_id>/', get_tournament_detail_view, name='tournament_detail_json'),
     path('tournaments/match/<int:match_id>/start_game/', start_match_game_view, name='start_match_game'),
+    path('tournaments/list/', list_tournaments_view, name='list_tournaments'),
 ]
 
 if settings.DEBUG:

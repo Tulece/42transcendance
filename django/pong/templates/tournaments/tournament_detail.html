@@ -1,21 +1,28 @@
-<!-- templates/tournaments/tournament_detail.html -->
+{% load static %}
+
 <div id="tournamentContainer" data-tournament-id="{{ tournament.id }}">
-	<h2>{{ tournament.name }}</h2>
-	<ul id="matchList">
-	  {% for match in matches %}
-		<li>
-		  Round {{ match.round_number }} :
-		  {{ match.player1.username }} vs
-		  {% if match.player2 %}{{ match.player2.username }}{% else %}Bye{% endif %}
-		  {% if match.winner %}
-			(Gagnant : {{ match.winner.username }})
-		  {% else %}
-			<button onclick="startMatch({{ match.id }}, {{ tournament.id }})">
-			  Lancer la partie
-			</button>
-		  {% endif %}
-		</li>
-	  {% endfor %}
-	</ul>
-  </div>
-  <script src="{% static 'js/tournaments.js' %}"></script>
+  <h2>{{ tournament.name }}</h2>
+  <ul id="matchList" class="list-group">
+    {% for match in matches %}
+      <li class="list-group-item">
+        Round {{ match.round_number }} :
+        {{ match.player1.username }} vs
+        {% if match.player2 %}
+          {{ match.player2.username }}
+        {% else %}
+          Bye
+        {% endif %}
+        {% if match.winner %}
+          (Gagnant : {{ match.winner.username }})
+        {% else %}
+          <button class="btn btn-success mt-2" onclick="startMatch({{ match.id }}, {{ tournament.id }})">
+            Lancer la partie
+          </button>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<!-- On peut inclure le script JS ici directement (ou le laisser dans base) -->
+<script src="{% static 'js/tournaments.js' %}"></script>
