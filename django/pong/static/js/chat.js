@@ -5,7 +5,7 @@ window.initChat = () => {
     const sendMessageBtn = document.getElementById("send-message-btn");
     const chatToggle = document.getElementById("chat-toggle");
     const chatFooter = document.querySelector("#chat-container .card-footer");
-    //const chatContainer = document.getElementById("chat-container");
+    const chatContainer = document.getElementById("chat-container");
     //const userListContainer = document.getElementById("user-list-container");
     const messageArea = document.getElementById("message-area");
     const userList = document.getElementById("user-list");
@@ -159,19 +159,17 @@ window.initChat = () => {
   
     // Bouton "Réduire"
     chatToggle.addEventListener("click", function () {
-        const isCollapsed = messageArea.classList.contains("d-none");
+        const isCollapsed = chatContainer.classList.contains("collapsed");
 
         if (isCollapsed) {
             // Réouvrir le chat
-            messageArea.classList.remove("d-none");
-            chatFooter.classList.remove("d-none");
-            chatFooter.style.maxHeight = "100px"; // Valeur ajustable selon la taille des champs
+            chatContainer.classList.remove("collapsed");
+            chatContainer.style.maxHeight = "400px";
             chatToggle.innerText = "Réduire";
         } else {
             // Réduire le chat
-            messageArea.classList.add("d-none");
-            chatFooter.classList.add("d-none");
-            chatFooter.style.maxHeight = "0";
+            chatContainer.classList.add("collapsed");
+            chatContainer.style.maxHeight = "50px"; // Only header reste visible
             chatToggle.innerText = "Ouvrir";
         }
     });
