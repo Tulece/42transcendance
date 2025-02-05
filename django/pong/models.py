@@ -39,4 +39,5 @@ class Match(models.Model):
     winner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name="won_matches")
     round_number = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
+    game_id = models.CharField(max_length=100, null=True, blank=True)
 

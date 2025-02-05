@@ -67,32 +67,31 @@ def get_tournament_detail_view(request, tournament_id):
 @require_http_methods(["POST"])
 async def start_match_game_view(request, match_id):
     try:
-        # Récupération du match en base (opération synchrone -> sync_to_async)
         match = await sync_to_async(Match.objects.get)(id=match_id)
     except Match.DoesNotExist:
         return JsonResponse({"success": False, "error": "Match non trouvé"}, status=404)
 
-    # Récupération de l'ID utilisateur (également synchrone à l’interne)
     user_id = await sync_to_async(lambda: request.user.id)()
 
-    # Récupération des IDs des joueurs du match
-    match_player1_id = await sync_to_async(lambda: match.player1.id)()
-    # match.player2 peut être None, on le charge en deux temps :
-    match_player2 = await sync_to_async(lambda: match.player2)()
-    match_player2_id = None
-    if match_player2:
-        match_player2_id = await sync_to_async(lambda: match_player2.id)()
-
-    # Vérification que l’utilisateur courant est bien participant au match
-    if user_id not in (match_player1_id, match_player2_id):
+    # Vérifier que l'utilisateur fait partie du match
+    if user_id not in [match.player1_id, match.player2_id]:
         return JsonResponse({"success": False, "error": "Vous n'êtes pas participant de ce match."}, status=403)
 
-    # Suite de la logique métier
-    lobby_instance = Lobby.get_instance()
-    # Supposons que API_start_game_async() est vraiment asynchrone
-    game_id = await lobby_instance.API_start_game_async()
+    # Regarder si on a déjà un game_id
+    if not match.game_id:
+        # Pas de partie encore créée -> on la crée
+        lobby_instance = Lobby.get_instance()
+        new_game_id = await lobby_instance.API_start_game_async()
 
-    return JsonResponse({"success": True, "game_id": game_id})
+        # On enregistre dans le Match
+        match.game_id = new_game_id
+        await sync_to_async(match.save)()
+    else:
+        # Partie déjà en cours
+        new_game_id = match.game_id
+
+    return JsonResponse({"success": True, "game_id": new_game_id})
+
 
 
 @csrf_exempt
