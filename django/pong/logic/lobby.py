@@ -70,18 +70,6 @@ class Lobby:
                 game.stop()
                 print(f"Partie {game_id} supprimée.")
 
-    def API_start_game(self):
-        game_id = str(uuid.uuid4())
-
-        game = Game(game_id)
-        self.active_games[game_id] = game
-
-        asyncio.create_task(game.start())
-
-        print(f"Partie créée avec l'ID {game_id}", flush=True)
-        return game_id
-
-
     async def matchmaking(self):
         """Effectue un matchmaking progressif basé sur l'ELO."""
         while True:

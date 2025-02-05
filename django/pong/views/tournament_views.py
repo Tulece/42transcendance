@@ -67,13 +67,31 @@ def get_tournament_detail_view(request, tournament_id):
 @require_http_methods(["POST"])
 async def start_match_game_view(request, match_id):
     try:
+        # Récupération du match en base (opération synchrone -> sync_to_async)
         match = await sync_to_async(Match.objects.get)(id=match_id)
     except Match.DoesNotExist:
         return JsonResponse({"success": False, "error": "Match non trouvé"}, status=404)
 
+    # Récupération de l'ID utilisateur (également synchrone à l’interne)
+    user_id = await sync_to_async(lambda: request.user.id)()
+
+    # Récupération des IDs des joueurs du match
+    match_player1_id = await sync_to_async(lambda: match.player1.id)()
+    # match.player2 peut être None, on le charge en deux temps :
+    match_player2 = await sync_to_async(lambda: match.player2)()
+    match_player2_id = None
+    if match_player2:
+        match_player2_id = await sync_to_async(lambda: match_player2.id)()
+
+    # Vérification que l’utilisateur courant est bien participant au match
+    if user_id not in (match_player1_id, match_player2_id):
+        return JsonResponse({"success": False, "error": "Vous n'êtes pas participant de ce match."}, status=403)
+
+    # Suite de la logique métier
     lobby_instance = Lobby.get_instance()
-    # Appel de la méthode asynchrone et attente du résultat
+    # Supposons que API_start_game_async() est vraiment asynchrone
     game_id = await lobby_instance.API_start_game_async()
+
     return JsonResponse({"success": True, "game_id": game_id})
 
 
@@ -93,3 +111,31 @@ def list_tournaments_view(request):
             "tournaments": tournaments
         })
 
+@require_POST
+@csrf_exempt
+def report_match_result_view(request, match_id):
+    try:
+        match = Match.objects.get(id=match_id)
+    except Match.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Match introuvable."}, status=404)
+
+    winner_id = request.POST.get("winner_id")  # ex: 'player1'
+    if not winner_id:
+        return JsonResponse({"success": False, "error": "Pas de vainqueur indiqué."}, status=400)
+
+    # Vérifier que le winner_id correspond bien à match.player1 ou match.player2
+    valid_winner_ids = []
+    if match.player1:
+        valid_winner_ids.append(str(match.player1.id))
+    if match.player2:
+        valid_winner_ids.append(str(match.player2.id))
+
+    if winner_id not in valid_winner_ids:
+        return JsonResponse({"success": False, "error": "winner_id invalide."}, status=400)
+
+    # Appel de la méthode du TournamentLobby
+    from ..logic.tournament_lobby import TournamentLobby
+    tlobby = TournamentLobby()
+    tlobby.report_match_result(match.id, winner_id)
+
+    return JsonResponse({"success": True, "message": "Match mis à jour, round suivant préparé si nécessaire."})
