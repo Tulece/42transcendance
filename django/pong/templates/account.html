@@ -7,6 +7,7 @@
         <p><strong>Email :</strong> {{ user.email }}</p>
         <p><strong>Display name :</strong> {{ user.display_name|default:"(non renseigné)" }}</p>
 
+
         <label for="a2f">Activer l'authentification à deux facteurs :</label>
         <input type="checkbox" id="a2f"
             {% if user.is_a2f_enabled %}checked{% endif %}
@@ -29,6 +30,9 @@
 
         <!-- ADD OTHER INFO (stats, tournaments, friends, etc.)-->
     {% endif %}
+    <br>
+    <p><strong>Played Matches :</strong> {{ user.match_played }}</p>
+    <p><strong>Won Matches :</strong> {{ user.wins }}</p>
 </div>
 
 <script src="{% static 'js/account.js' %}"></script>
