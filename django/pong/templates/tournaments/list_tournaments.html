@@ -1,0 +1,17 @@
+{% load static %}
+
+<h2>Tournois en cours</h2>
+{% if tournaments %}
+  <ul class="list-group">
+    {% for tournoi in tournaments %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>{{ tournoi.name }}</span>
+        <a href="{% url 'tournament_detail_json' tournoi.id %}" class="btn btn-primary spa-link">
+          Rejoindre
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Aucun tournoi en cours.</p>
+{% endif %}

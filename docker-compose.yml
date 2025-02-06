@@ -22,10 +22,11 @@ services:
            daphne -b 0.0.0.0 -p 8000 pong.asgi:application"
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
+
     env_file:
       - .env
     environment:

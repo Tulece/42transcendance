@@ -2,24 +2,24 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class CustomUser(AbstractUser):
-    def get_avatar_path(self, filename):
-        # Assure que l'avatar est toujours sauvegardé avec le nom d'utilisateur
-        ext = filename.split('.')[-1]
-        return f'avatars/{self.username}.{ext}'
-
-    avatar = models.ImageField(
-        upload_to=get_avatar_path,
-        default='avatars/default.jpg'
-    )
     display_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    avatar = models.ImageField(upload_to='avatars/', default='avatars/default.jpg')
     online_status = models.BooleanField(default=False)
+
+    # Un utilisateur peut bloquer d'autres utilisateurs
     blocked_users = models.ManyToManyField(
         'self',
         symmetrical=False,
         related_name='blocked_by',
         blank=True
     )
+
+    match_played  = models.IntegerField(default=0)
+    wins = models.IntegerField(default=0)
+    loses = models.IntegerField(default=0)
+
     is_a2f_enabled = models.BooleanField(default=True)
+    # Champs nécessaires pour l'authentification via 42
     is_42_user = models.BooleanField(default=False)
     intra_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     access_token = models.CharField(max_length=255, null=True, blank=True)
@@ -43,4 +43,5 @@ class Match(models.Model):
     winner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name="won_matches")
     round_number = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
+    game_id = models.CharField(max_length=100, null=True, blank=True)
 

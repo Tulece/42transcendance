@@ -10,7 +10,8 @@ Major module : Implementing a remote authentication.
 
 Gameplay and User Experience :
 Major module : Remote players.
-Minor module : Game Customization Options.
+// Minor module : Game Customization Options.
+Major module : Live Chat.
 
 AI-Algo :
 Major module : Introduce an AI Opponent.

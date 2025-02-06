@@ -19,7 +19,6 @@ import pyotp
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import datetime, timedelta
-import os
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -264,66 +263,49 @@ def home_view(request):
     return render(request, 'base.html', context)
 
 def register_view(request):
-    """Vue d'inscription avec gestion améliorée des avatars"""
+    """Gère l'inscription d'un utilisateur"""
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
         email = request.POST.get("email")
         avatar = request.FILES.get("avatar")
 
+        # Validation des données
         if not username or not password or not email:
-            error_message = "Tous les champs sont obligatoires."
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({"error": error_message}, status=400)
-            return render(request, "base.html", {
-                "error_message": error_message,
+                return JsonResponse({"error": "Tous les champs sont obligatoires."}, status=400)
+            context = {
+                "error_message": "Tous les champs sont obligatoires.",
                 "initial_fragment": "register.html"
-            })
+            }
+            return render(request, "base.html", context)
 
-        if CustomUser.objects.filter(username=username).exists():
-            error_message = "Nom d'utilisateur déjà pris."
+        if User.objects.filter(username=username).exists():
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({"error": error_message}, status=400)
-            return render(request, "base.html", {
-                "error_message": error_message,
+                return JsonResponse({"error": "Nom d'utilisateur déjà pris."}, status=400)
+            context = {
+                "error_message": "Nom d'utilisateur déjà pris.",
                 "initial_fragment": "register.html"
-            })
+            }
+            return render(request, "base.html", context)
+
+        # Sauvegarde de l'avatar
+        avatar_name = None
+        if avatar:
+            fs = FileSystemStorage(location='media/avatars/')
+            avatar_name = fs.save(avatar.name, avatar)
 
         # Création de l'utilisateur
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username=username,
             email=email,
             password=make_password(password)
         )
 
-        # Gestion de l'avatar
-        if avatar:
-            extension = avatar.name.split('.')[-1].lower()
-            if extension not in ['jpg', 'jpeg', 'png', 'gif']:
-                user.delete()
-                error_message = "Format d'image non supporté"
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({"error": error_message}, status=400)
-                return render(request, "base.html", {
-                    "error_message": error_message,
-                    "initial_fragment": "register.html"
-                })
-
-            # Sauvegarde de l'avatar
-            avatar_name = f"{username}.{extension}"
-            avatar_path = os.path.join(settings.MEDIA_ROOT, 'avatars', avatar_name)
-            os.makedirs(os.path.dirname(avatar_path), exist_ok=True)
-            
-            with open(avatar_path, 'wb+') as destination:
-                for chunk in avatar.chunks():
-                    destination.write(chunk)
-            
-            user.avatar = f'avatars/{avatar_name}'
-            user.save()
-
-        # Génération des tokens JWT
+        # Génération des tokens JWT (optionnel si on veut auto-connecter l’utilisateur après l’inscription)
         refresh = RefreshToken.for_user(user)
 
+        # Réponse pour les requêtes AJAX (SPA)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 "success": True,
@@ -335,12 +317,15 @@ def register_view(request):
                 "redirect": "/"
             }, status=201)
 
+        # Redirection normale pour les requêtes non AJAX
         return redirect('home')
 
+    # Gestion des requêtes GET
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, 'register.html')
 
-    return render(request, "base.html", {"initial_fragment": "register.html"})
+    context = {"initial_fragment": "register.html"}
+    return render(request, "base.html", context)
 
 def game_view(request):
     """Gère la vue pour le jeu Pong - nécessite authentification."""
@@ -355,34 +340,26 @@ def game_view(request):
     return render(request, 'base.html', {"initial_fragment": "pong.html"})
 
 def account_view(request, username=None):
-    """Vue du compte utilisateur avec gestion améliorée des avatars"""
+    """Access to account"""
     if not request.user.is_authenticated:
+        # Si la requête est AJAX, renvoyer 403 ; sinon rediriger vers home
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return HttpResponseForbidden("Vous devez être connecté pour voir ce profil.")
-        return redirect('/')
-
-    # Déterminer quel profil afficher
+        else:
+            return redirect('/')  # redirige vers la page d'accueil
+    
     if username is None or username == request.user.username:
         user_profile = request.user
     else:
-        user_profile = get_object_or_404(CustomUser, username=username)
-
-    # Vérifier si l'avatar existe physiquement
-    avatar_path = user_profile.avatar.path if user_profile.avatar else None
-    if avatar_path and os.path.exists(avatar_path):
-        avatar_url = user_profile.avatar.url
-    else:
-        avatar_url = f'{settings.MEDIA_URL}avatars/default.jpg'
+        user_profile = get_object_or_404(User, username=username)
 
     context = {
-        'user_profile': user_profile,
-        'avatar_url': avatar_url
+        "user_profile": user_profile
     }
-
+    
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render(request, 'account.html', context)
-    return render(request, 'base.html', {"initial_fragment": "account.html", **context})
-
+        return render(request, 'account.html', context)  # Fragment AJAX
+    return render(request, 'base.html', {"initial_fragment": "account.html", "user_profile":user_profile})
 
 def chat_view(request):
     """Vue pour tester JWT et WebSocket - nécessite authentification."""

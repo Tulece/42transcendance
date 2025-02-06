@@ -30,7 +30,8 @@ from pong.views.main_views import home_view, game_view, update_a2f, account_view
 from .views.tournament_views import (
     create_tournament_view,
     get_tournament_detail_view,
-    report_match_result_view,
+    start_match_game_view,
+    list_tournaments_view,
 )
 
 
@@ -56,7 +57,8 @@ urlpatterns = [
     path('api/account/update_a2f/', update_a2f, name='update_a2f'),
     path('tournaments/create/', create_tournament_view, name='create_tournament'),
     path('tournaments/<int:tournament_id>/', get_tournament_detail_view, name='tournament_detail_json'),
-    path('tournaments/match/<int:match_id>/report/', report_match_result_view, name='report_match_result'),
+    path('tournaments/match/<int:match_id>/start_game/', start_match_game_view, name='start_match_game'),
+    path('tournaments/list/', list_tournaments_view, name='list_tournaments'),
 ]
 
 if settings.DEBUG:

@@ -10,6 +10,7 @@ from .logic.lobby import Lobby
 import uuid
 import asyncio
 from channels.db import database_sync_to_async
+from django.db import transaction
 from pong.models import CustomUser
 from datetime import datetime
 
@@ -217,6 +218,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         self.lobby = Lobby.get_instance()
         self.player_id = str(uuid.uuid4())
         self.game_id = None
+        self.user = self.scope.get("user", None)
 
         await self.accept()
         print(f"Joueur {self.player_id} connecté au lobby.", flush=True)
@@ -292,6 +294,9 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.player_id = query_params.get('player_id', [None])[0]
         self.is_ai = query_params.get('mode', ['human'])[0] == 'solo' and self.player_id == 'player2'
 
+        if not self.is_ai:
+            self.db_user = self.scope.get("user", None)
+
         if not self.player_id or self.player_id not in ["player1", "player2"]:
             await self.close()
             return
@@ -306,7 +311,6 @@ class PongConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.game_id, self.channel_name)
         print(f"Joueur {self.player_id} déconnecté de la partie {self.game_id}.", flush=True)
 
-        # Si nécessaire, notifier la classe Game ou le Lobby
         if self.game:
             self.game.handle_player_disconnect(self.player_id)
 
@@ -324,8 +328,46 @@ class PongConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"Erreur lors de la réception d'un message : {e}")
 
+    async def update_stats(self, go_message):
+        db_user = self.scope.get("user", None)
+        if db_user:
+            if self.player_id in go_message:
+                db_user.loses += 1
+            else:
+                db_user.wins += 1
+            db_user.match_played += 1
+            
+            await database_sync_to_async(self._save_user)(db_user)
+
+    @staticmethod
+    @transaction.atomic
+    def _save_user(user):
+        user.save()
+
     async def game_update(self, event):
         """Envoie les mises à jour du jeu aux joueurs via WebSocket."""
-        # print("Received game update:", event, flush=True)
+        if event["message"]["type"] == "game_over" and not self.is_ai:
+            await self.update_stats(event["message"]['message'])
         await self.send(json.dumps(event["message"]))
 
+
+
+class TournamentConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        # Récupère l'ID du tournoi depuis l'URL (définie dans le routing)
+        self.tournament_id = self.scope['url_route']['kwargs']['tournament_id']
+        self.group_name = f'tournament_{self.tournament_id}'
+        # On ajoute la connexion au groupe de ce tournoi
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+        print(f"Client connecté au tournoi {self.tournament_id}")
+
+    async def disconnect(self, close_code):
+        # On supprime la connexion du groupe
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        print(f"Client déconnecté du tournoi {self.tournament_id}")
+
+    # Cette méthode sera appelée lors d'un group_send avec le type 'tournament_update'
+    async def tournament_update(self, event):
+        message = event['message']
+        await self.send(text_data=json.dumps(message))

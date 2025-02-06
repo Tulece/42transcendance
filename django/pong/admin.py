@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser
+from .models import CustomUser, Tournament, Match
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -57,3 +57,18 @@ class CustomUserAdmin(UserAdmin):
 
     # Gestion des relations ManyToManyField
     filter_horizontal = ('blocked_users',)
+
+
+@admin.register(Tournament)
+class TournamentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'created_at', 'is_active')
+    search_fields = ('name',)
+    list_filter = ('is_active', 'created_at',)
+    filter_horizontal = ('players',)
+
+
+@admin.register(Match)
+class MatchAdmin(admin.ModelAdmin):
+    list_display = ('id', 'tournament', 'player1', 'player2', 'winner', 'round_number', 'created_at')
+    search_fields = ('tournament__name', 'player1__username', 'player2__username', 'winner__username')
+    list_filter = ('round_number', 'created_at',)
