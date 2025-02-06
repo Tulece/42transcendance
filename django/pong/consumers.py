@@ -10,6 +10,7 @@ from .logic.lobby import Lobby
 import uuid
 import asyncio
 from channels.db import database_sync_to_async
+from django.db import transaction
 from pong.models import CustomUser
 from datetime import datetime
 
@@ -293,6 +294,9 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.player_id = query_params.get('player_id', [None])[0]
         self.is_ai = query_params.get('mode', ['human'])[0] == 'solo' and self.player_id == 'player2'
 
+        if not self.is_ai:
+            self.db_user = self.scope.get("user", None)
+
         if not self.player_id or self.player_id not in ["player1", "player2"]:
             await self.close()
             return
@@ -307,7 +311,6 @@ class PongConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.game_id, self.channel_name)
         print(f"Joueur {self.player_id} déconnecté de la partie {self.game_id}.", flush=True)
 
-        # Si nécessaire, notifier la classe Game ou le Lobby
         if self.game:
             self.game.handle_player_disconnect(self.player_id)
 
@@ -325,9 +328,26 @@ class PongConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"Erreur lors de la réception d'un message : {e}")
 
+    async def update_stats(self, go_message):
+        db_user = self.scope.get("user", None)
+        if db_user:
+            if self.player_id in go_message:
+                db_user.loses += 1
+            else:
+                db_user.wins += 1
+            db_user.match_played += 1
+            
+            await database_sync_to_async(self._save_user)(db_user)
+
+    @staticmethod
+    @transaction.atomic
+    def _save_user(user):
+        user.save()
+
     async def game_update(self, event):
         """Envoie les mises à jour du jeu aux joueurs via WebSocket."""
-        # print("Received game update:", event, flush=True)
+        if event["message"]["type"] == "game_over" and not self.is_ai:
+            await self.update_stats(event["message"]['message'])
         await self.send(json.dumps(event["message"]))
 
 

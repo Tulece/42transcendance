@@ -14,6 +14,10 @@ class CustomUser(AbstractUser):
         blank=True
     )
 
+    match_played  = models.IntegerField(default=0)
+    wins = models.IntegerField(default=0)
+    loses = models.IntegerField(default=0)
+
     is_a2f_enabled = models.BooleanField(default=True)
     # Champs nécessaires pour l'authentification via 42
     is_42_user = models.BooleanField(default=False)

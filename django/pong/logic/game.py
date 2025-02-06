@@ -1,4 +1,5 @@
 import asyncio
+import time
 import uuid
 from channels.layers import get_channel_layer
 import json
@@ -56,10 +57,14 @@ class Game:
         self.running = True
         try:
             while self.running:
+                start = time.perf_counter()
                 if not self.paused:
                     self.update_game_state()
                     await self.send_game_state()
-                await asyncio.sleep(1 / 60)
+                end = time.perf_counter()
+                time_to_sleep = (1 / 60 )- (end - start)
+                if time_to_sleep > 0:
+                    await asyncio.sleep(time_to_sleep)
         except asyncio.CancelledError:
             print(f"Game {self.game_id} annulée.", flush=True)
 

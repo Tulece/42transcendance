@@ -117,8 +117,24 @@ function handleGameMessage(data, role) {
         player2.hp = data.player2_state.lifepoints;
         updateCanvas();
     } else if (data.type === "game_over") {
-        alert(data.message);
+        let message = "";
+        if (data["message"].includes(role)) {
+            message = "You Lose...";
+            if (data["message"].includes("lifepoints"))
+                message += "You're out of lifepoints.";
+            else
+                message += "You disconnected."
+        }
+        else {
+            message = "You Won !";
+            if (data["message"].includes("lifepoints"))
+                message += "Your opponent is out of lifepoints.";
+            else
+                message += "Opponent disconnected."
+        }
+        alert(message);
         game_running = false;
+        navigateTo("/");
     }  else if (data.type === "waiting") {
         displayWaitingMessage(data.message, -1);
     }

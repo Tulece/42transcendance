@@ -83,21 +83,21 @@ class AIPlayer:
             await asyncio.sleep((time_to_sleep + 1)/ 60)
 
 
-    def actualise_pos(self, pos, dx, dy):
-        pos['x'] += dx
-        # if (pos['x'] < PADDLE_WIDTH + (CANVAS_WIDTH // 100)):
-        #     pos['x'] += (PADDLE_WIDTH + (CANVAS_WIDTH // 100)) - pos['x'] 
-        #     dy = 0
-        #     dx = absadd(dx, 1)
-        #     dx *= -1
-        pos['y'] += dy
+    def actualise_pos(self, pos):
+        pos['x'] += pos['dx']
+        if (pos['x'] - BALL_RADIUS <= PADDLE_WIDTH + (CANVAS_WIDTH // 100)):
+            pos['x'] += (PADDLE_WIDTH + (CANVAS_WIDTH // 100)) - (pos['x'] - BALL_RADIUS)
+            pos['dy'] = 0
+            pos['dx'] = absadd(pos['dx'], 1)
+            pos['dx'] *= -1
+        pos['y'] += pos['dy']
         if (pos['y'] + BALL_RADIUS > CANVAS_HEIGHT):
             pos['y'] -= (pos['y'] + BALL_RADIUS) - CANVAS_HEIGHT
-            dy *= -1
+            pos['dy'] *= -1
         elif (pos['y'] - BALL_RADIUS < 0):
-            pos['y'] = abs(pos['y'] - BALL_RADIUS)
-            dy *= -1
-        return {'x': pos['x'], 'y': pos['y']}
+            pos['y'] += 0 - (pos['y'] - BALL_RADIUS)
+            pos['dy'] *= -1
+        return {'x': pos['x'], 'y': pos['y'], 'dx': pos['dx'], 'dy': pos['dy']}
 
 
     def update_positions(self, data):
@@ -107,18 +107,20 @@ class AIPlayer:
 
 
     def estimate_next_point(self):
-        act_pos = {'x': self.ball_position['x'], 'y': self.ball_position['y']}
+        act_pos = {'x': self.ball_position['x'], 'y': self.ball_position['y'], 'dx': self.ball_position['dx'], 'dy': self.ball_position['dy']}
         for frames in range(60):
-            act_pos = self.actualise_pos(act_pos, self.ball_position['dx'], self.ball_position['dy'])
-            if act_pos['x'] >= DEFAULT_PLAYER_TWO_STATE['x']:
+            act_pos = self.actualise_pos(act_pos)
+            if act_pos['x'] + BALL_RADIUS >= DEFAULT_PLAYER_TWO_STATE['x']:
                 self.next_estimation['fbi'] = frames
                 self.next_estimation['x'] = act_pos['x']
                 self.next_estimation['y'] = act_pos['y']
                 return
             if frames >= 59 or act_pos['x'] - BALL_RADIUS <= (CANVAS_WIDTH // 100 ) + PADDLE_WIDTH:
+                # return to the center either if opponent has to hit the ball (and i can't predict the trajectory) or if impact will be in more than sixty frames (ans i'll i new information)  
                 self.next_estimation['fbi'] = frames
                 self.next_estimation['x'] = act_pos['x']
                 self.next_estimation['y'] = CANVAS_HEIGHT // 2
+                return
 
 
     async def compute_action(self, websocket):
@@ -148,7 +150,7 @@ class AIPlayer:
         if actions:
             i = 0
             total_wait = 0
-            print(f"Actions envoyées : {actions} \n\n {self.ball_position} \n\n {self.next_estimation}", flush=True)
+            print(f"Actions envoyées : {actions} \n\n Ball position : {self.ball_position} \n\n Next_estimation : {self.next_estimation}", flush=True)
             while i < len(actions):
                 if isinstance(actions[i], int):
                     await asyncio.sleep((actions[i])/ 60)

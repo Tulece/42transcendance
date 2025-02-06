@@ -2,7 +2,7 @@
   <h1 class="mb-4">Pong</h1>
   <div class="row justify-content-center">
     <div class="col-md-8">
-      <div class="ratio ratio-16x9">
+      <div class="ratio ratio-1x2">
         <canvas id="pong" width="800" height="400"></canvas>
       </div>
     </div>
@@ -17,11 +17,14 @@
 
 <style>
   canvas {
-  max-width: 100%;
-  height: auto;
-  background: black;
-  border: 2px solid white;
-  display: block;
-  margin: 0 auto;
-}
+    max-width: 100%;
+    background: black;
+    border: 2px solid white;
+    display: block;
+    margin: 0 auto;
+  }
+  .ratio-1x2 {
+    padding-top: 50%;
+  }
+
 </style>
