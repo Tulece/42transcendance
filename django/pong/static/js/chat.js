@@ -6,7 +6,6 @@ window.initChat = () => {
     const chatToggle = document.getElementById("chat-toggle");
     const chatFooter = document.querySelector("#chat-container .card-footer");
     const chatContainer = document.getElementById("chat-container");
-    //const userListContainer = document.getElementById("user-list-container");
     const messageArea = document.getElementById("message-area");
     const userList = document.getElementById("user-list");
     const privateRecipient = document.getElementById("private-recipient");
@@ -164,12 +163,10 @@ window.initChat = () => {
         if (isCollapsed) {
             // Réouvrir le chat
             chatContainer.classList.remove("collapsed");
-            chatContainer.style.maxHeight = "400px";
             chatToggle.innerText = "Réduire";
         } else {
             // Réduire le chat
             chatContainer.classList.add("collapsed");
-            chatContainer.style.maxHeight = "50px"; // Only header reste visible
             chatToggle.innerText = "Ouvrir";
         }
     });
@@ -228,6 +225,7 @@ window.initChat = () => {
           const blockButton = document.createElement("button");
           blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
           blockButton.textContent = isBlocked ? "Débloquer" : "Bloquer";
+          //blockButton.style = p-3;
           blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
           blockButton.addEventListener("click", () => toggleBlockUser(user.username));
   
