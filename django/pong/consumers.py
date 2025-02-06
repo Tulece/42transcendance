@@ -345,8 +345,8 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def game_update(self, event):
         """Envoie les mises à jour du jeu aux joueurs via WebSocket."""
-        if event["message"]["type"] == "game_over":
-            await self.update_stats(event["message"])
+        if event["message"]["type"] == "game_over" and not self.is_ai:
+            await self.update_stats(event["message"]['message'])
         await self.send(json.dumps(event["message"]))
 
 
