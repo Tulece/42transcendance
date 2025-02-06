@@ -1,6 +1,8 @@
 import asyncio
 import time
+import math
 import uuid
+import random
 from channels.layers import get_channel_layer
 import json
 
@@ -30,7 +32,7 @@ DEFAULT_PLAYER_TWO_STATE = {
 DEFAULT_BALL_STATE = {
     'y': CANVAS_HEIGHT / 2,
     'x': CANVAS_WIDTH / 2,
-    'dx': -5,
+    'dx': 5,
     'dy': 5,
     'radius': BALL_RADIUS,
 }
@@ -49,18 +51,20 @@ class Game:
         self.paused = False
         self.running = False
         self.resetting = False
+        self.waiting_countdown = 0
         self.channel_layer = get_channel_layer()
         self.send_game_state()
 
     async def start(self):
         """Démarre la boucle de jeu."""
         self.running = True
+        self.reset_pos()
         try:
             while self.running:
                 start = time.perf_counter()
                 if not self.paused:
                     self.update_game_state()
-                    await self.send_game_state()
+                await self.send_game_state()
                 end = time.perf_counter()
                 time_to_sleep = (1 / 60 )- (end - start)
                 if time_to_sleep > 0:
@@ -96,6 +100,8 @@ class Game:
                 reason, player = "disconnected", "player1"
             elif self.players['player2']['disconnected']:
                 reason, player = "disconnected", "player2"
+            else:
+                reason, player = "Unknown", "Unknown"
             await self.channel_layer.group_send(
                 self.game_id,
                 {
@@ -190,13 +196,33 @@ class Game:
         self.players['player1'].update(DEFAULT_PLAYER_ONE_STATE)
         self.players['player2'].update(DEFAULT_PLAYER_TWO_STATE)
         self.ball_state.update(DEFAULT_BALL_STATE)
+        self.randomize_ball_direction()
+        asyncio.create_task(self.countdown_task(3))
+        # self.paused = True
+        # self.resetting = True
+
+    async def countdown_task(self, countdown_seconds=3):
+        self.waiting_countdown = countdown_seconds
         self.paused = True
         self.resetting = True
+        while self.waiting_countdown > 0:
+            await asyncio.sleep(1)
+            self.waiting_countdown -= 1
+        self.resetting = False
+        self.paused = False
+
+    def randomize_ball_direction(self):
+        rand_bool = math.floor(random.random() * 2)
+        if rand_bool:
+            self.ball_state['dx'] *= -1
+        rand_bool = math.floor(random.random() * 2)
+        if rand_bool:
+            self.ball_state['dy'] *= -1
 
 
-    def ball_updater(game):
-        ball_state = game.ball_state
-        players = game.players
+    def ball_updater(self):
+        ball_state = self.ball_state
+        players = self.players
 
         ball_state['x'] += ball_state['dx']
         ball_state['y'] += ball_state['dy']
@@ -253,10 +279,12 @@ class Game:
 
         if ball_state['x'] < ball_state['radius']:
             players['player1']['lifepoints'] -= 1
-            game.reset_pos()
+            if players['player1']['lifepoints'] > 0:
+                self.reset_pos()
         if ball_state['x'] + ball_state['radius'] >= CANVAS_WIDTH:
             players['player2']['lifepoints'] -= 1
-            game.reset_pos()
+            if players['player2']['lifepoints'] > 0:
+                self.reset_pos()
 
         if ball_state['y'] + ball_state['radius'] > CANVAS_HEIGHT:
             ball_state['y'] -= (ball_state['y'] + ball_state['radius']) - CANVAS_HEIGHT
