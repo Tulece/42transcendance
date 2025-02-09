@@ -281,52 +281,66 @@ class LobbyConsumer(AsyncWebsocketConsumer):
 
 class PongConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        """Gère la connexion d'un joueur à une partie."""
+        # Récupère l'ID de la partie depuis l'URL
         self.game_id = self.scope['url_route']['kwargs']['game_id']
         self.lobby = Lobby.get_instance()
-        self.game = self.lobby.get_game(self.game_id)
 
+        print(f"[PongConsumer] Tentative de connexion pour game_id: {self.game_id}")
+        print(f"[PongConsumer] Jeux actifs: {list(self.lobby.active_games.keys())}")
+
+        # Récupère l'instance du jeu depuis le Lobby
+        self.game = self.lobby.get_game(self.game_id)
         if not self.game:
+            print(f"[PongConsumer] Game {self.game_id} introuvable, fermeture de la connexion.")
             await self.close()
             return
 
+        # Récupère les paramètres de la query string (notamment le player_id)
         query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
         self.player_id = query_params.get('player_id', [None])[0]
+        # Détermine si le joueur est en mode solo (pour une IA, par exemple)
         self.is_ai = query_params.get('mode', ['human'])[0] == 'solo' and self.player_id == 'player2'
 
-        if not self.is_ai:
-            self.db_user = self.scope.get("user", None)
-
         if not self.player_id or self.player_id not in ["player1", "player2"]:
+            print(f"[PongConsumer] Paramètre player_id invalide : {self.player_id}")
             await self.close()
             return
 
+        # Ajoute ce socket au groupe identifié par le game_id
         await self.channel_layer.group_add(self.game_id, self.channel_name)
-
         await self.accept()
-        print(f"Joueur {self.player_id} connecté à la partie {self.game_id}.", flush=True)
+        print(f"[PongConsumer] Joueur {self.player_id} connecté à la partie {self.game_id}.", flush=True)
+        # Appel synchrone (sans await) car set_player_connected est une méthode synchrone
+        self.game.set_player_connected(self.player_id)
 
     async def disconnect(self, close_code):
-        """Gère la déconnexion d'un joueur."""
+        # Retire le socket du groupe
         await self.channel_layer.group_discard(self.game_id, self.channel_name)
-        print(f"Joueur {self.player_id} déconnecté de la partie {self.game_id}.", flush=True)
-
+        # Utilise getattr pour éviter une AttributeError si player_id n'est pas défini
+        player = getattr(self, "player_id", "unknown")
+        print(f"[PongConsumer] Joueur {player} déconnecté de la partie {self.game_id}.", flush=True)
         if self.game:
-            self.game.handle_player_disconnect(self.player_id)
+            if hasattr(self, "player_id"):
+                self.game.handle_player_disconnect(self.player_id)
+            else:
+                self.game.handle_player_disconnect("unknown")
 
     async def receive(self, text_data):
-        """Reçoit les actions des joueurs et les transmet à la classe Game."""
         try:
             data = json.loads(text_data)
             action = data.get('action')
-
             if not action:
                 return
-
             if self.game:
                 self.game.handle_player_action(self.player_id, action)
         except Exception as e:
-            print(f"Erreur lors de la réception d'un message : {e}")
+            print(f"[PongConsumer] Erreur lors de la réception d'un message : {e}")
+
+    async def game_update(self, event):
+        # Si le message est de type "game_over" et que le joueur n'est pas une IA, met à jour les statistiques
+        if event["message"]["type"] == "game_over" and not self.is_ai:
+            await self.update_stats(event["message"]['message'])
+        await self.send(json.dumps(event["message"]))
 
     async def update_stats(self, go_message):
         db_user = self.scope.get("user", None)
@@ -336,19 +350,12 @@ class PongConsumer(AsyncWebsocketConsumer):
             else:
                 db_user.wins += 1
             db_user.match_played += 1
-            
             await database_sync_to_async(self._save_user)(db_user)
 
     @staticmethod
     @transaction.atomic
     def _save_user(user):
         user.save()
-
-    async def game_update(self, event):
-        """Envoie les mises à jour du jeu aux joueurs via WebSocket."""
-        if event["message"]["type"] == "game_over" and not self.is_ai:
-            await self.update_stats(event["message"]['message'])
-        await self.send(json.dumps(event["message"]))
 
 
 

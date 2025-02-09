@@ -1,10 +1,12 @@
 import uuid
 from ..models import Tournament, Match, CustomUser
 from .lobby import Lobby
+import random
 
 class TournamentLobby:
     def __init__(self):
         self.active_tournaments = {}
+        self.match_ready = {}  # Dictionnaire : { match_id: { "player1": True, "player2": True } }
 
     def create_tournament(self, name, players):
         """Crée un nouveau tournoi et génère les matchs du premier tour."""
@@ -67,6 +69,7 @@ class TournamentLobby:
 
         winner = CustomUser.objects.get(id=winner_id)
         match.winner = winner
+        match.is_active = False
         match.save()
 
         tournament = match.tournament
@@ -75,37 +78,57 @@ class TournamentLobby:
 
         # Vérifie si tous les matches de ce round ont un winner
         if all(m.winner for m in current_round_matches):
-            self._prepare_next_round(tournament, current_round + 1)
+            next_matches = self._prepare_next_round(tournament, current_round + 1)
+
+            if not next_matches:  # S'il n'y a plus de match, fin du tournoi
+                tournament.is_active = False
+                tournament.save()
 
     def _prepare_next_round(self, tournament, next_round_number):
-        """Prépare les matchs pour le tour suivant."""
-        winners = tournament.matches.filter(round_number=next_round_number - 1).values_list("winner", flat=True)
-        players = list(winners)
+        """
+        Prépare les matchs pour le tour suivant en prenant en compte les vainqueurs
+        et en attribuant un bye aléatoirement si le nombre de joueurs qualifiés est impair.
+        """
+        # Récupère tous les matchs du tour précédent
+        previous_round_matches = tournament.matches.filter(round_number=next_round_number - 1)
 
-        # Si < 2 joueurs, ça ne sert à rien de créer un round de plus
-        if len(players) < 2:
-            return []  # On sort directement, pas de nouveau match
+        # Récupère les identifiants des joueurs ayant gagné leurs matchs
+        winners = list(previous_round_matches.values_list("winner", flat=True))
+
+        # Si moins de 2 joueurs sont qualifiés, le tournoi est terminé.
+        if len(winners) < 2:
+            return []
 
         matches = []
-        while players:
-            player1_id = players.pop(0)
-            player2_id = players.pop(0) if players else None
 
+        # Si le nombre de gagnants est impair, sélectionne aléatoirement un joueur pour le bye
+        if len(winners) % 2 == 1:
+            bye_player_id = random.choice(winners)
+            winners.remove(bye_player_id)
+            bye_player = CustomUser.objects.get(id=bye_player_id)
+            match = Match.objects.create(
+                tournament=tournament,
+                player1=bye_player,
+                player2=None,
+                round_number=next_round_number
+            )
+            # Attribue automatiquement ce joueur comme vainqueur du match bye
+            match.winner = bye_player
+            match.save()
+            matches.append(match)
+
+        # Forme les matchs restants par paires
+        while winners:
+            player1_id = winners.pop(0)
+            player2_id = winners.pop(0)
             player1 = CustomUser.objects.get(id=player1_id)
-            player2 = CustomUser.objects.get(id=player2_id) if player2_id else None
-
+            player2 = CustomUser.objects.get(id=player2_id)
             match = Match.objects.create(
                 tournament=tournament,
                 player1=player1,
                 player2=player2,
                 round_number=next_round_number
             )
-
-            # Bye automatique si player2 == None
-            if player2 is None:
-                match.winner = player1
-                match.save()
-
             matches.append(match)
 
         return matches

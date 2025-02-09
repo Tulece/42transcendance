@@ -14,7 +14,12 @@
         {% endif %}
         {% if not match.winner %}
           {% if user.id == match.player1.id or user.id == match.player2.id %}
-            <button class="btn btn-success mt-2" onclick="startMatch({{ match.id }}, {{ tournament.id }})">
+            <button class="btn btn-success mt-2"
+              data-match-id="{{ match.id }}"
+              data-tournament-id="{{ tournament.id }}"
+              data-player1="{{ match.player1.id }}"
+              data-player2="{% if match.player2 %}{{ match.player2.id }}{% endif %}"
+              onclick="startMatch(this.dataset.matchId, this.dataset.tournamentId, this)">
               Lancer la partie
             </button>
           {% endif %}
@@ -26,5 +31,4 @@
   </ul>
 </div>
 
-<!-- On peut inclure le script JS ici directement (ou le laisser dans base) -->
 <script src="{% static 'js/tournaments.js' %}"></script>
