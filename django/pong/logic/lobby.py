@@ -71,41 +71,13 @@ class Lobby:
         print(f"Partie créée avec l'ID {game_id}", flush=True)
         return game_id
 
-
-    # async def matchmaking(self):
-    #     """Effectue un matchmaking progressif basé sur l'ELO."""
-    #     while True:
-    #         if len(self.waiting_queue) < 2:
-    #             await asyncio.sleep(5)
-    #             continue
-
-    #         current_time = time.time()
-
-    #         for player1, data1 in list(self.waiting_queue.items()):
-    #             elo1, timestamp1 = data1["elo"], data1["timestamp"]
-
-    #             for player2, data2 in list(self.waiting_queue.items()):
-    #                 if player1 == player2:
-    #                     continue
-
-    #                 elo2, timestamp2 = data2["elo"], data2["timestamp"]
-    #                 elapsed_time = current_time - timestamp1
-
-    #                 # Critères progressifs de matchmaking
-    #                 if elapsed_time < 10 and abs(elo1 - elo2) <= 100:
-    #                     await self.start_game(player1, player2)
-    #                 elif elapsed_time < 20 and abs(elo1 - elo2) <= 200:
-    #                     await self.start_game(player1, player2)
-    #                 elif elapsed_time >= 20:
-    #                     await self.start_game(player1, player2)
-
-    #         await asyncio.sleep(1)
-
     async def matchmaking(self):
         """Effectue un matchmaking progressif basé sur le ratio (wins / match_played)."""
         while True:
             if len(self.waiting_queue) < 2:
-                await asyncio.sleep(5)
+                for player in self.waiting_queue:
+                    await player.send(json.dumps({"type": "waiting", "message": "En attente d'un adversaire"}))
+                await asyncio.sleep(1)
                 continue
 
             current_time = time.time()
@@ -135,7 +107,8 @@ class Lobby:
 
                 if best_match:
                     await self.start_game(player1, best_match)
-
+                else:
+                    await player1.send(json.dumps({"type": "waiting", "message": "En attente d'un adversaire"}))
             await asyncio.sleep(1)
 
     async def start_game(self, player1, player2):
