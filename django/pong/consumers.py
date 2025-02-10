@@ -237,7 +237,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         elif action == "quit_queue":
             await self.handle_quit_queue()
 
-    async def handle_find_game(self, mode, elo = 1000):
+    async def handle_find_game(self, mode):
         """Gère la demande de recherche d'une partie en fonction de l'ELO."""
         if mode == 'solo':
             game_id, player1 = await self.lobby.create_solo_game(self)
@@ -247,11 +247,13 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 "role": "player1"
             }))
         else:
-            self.lobby.add_player_to_queue(self, elo)
+            user = self.scope["user"]
+            ratio = user.wins / user.match_played if user.match_played > 0 else 0.5
+            self.lobby.add_player_to_queue(self, ratio)
 
             self.waiting_task = asyncio.create_task(self.send_waiting_messages())
 
-            print(f"Joueur {self.player_id} en attente d'une partie (ELO {elo}).", flush=True)
+            print(f"Joueur {self.player_id} en attente d'une partie (Ratio : {ratio}).", flush=True)
 
     async def handle_quit_queue(self):
         """Gère la demande de quitter la file d'attente."""

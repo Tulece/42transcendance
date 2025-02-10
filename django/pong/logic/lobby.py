@@ -40,10 +40,10 @@ class Lobby:
         """Retourne la longueur de la file d'attente."""
         return len(self.waiting_queue)
 
-    def add_player_to_queue(self, player_consumer, elo):
+    def add_player_to_queue(self, player_consumer, ratio):
         """Ajoute un joueur avec son ELO et le timestamp d'entrée dans la file d'attente."""
         self.waiting_queue[player_consumer] = {
-            "elo": elo,
+            "ratio": ratio,
             "timestamp": time.time()
         }
 
@@ -72,8 +72,37 @@ class Lobby:
         return game_id
 
 
+    # async def matchmaking(self):
+    #     """Effectue un matchmaking progressif basé sur l'ELO."""
+    #     while True:
+    #         if len(self.waiting_queue) < 2:
+    #             await asyncio.sleep(5)
+    #             continue
+
+    #         current_time = time.time()
+
+    #         for player1, data1 in list(self.waiting_queue.items()):
+    #             elo1, timestamp1 = data1["elo"], data1["timestamp"]
+
+    #             for player2, data2 in list(self.waiting_queue.items()):
+    #                 if player1 == player2:
+    #                     continue
+
+    #                 elo2, timestamp2 = data2["elo"], data2["timestamp"]
+    #                 elapsed_time = current_time - timestamp1
+
+    #                 # Critères progressifs de matchmaking
+    #                 if elapsed_time < 10 and abs(elo1 - elo2) <= 100:
+    #                     await self.start_game(player1, player2)
+    #                 elif elapsed_time < 20 and abs(elo1 - elo2) <= 200:
+    #                     await self.start_game(player1, player2)
+    #                 elif elapsed_time >= 20:
+    #                     await self.start_game(player1, player2)
+
+    #         await asyncio.sleep(1)
+
     async def matchmaking(self):
-        """Effectue un matchmaking progressif basé sur l'ELO."""
+        """Effectue un matchmaking progressif basé sur le ratio (wins / match_played)."""
         while True:
             if len(self.waiting_queue) < 2:
                 await asyncio.sleep(5)
@@ -82,22 +111,30 @@ class Lobby:
             current_time = time.time()
 
             for player1, data1 in list(self.waiting_queue.items()):
-                elo1, timestamp1 = data1["elo"], data1["timestamp"]
+                ratio1, timestamp1 = data1["ratio"], data1["timestamp"]
+                best_match = None
+                best_match_time = float('inf')  # Initialiser avec un temps très grand
 
                 for player2, data2 in list(self.waiting_queue.items()):
                     if player1 == player2:
                         continue
 
-                    elo2, timestamp2 = data2["elo"], data2["timestamp"]
+                    ratio2, timestamp2 = data2["ratio"], data2["timestamp"]
                     elapsed_time = current_time - timestamp1
+                    ratio_diff = abs(ratio1 - ratio2)
 
                     # Critères progressifs de matchmaking
-                    if elapsed_time < 10 and abs(elo1 - elo2) <= 100:
-                        await self.start_game(player1, player2)
-                    elif elapsed_time < 20 and abs(elo1 - elo2) <= 200:
-                        await self.start_game(player1, player2)
-                    elif elapsed_time >= 20:
-                        await self.start_game(player1, player2)
+                    if (elapsed_time < 10 and ratio_diff <= 0.1) or \
+                       (10 <= elapsed_time < 20 and ratio_diff <= 0.2) or \
+                       (elapsed_time >= 20):
+
+                        # Sélectionne l'adversaire qui a attendu le plus longtemps
+                        if timestamp2 < best_match_time:
+                            best_match = player2
+                            best_match_time = timestamp2
+
+                if best_match:
+                    await self.start_game(player1, best_match)
 
             await asyncio.sleep(1)
 
