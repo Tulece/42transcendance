@@ -24,6 +24,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print("Utilisateur non authentifié. Fermeture de la connexion.")
             await self.close(code=4003)
             return
+        
+        # Mettre is_online = True
+        await self.set_user_online_state(self.user, True)
 
         self.username = self.user.username or "Anonyme"
 
@@ -32,16 +35,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
         print(f"Connexion WebSocket acceptée pour l'utilisateur : {self.username}")
-
-        # Charger la liste des users
-        users = await self.get_all_connected_users()
+        
         blocked_users = await self.get_blocked_users()
-        await self.send(json.dumps({ #Sending user list to client
+        await self.send(json.dumps({ 
             "type": "user_list",
-            "users": users,
             "blocked_users": blocked_users
         }))
-
 
         # Définir les groupes
         self.room_group_name = "chat_room"
@@ -52,6 +51,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}")
         await self.channel_layer.group_add(self.personal_group, self.channel_name)
         
+        # Diffuser la liste actualisée
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {"type": "broadcast_user_list"}
+        )
+
         # Envoi d’un message de bienvenue
         await self.send(json.dumps({
             "type": "welcome",
@@ -59,10 +64,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def disconnect(self, close_code):
+
+        
+        if self.user.is_authenticated:
+            await self.set_user_online_state(self.user, False)
+
         if self.room_group_name:
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
         if self.personal_group:
             await self.channel_layer.group_discard(self.personal_group, self.channel_name)
+        
+        # Diffuser la liste actualisée
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {"type": "broadcast_user_list"}
+        )
+        
         print(f"Déconnexion de l'utilisateur {self.username} - code: {close_code}")
 
     async def receive(self, text_data):
@@ -138,15 +155,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
         else:
             self.user.blocked_users.remove(user)
         return user
-
-    @database_sync_to_async
-    def get_all_connected_users(self):
-        return list(CustomUser.objects.values("username"))
     
     @database_sync_to_async
     def get_blocked_users(self): #utilisée pour envoyer la liste des bloqués au frontend
-        """Retourne la liste des utilisateurs bloqués sous forme de dictionnaire"""
+        """Retourne la liste des users bloqués"""
         return list(self.user.blocked_users.values("username"))
+    
+    @database_sync_to_async
+    def set_user_online_state(self, user, state: bool): # Modifier un user en BFF
+        """MAJ du champ online_status en DB."""
+        user.online_status = state
+        user.save()
+    
+    @database_sync_to_async
+    def get_online_users(self): # read la liste des users qui sont online
+        """Retourne la liste des users online."""
+        queryset = CustomUser.objects.filter(online_status=True).values("username")
+        return list(queryset)
+
+
 
 
     async def send_private_message(self, target_username, message):
@@ -223,6 +250,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send_blocked_users_list()
         await self.send_user_list()
         await self.send(json.dumps({"type": "system", "message": f"Vous avez débloqué {unblocked_user.username}"}))
+
+    async def broadcast_user_list(self, event):
+    # Charger la liste des users online_status = True
+        online_users = await self.get_online_users()
+
+    # Envoyer par WebSocket
+        await self.send(json.dumps({
+            "type": "user_list",
+            "users": online_users,
+        }))
 
 
 

@@ -205,7 +205,7 @@ window.initChat = () => {
           userItem.className = "list-group-item d-flex justify-content-between align-items-center";
   
            // Crée un lien cliquable vers le profil
-          const usernameLink = document.createElement("a");
+          const usernameLink = document.createElement("a"); // lien vers le user profile
           usernameLink.href = `/account/${user.username}`;
           usernameLink.textContent = user.username;
           usernameLink.classList.add("chat-username");
@@ -213,19 +213,19 @@ window.initChat = () => {
           usernameLink.style.fontWeight = "bold";
           usernameLink.addEventListener("click", (event) => {
             event.preventDefault(); // Empêche le rechargement de la page
-            navigateTo(`/account/${user.username}`); // Charge le profil en SPA
+            navigateTo(`/account/${user.username}`);
           });
 
-          userItem.appendChild(usernameLink);
+          userItem.appendChild(usernameLink); // Insert element in the <ul>
 
-          // Vérifier si l'utilisateur est bloqué
+          // Check si user est bloqué
           const isBlocked = blockedUsers.has(user.username);
   
-          // Création du bouton de blocage/déblocage
+          // Create bouton de blocage/déblocage
           const blockButton = document.createElement("button");
           blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
           blockButton.textContent = isBlocked ? "Débloquer" : "Bloquer";
-          //blockButton.style = p-3;
+          blockButton.classList.add("custom-padding");
           blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
           blockButton.addEventListener("click", () => toggleBlockUser(user.username));
   

@@ -10,8 +10,8 @@
       <h6 class="mb-0">Utilisateurs connectés</h6>
     </div>
     <div class="card-body p-3">
-      <ul id="user-list" class="list-group"></ul>
-    </div>
+      <ul id="user-list" class="list-group"></ul> <!-- <ul> permet de créer une list unordered (insèrer dynamiquement les <li>)-->
+    </div> <!-- <li> dans le script représente chq élément de la liste + own info -->
   </div>
 
   <!-- Fenêtre de chat -->
@@ -57,12 +57,12 @@
   width: 450px;
   height: 450px;
   overflow: hidden;
-  transition: transform 0.3s ease-in-out;
+  transition: transform 0.3s ease-in-out; /* Animation when change its state */
   transform: translateY(0); /* État "ouvert" */
 }
 
 #chat-container.collapsed {
-    transform: translateY(420px);
+    transform: translateY(420px); /* Fais glisser le chat vers le bas + header visible */
 }
 
 /* Hide only footer + messages */
@@ -163,6 +163,11 @@
     background-color: #ffe6e6;
     border-radius: 4px;
     margin-bottom: 5px;
+}
+
+.custom-padding {
+    padding: 12px 20px;
+    margin: 5px;
 }
 
 </style>
