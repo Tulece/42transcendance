@@ -1,4 +1,12 @@
 window.initChat = () => {
+
+    if (window.chatInitialized) return; 
+    window.chatInitialized = true;
+
+    loadChatHistory();
+    const chatWrapper = document.getElementById("chat-wrapper");
+    if (chatWrapper) chatWrapper.style.display = "block"; // Display if connected
+
     // Init éléments HTML
     const messageList = document.getElementById("message-list");
     const messageInput = document.getElementById("message-input");
@@ -40,9 +48,11 @@ window.initChat = () => {
     }
 
     checkAuthentication();
+
   
     function connectWebSocket() {
       ws = new WebSocket(`ws://${window.location.host}/ws/chat/`);
+      window.chatWebSocket = ws; // Stock to close later
   
       ws.onopen = () => {
         console.log("WebSocket connecté.");
@@ -71,14 +81,17 @@ window.initChat = () => {
     function handleMessage(data) {
       if (data.type === "chat_message") {
         addMessageToChat(data.username, data.message);
+        saveChatHistory();
       } else if (data.type === "private_message") {
         addPrivateMessageToChat(data.username, data.message);
+        saveChatHistory();
       } else if (data.type === "error") {
         console.warn("Erreur reçue - Non affichée sur la page chat :", data.message);
       } else if ( data.type === "error_private") {
         addErrorMessage(data.message);
       } else if (data.type === "system") {
         addSystemMessage(data.message);
+        saveChatHistory();
       } else if (data.type === "user_list") {
         updateUserList(data.users, data.blocked_users || []);
       }
@@ -297,8 +310,54 @@ window.initChat = () => {
       }
     }
 
+    function saveChatHistory() {
+      const messageList = document.getElementById("message-list");
+      if (!messageList) return;
+  
+      const messages = [];
+      messageList.childNodes.forEach(node => {
+          messages.push(node.outerHTML);
+      });
+  
+      localStorage.setItem("chatHistory", JSON.stringify(messages));
+    }
+  
+    function loadChatHistory() {
+      const messageList = document.getElementById("message-list");
+      if (!messageList) return;
+  
+      const savedMessages = localStorage.getItem("chatHistory");
+      if (savedMessages) {
+          const messages = JSON.parse(savedMessages);
+          messages.forEach(msg => {
+              messageList.innerHTML += msg;
+          });
+      }
+    }
+  
+
     console.log("🚀 Tentative de connexion WebSocket...");
     connectWebSocket();
   
   };
+
+  window.hideChat = () => {
+    console.log("👋 Déconnexion détectée, fermeture du chat.");
+
+    // Fermer proprement le WebSocket s'il est encore ouvert
+    if (window.chatWebSocket) {
+        window.chatWebSocket.close();
+        window.chatWebSocket = null;
+    }
+
+    const chatWrapper = document.getElementById("chat-wrapper");
+    if (chatWrapper) {
+      chatWrapper.style.display = "none";
+      chatWrapper.innerHTML = ""; // Effacer le contenu
+    }
+
+    // Réinitialiser la variable pour autoriser une future réouverture
+    window.chatInitialized = false;
+};
+
   

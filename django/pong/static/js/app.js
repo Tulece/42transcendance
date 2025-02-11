@@ -110,7 +110,8 @@
 
     // Charger la page initiale lors du chargement du DOM
     document.addEventListener("DOMContentLoaded", async function () {
-        await updateUserInfo();
+        await updateUserInfo(); // Check authentification + chat
+        
         if (location.pathname === "/" || location.pathname === "") {
             navigateTo("/", false);
         } else {
@@ -200,16 +201,29 @@ async function updateUserInfo() {
         if (response.ok) {
             const data = await response.json();
             updateHeaderUserInfo(data);
-        } else if (response.status === 403) {
+
+            const chatWrapper = document.getElementById("chat-wrapper");
+            if (chatWrapper) chatWrapper.style.display = "block";
+
+            if (window.initChat && !window.chatInitialized) {
+                console.log("Initialisation du chat ...");
+                window.initChat();
+            } 
+        } 
+        // else if (response.status === 403) {
+        //     console.info("Utilisateur non connecté.");
+        //     updateHeaderUserInfo(null);
+        //     if (window.hideChat) window.hideChat();
+        // }
+        else {
             console.info("Utilisateur non connecté.");
             updateHeaderUserInfo(null);
-        } else {
-            console.warn("Erreur inattendue lors de la récupération des infos utilisateur :", response.status);
-            updateHeaderUserInfo(null);
+            if (window.hideChat) window.hideChat(); // Désactive if user déconnecté.
         }
     } catch (error) {
         console.error("Erreur réseau lors de la récupération des informations utilisateur :", error);
         updateHeaderUserInfo(null);
+        if (window.hideChat) window.hideChat();
     }
 }
 
