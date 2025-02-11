@@ -349,17 +349,17 @@ def account_view(request, username=None):
             return redirect('/')  # redirige vers la page d'accueil
     
     if username is None or username == request.user.username:
-        user_profile = request.user
+        viewed_user = request.user
     else:
-        user_profile = get_object_or_404(User, username=username)
+        viewed_user = get_object_or_404(User, username=username)
 
     context = {
-        "user_profile": user_profile
-    }
+        "viewed_user": viewed_user
+    } # Struct. qui contient les data à transmettre au html.
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, 'account.html', context)  # Fragment AJAX
-    return render(request, 'base.html', {"initial_fragment": "account.html", "user_profile":user_profile})
+    return render(request, 'base.html', {"initial_fragment": "account.html", "viewed_user":viewed_user})
 
 def chat_view(request):
     """Vue pour tester JWT et WebSocket - nécessite authentification."""

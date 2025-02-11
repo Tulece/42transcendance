@@ -1,19 +1,19 @@
 window.initChat = () => {
-    console.log("initChat appelé");
-    let ws = null;
-    const connectWsButton = document.getElementById("connect-ws");
-    const wsLog = document.getElementById("ws-log");
-    const wsMessageInput = document.getElementById("ws-message");
-    const sendWsMessageButton = document.getElementById("send-ws-message");
+    // Init éléments HTML
     const messageList = document.getElementById("message-list");
-    const privateMsgBtn = document.getElementById("send-private-btn");
-    const targetUsernameInput = document.getElementById("target-username");
-    const blockUsernameInput = document.getElementById("block-username");
-    const blockBtn = document.getElementById("block-btn");
-    const unblockUsernameInput = document.getElementById("unblock-username");
-    const unblockBtn = document.getElementById("unblock-btn");
+    const messageInput = document.getElementById("message-input");
+    const sendMessageBtn = document.getElementById("send-message-btn");
+    const chatToggle = document.getElementById("chat-toggle");
+    const chatFooter = document.querySelector("#chat-container .card-footer");
+    const chatContainer = document.getElementById("chat-container");
+    const messageArea = document.getElementById("message-area");
+    const userList = document.getElementById("user-list");
+    const privateRecipient = document.getElementById("private-recipient");
+    const sendPrivateBtn = document.getElementById("send-private-btn");
+  
+    let ws = null;
+    let blockedUsers = new Set(); // Stocker users bloqués
 
-    // Fonction pour vérifier si l'utilisateur est authentifié
     async function checkAuthentication() {
         try {
             const response = await fetch("/api/user_info/", {
@@ -27,165 +27,278 @@ window.initChat = () => {
             if (response.ok) {
                 const data = await response.json();
                 if (data.username) {
-                    connectWsButton.disabled = false;
                     console.log("Utilisateur authentifié :", data.username);
                 } else {
-                    connectWsButton.disabled = true;
+                  console.log("⚠️ Utilisateur non authentifié.");
                 }
             } else {
-                connectWsButton.disabled = true;
+              console.log("⚠️ Impossible de récupérer l'authentification.");
             }
         } catch (error) {
             console.error("Erreur lors de la vérification de l'authentification :", error);
-            connectWsButton.disabled = true;
         }
     }
 
-    // Appeler la fonction de vérification au chargement
     checkAuthentication();
+  
+    function connectWebSocket() {
+      ws = new WebSocket(`ws://${window.location.host}/ws/chat/`);
+  
+      ws.onopen = () => {
+        console.log("WebSocket connecté.");
+        addSystemMessage("Vous êtes connecté au chat !");
+        
+      };
+  
+      ws.onmessage = (event) => {
+        console.log("📩 Message reçu :", event.data);
+        const data = JSON.parse(event.data);
+        handleMessage(data); // Gérer le message reçu
+      };
+  
+      ws.onerror = (error) => {
+        console.error("Erreur WebSocket :", error);
+        addSystemMessage("Erreur de connexion au WebSocket.");
+      };
+  
+      ws.onclose = () => {
+        console.log("WebSocket déconnecté.");
+        addSystemMessage("Connexion au chat perdue.");
+      };
+    }
+  
+    // Étape 2 : Gestion des messages reçus
+    function handleMessage(data) {
+      if (data.type === "chat_message") {
+        addMessageToChat(data.username, data.message);
+      } else if (data.type === "private_message") {
+        addPrivateMessageToChat(data.username, data.message);
+      } else if (data.type === "error") {
+        console.warn("Erreur reçue - Non affichée sur la page chat :", data.message);
+      } else if ( data.type === "error_private") {
+        addErrorMessage(data.message);
+      } else if (data.type === "system") {
+        addSystemMessage(data.message);
+      } else if (data.type === "user_list") {
+        updateUserList(data.users, data.blocked_users || []);
+      }
+    }
+  
+    // Add un message utilisateur
+    function addMessageToChat(username, message) {
+      console.log("🖊️ Ajout d'un message dans le chat :", username, message);
+      const messageDiv = document.createElement("div");
+      messageDiv.classList.add("message");
 
-    // Connexion au WebSocket
-    connectWsButton.addEventListener("click", () => {
-        if (ws) {
-            console.log("Déjà connecté !");
-            return;
-        }
-        connectWsButton.disabled = true;
-        ws = new WebSocket(`ws://${window.location.host}/ws/chat/`);
+      const usernameLink = document.createElement("a");
+      usernameLink.href = `/account/${username}`;
+      usernameLink.textContent = username;
+      usernameLink.classList.add("chat-username");
+      usernameLink.style.cursor = "pointer";
+      usernameLink.style.fontWeight = "bold";
+      usernameLink.addEventListener("click", (event) => {
+        event.preventDefault(); // Skip rechargement page
+        navigateTo('/account/${username}');
+      });
 
-        ws.onopen = () => {
-            addMessageToChat("System", "WebSocket connecté.");
-            wsMessageInput.disabled = false;
-            sendWsMessageButton.disabled = false;
-            privateMsgBtn.disabled = false;
-            blockBtn.disabled = false;
-            unblockBtn.disabled = false;
-            console.log("WebSocket connecté.");
-        };
-
-        ws.onmessage = (event) => {
-            console.log("Message WebSocket reçu :", event.data);
-            const data = JSON.parse(event.data);
-            if (data.type === "chat_message") {
-                //const userAndTime = `[${data.timestamp}] - ${data.username}`;
-                addMessageToChat(data.username, data.timestamp, data.message);
-            } else if (data.type === "private_message") {
-                //const userAndTime = `[${data.timestamp}] - ${data.username}`;
-                addMessageToChat(data.username, data.timestamp, data.message);
-            } else if (data.type === "welcome") {
-                addMessageToChat("System", data.message);
-            }
-        };
-
-        ws.onerror = (error) => {
-            addMessageToChat("System", `Erreur WebSocket : ${error}`);
-            console.error("Erreur WebSocket :", error);
-        };
-
-        ws.onclose = () => {
-            addMessageToChat("System", "WebSocket déconnecté.");
-            wsMessageInput.disabled = true;
-            sendWsMessageButton.disabled = true;
-            privateMsgBtn.disabled = true;
-            blockBtn.disabled = true;
-            unblockBtn.disabled = true;
-            console.log("WebSocket déconnecté.");
-        };
-    });
-
-    // Envoyer un message via WebSocket
-    sendWsMessageButton.addEventListener("click", () => {
-        const message = wsMessageInput.value;
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ message }));
-            wsMessageInput.value = "";
-            console.log(`Message envoyé : ${message}`);
-        } else {
-            addMessageToChat("System", "WebSocket non connecté.");
-            console.warn("WebSocket non connecté.");
-        }
-    });
-
-    // Ajouter un message à la liste des messages
-    function addMessageToChat(actualUsername, timestamp, message) {
-        const messageItem = document.createElement("div");
-        messageItem.classList.add("message-item");
-        const displayText = `[${timestamp}] - ${actualUsername}`;
-
-        const usernameSpan = `
-        <span class="chat-username" data-username="${actualUsername}">
-            ${displayText}
-        </span>
-    `;
-
-        messageItem.innerHTML = `<strong>${usernameSpan}:</strong> ${message}`;
-        messageList.appendChild(messageItem);
-        messageList.scrollTop = messageList.scrollHeight;
+      messageDiv.appendChild(usernameLink);
+      messageDiv.innerHTML += ` : ${message}`;
+      messageList.appendChild(messageDiv);
+      scrollToBottom();
+    }
+  
+    // Add un message privé
+    function addPrivateMessageToChat(username, message) {
+      const messageDiv = document.createElement("div");
+      messageDiv.classList.add("message", "private");
+      messageDiv.innerHTML = `<span class="username">${username} (privé) :</span> ${message}`;
+      messageList.appendChild(messageDiv);
+      scrollToBottom();
+    }
+  
+    // Add un message système
+    function addSystemMessage(message) {
+      const messageDiv = document.createElement("div");
+      messageDiv.classList.add("message", "system");
+      messageDiv.innerText = message;
+      messageList.appendChild(messageDiv);
+      scrollToBottom();
     }
 
-    // Envoyer un message privé
-    privateMsgBtn.addEventListener("click", () => {
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-            addMessageToChat("System", "WebSocket non connecté.");
-            return;
+    // Error management
+    function addErrorMessage(message) {
+        const messageDiv = document.createElement("div");
+        messageDiv.classList.add("message", "error-message"); // Classe spé. pour la mise en forme
+        messageDiv.innerHTML = `⚠️ <strong>Erreur :</strong> ${message}`;        messageList.appendChild(messageDiv);
+        messageList.appendChild(messageDiv);
+        scrollToBottom();
+    }
+    
+  
+    // Scroller automatiquement vers le bas
+    function scrollToBottom() {
+      messageArea.scrollTop = messageArea.scrollHeight;
+    }
+  
+    // Envoi d'un message user
+    sendMessageBtn.addEventListener("click", () => {
+      console.log("🖱️ Bouton Envoyer cliqué !");
+      const message = messageInput.value;
+      if (!message) return; // Ne pas envoyer de message vide
+
+      console.log("📤 Envoi du message :", message);
+  
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ message })); // Envoi du message sous forme JSON
+        messageInput.value = "";
+      } else {
+        addSystemMessage("WebSocket non connecté.");
+      }
+    });
+  
+    // Bouton "Réduire"
+    chatToggle.addEventListener("click", function () {
+        const isCollapsed = chatContainer.classList.contains("collapsed");
+
+        if (isCollapsed) {
+            // Réouvrir le chat
+            chatContainer.classList.remove("collapsed");
+            chatToggle.innerText = "Réduire";
+        } else {
+            // Réduire le chat
+            chatContainer.classList.add("collapsed");
+            chatToggle.innerText = "Ouvrir";
         }
-        const message = wsMessageInput.value;
-        const targetUsername = targetUsernameInput.value.trim();
-        if (!message || !targetUsername) {
-            addMessageToChat("System", "Veuillez saisir un message et le pseudo du destinataire !");
-            return;
-        }
-        ws.send(JSON.stringify({
+    });
+
+    sendPrivateBtn.addEventListener("click", () => {
+      const recipient = privateRecipient.value;
+      const message = messageInput.value.trim();
+
+      if (!recipient || !message) {
+        addSystemMessage("Veuillez sélectiionner un destinataire et écrire un message.");
+        return;
+      }
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            type: "private_message",
+            target_username: recipient,
             message: message,
-            target_username: targetUsername,
-        }));
-        wsMessageInput.value = "";
-        console.log(`Message privé envoyé à ${targetUsername}: ${message}`);
+          })
+        );
+        messageInput.value = "";
+      } else {
+        addSystemMessage("Websocket non connecté.");
+      }
     });
 
-    // Bloquer un utilisateur
-    blockBtn.addEventListener("click", () => {
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-            addMessageToChat("System", "WebSocket non connecté. Impossible de bloquer l'utilisateur.");
-            return;
-        }
-        const userToBlock = blockUsernameInput.value.trim();
-        if (!userToBlock) {
-            addMessageToChat("System", "Veuillez entrer un pseudo pour bloquer un utilisateur.");
-            return;
-        }
-        addMessageToChat("System", `L'utilisateur ${userToBlock} a été bloqué.`);
-        ws.send(JSON.stringify({
-            action: "block_user",
-            username_to_block: userToBlock,
-        }));
-        console.log(`Requête pour bloquer l'utilisateur : ${userToBlock}`);
-    });
+    // Check chq user de la liste et crée un élément html pour le display
+    function updateUserList(users) {
+      console.log("👥 Mise à jour de la liste des utilisateurs :", users);
 
-    // Débloquer un utilisateur
-    unblockBtn.addEventListener("click", () => {
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-            addMessageToChat("System", "WebSocket non connecté. Impossible de débloquer l'utilisateur.");
-            return;
-        }
-        const userToUnblock = unblockUsernameInput.value.trim();
-        if (!userToUnblock) {
-            addMessageToChat("System", "Veuillez entrer un pseudo pour débloquer un utilisateur.");
-            return;
-        }
-        addMessageToChat("System", `L'utilisateur ${userToUnblock} a été débloqué.`);
-        ws.send(JSON.stringify({
-            action: "unblock_user",
-            username_to_unblock: userToUnblock,
-        }));
-        console.log(`Requête pour débloquer l'utilisateur : ${userToUnblock}`);
-    });
+      userList.innerHTML = ""; // On réinitialise la liste
+  
+      users.forEach((user) => {
+          const userItem = document.createElement("li");
+          userItem.className = "list-group-item d-flex justify-content-between align-items-center";
+  
+           // Crée un lien cliquable vers le profil
+          const usernameLink = document.createElement("a"); // lien vers le user profile
+          usernameLink.href = `/account/${user.username}`;
+          usernameLink.textContent = user.username;
+          usernameLink.classList.add("chat-username");
+          usernameLink.style.cursor = "pointer";
+          usernameLink.style.fontWeight = "bold";
+          usernameLink.addEventListener("click", (event) => {
+            event.preventDefault(); // Empêche le rechargement de la page
+            navigateTo(`/account/${user.username}`);
+          });
 
-    document.addEventListener("click", (evt) => {
-        const target = evt.target;
-        if (target.classList.contains("chat-username")) { // Check si l'élément clicked est un .chat-username
-            const userClicked = target.dataset.username; // Récup' pseudo
-            navigateTo(`/account/${userClicked}`); // Naviguer en SPA
-        }
-    })
-};
+          userItem.appendChild(usernameLink); // Insert element in the <ul>
+
+          // Check si user est bloqué
+          const isBlocked = blockedUsers.has(user.username);
+  
+          // Create bouton de blocage/déblocage
+          const blockButton = document.createElement("button");
+          blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
+          blockButton.textContent = isBlocked ? "Débloquer" : "Bloquer";
+          blockButton.classList.add("custom-padding");
+          blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
+          blockButton.addEventListener("click", () => toggleBlockUser(user.username));
+  
+          userItem.appendChild(blockButton);
+          userList.appendChild(userItem); // Exp.
+      });
+  
+      updatePrivateRecipientList(users);
+    }
+
+    function navigateTo(url) {
+      history.pushState(null, "", url); // Change l'URL sans recharger
+      fetch(url)
+        .then((response) => response.text())
+        .then((html) => {
+          document.body.innerHTML = html; // Remplace le contenu de la page
+          window.initChat(); // Recharge le chat après le changement de page
+        })
+        .catch((error) => console.error("Erreur de navigation :", error));
+    }
+    
+    
+
+    function updatePrivateRecipientList(users) {
+      privateRecipient.innerHTML = '<option value="" disabled selected>Choisir un destinataire</option>';
+      
+      if (users.length === 0) {
+          privateRecipient.setAttribute("disabled", "true");
+          return;
+      }
+      privateRecipient.removeAttribute("disabled");
+  
+      users.forEach((user) => {
+          const option = document.createElement("option");
+          option.value = user.username;
+          option.textContent = user.username;
+          privateRecipient.appendChild(option);
+      });
+    }
+
+    function toggleBlockUser(username) {
+      console.log(`🔒 Tentative de blocage/déblocage de ${username}...`);
+  
+      // Trouver le bon bouton
+      const userButton = document.querySelector(`button[data-username="${username}"]`);
+      if (!userButton) return; // Si le bouton n'existe pas, on arrête
+  
+      // Déterminer l'action à envoyer au serveur
+      const isBlocked = blockedUsers.has(username);
+      const action = isBlocked ? "unblock_user" : "block_user";
+  
+      ws.send(JSON.stringify({
+          action: action,
+          username_to_unblock: isBlocked ? username : undefined,
+          username_to_block: isBlocked ? undefined : username
+      }));
+  
+      // Mettre à jour la liste des utilisateurs bloqués
+      if (isBlocked) {
+          blockedUsers.delete(username);
+          userButton.textContent = "Bloquer";
+          userButton.classList.remove("btn-secondary");
+          userButton.classList.add("btn-danger");
+      } else {
+          blockedUsers.add(username);
+          userButton.textContent = "Débloquer";
+          userButton.classList.remove("btn-danger");
+          userButton.classList.add("btn-secondary");
+      }
+    }
+
+    console.log("🚀 Tentative de connexion WebSocket...");
+    connectWebSocket();
+  
+  };
+  

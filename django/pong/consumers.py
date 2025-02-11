@@ -15,28 +15,33 @@ from pong.models import CustomUser
 from datetime import datetime
 
 class ChatConsumer(AsyncWebsocketConsumer):
-    """
-    Consommateur WebSocket pour le chat avec authentification basée sur la session et fonctionnalités avancées.
-    """
+
     room_group_name = None
 
     async def connect(self):
-        print("Tentative de connexion WebSocket.")
         self.user = self.scope.get("user", None)
 
         if not self.user or not self.user.is_authenticated:
             print("Utilisateur non authentifié. Fermeture de la connexion.")
             await self.close(code=4003)
             return
+        
+        # Mettre is_online = True
+        await self.set_user_online_state(self.user, True)
 
         self.username = self.user.username or "Anonyme"
 
         # Charger les utilisateurs bloqués
         self.blocked_users_ids = await self.get_blocked_users_ids()
-        self.blocked_by_ids = await self.get_blocked_by_ids()
 
         await self.accept()
         print(f"Connexion WebSocket acceptée pour l'utilisateur : {self.username}")
+        
+        blocked_users = await self.get_blocked_users()
+        await self.send(json.dumps({ 
+            "type": "user_list",
+            "blocked_users": blocked_users
+        }))
 
         # Définir les groupes
         self.room_group_name = "chat_room"
@@ -46,6 +51,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}")
         await self.channel_layer.group_add(self.personal_group, self.channel_name)
+        
+        # Diffuser la liste actualisée
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {"type": "broadcast_user_list"}
+        )
 
         # Envoi d’un message de bienvenue
         await self.send(json.dumps({
@@ -54,14 +65,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def disconnect(self, close_code):
+
+        
+        if self.user.is_authenticated:
+            await self.set_user_online_state(self.user, False)
+
         if self.room_group_name:
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
         if self.personal_group:
             await self.channel_layer.group_discard(self.personal_group, self.channel_name)
+        
+        # Diffuser la liste actualisée
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {"type": "broadcast_user_list"}
+        )
+        
         print(f"Déconnexion de l'utilisateur {self.username} - code: {close_code}")
 
     async def receive(self, text_data):
-        print("Message reçu brut :", text_data)
+        
         try:
             if not text_data:
                 await self.send(json.dumps({"type": "error", "message": "Message vide"}))
@@ -69,6 +92,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             data = json.loads(text_data)
             action = data.get("action")
+            print(f"🔍 Reçu action={action}, username_to_block={data.get('username_to_block')}, username_to_unblock={data.get('username_to_unblock')}")
 
             if action == "block_user":
                 username_to_block = data.get("username_to_block")
@@ -120,25 +144,38 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "timestamp": timestamp
         }))
 
-    @database_sync_to_async
-    def get_blocked_users_ids(self):
+    @database_sync_to_async # This one & get_blocked_users() give blocked users but not with the same format
+    def get_blocked_users_ids(self): # utilisée en interne pour filtrer les messages dans chat_message()
         return list(self.user.blocked_users.values_list('id', flat=True))
 
     @database_sync_to_async
-    def get_blocked_by_ids(self):
-        return list(self.user.blocked_by.values_list('id', flat=True))
-
+    def toggle_block_user_in_db(self, username, block=True):
+        user = CustomUser.objects.get(username=username)
+        if block:
+            self.user.blocked_users.add(user)
+        else:
+            self.user.blocked_users.remove(user)
+        return user
+    
     @database_sync_to_async
-    def block_user_in_db(self, user_to_block_username):
-        user_to_block = CustomUser.objects.get(username=user_to_block_username)
-        self.user.blocked_users.add(user_to_block)
-        return user_to_block
-
+    def get_blocked_users(self): #utilisée pour envoyer la liste des bloqués au frontend
+        """Retourne la liste des users bloqués"""
+        return list(self.user.blocked_users.values("username"))
+    
     @database_sync_to_async
-    def unblock_user_in_db(self, user_to_unblock_username):
-        user_to_unblock = CustomUser.objects.get(username=user_to_unblock_username)
-        self.user.blocked_users.remove(user_to_unblock)
-        return user_to_unblock
+    def set_user_online_state(self, user, state: bool): # Modifier un user en BFF
+        """MAJ du champ online_status en DB."""
+        user.online_status = state
+        user.save()
+    
+    @database_sync_to_async
+    def get_online_users(self): # read la liste des users qui sont online
+        """Retourne la liste des users online."""
+        queryset = CustomUser.objects.filter(online_status=True).values("username")
+        return list(queryset)
+
+
+
 
     async def send_private_message(self, target_username, message):
         try:
@@ -150,7 +187,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }))
             return
 
+        #Check si expéditeur is blocked
+        is_blocked = await database_sync_to_async(found_user.blocked_users.filter(id=self.user.id).exists)()
+        if is_blocked:
+            # Send error only à l'expéditeur
+            await self.send(json.dumps({
+                "type": "error_private",
+                "message": f"Impossible d'envoyer un message privé à {target_username}, car vous avez été bloqué."
+            }))
+            return
+
         target_group = f"user_{found_user.id}"
+        sender_group = self.personal_group
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         await self.channel_layer.group_send(
@@ -164,10 +212,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
+        await self.channel_layer.group_send(
+            sender_group,
+            {
+                "type": "private_message",
+                "sender_id": self.user.id,
+                "sender": self.username,
+                "target_username": target_username,
+                "message": message,
+                "timestamp": timestamp
+            }
+        )
+
     async def private_message(self, event):
         sender_id = event["sender_id"]
-        if sender_id in self.blocked_users_ids:
-            return
 
         sender = event["sender"]
         message = event["message"]
@@ -179,37 +237,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message": message,
             "timestamp": timestamp
         }))
+    
+    async def block_user(self, username): # ADD USER ERROR
+        blocked_user = await self.toggle_block_user_in_db(username, block=True)
+        self.blocked_users_ids = await self.get_blocked_users_ids() # HOW MAJ ???
+        await self.send_blocked_users_list()
+        await self.send_user_list()
+        await self.send(json.dumps({"type": "system", "message": f"Vous avez bloqué {blocked_user.username}"}))
 
-    async def block_user(self, username_to_block):
-        try:
-            blocked_user = await self.block_user_in_db(username_to_block)
-            self.blocked_users_ids.append(blocked_user.id)
+    async def unblock_user(self, username):
+        unblocked_user = await self.toggle_block_user_in_db(username, block=False)
+        self.blocked_users_ids = await self.get_blocked_users_ids()
+        await self.send_blocked_users_list()
+        await self.send_user_list()
+        await self.send(json.dumps({"type": "system", "message": f"Vous avez débloqué {unblocked_user.username}"}))
 
-            await self.send(json.dumps({
-                "type": "system",
-                "message": f"Vous avez bloqué {blocked_user.username}"
-            }))
-        except CustomUser.DoesNotExist:
-            await self.send(json.dumps({
-                "type": "error",
-                "message": f"L’utilisateur {username_to_block} n’existe pas."
-            }))
+    async def broadcast_user_list(self, event):
+    # Charger la liste des users online_status = True
+        online_users = await self.get_online_users()
 
-    async def unblock_user(self, username_to_unblock):
-        try:
-            unblocked_user = await self.unblock_user_in_db(username_to_unblock)
-            if unblocked_user.id in self.blocked_users_ids:
-                self.blocked_users_ids.remove(unblocked_user.id)
+    # Envoyer par WebSocket
+        await self.send(json.dumps({
+            "type": "user_list",
+            "users": online_users,
+        }))
 
-            await self.send(json.dumps({
-                "type": "system",
-                "message": f"Vous avez débloqué {unblocked_user.username}"
-            }))
-        except CustomUser.DoesNotExist:
-            await self.send(json.dumps({
-                "type": "error",
-                "message": f"L’utilisateur {username_to_unblock} n’existe pas."
-            }))
 
 
 class LobbyConsumer(AsyncWebsocketConsumer):
