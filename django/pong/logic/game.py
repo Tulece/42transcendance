@@ -88,6 +88,9 @@ class Game:
         self.running = False
 
     def update_game_state(self):
+        if not (self.players["player1"]["connected"] and self.players["player2"]["connected"]):
+            return
+
         if (self.players['player1']['lifepoints'] <= 0 or
             self.players['player2']['lifepoints'] <= 0 or
             self.players['player1']['disconnected'] or
@@ -99,6 +102,7 @@ class Game:
             self.paused = False
         else:
             self.ball_updater()
+
 
     async def send_game_state(self):
         # Si l'un des joueurs n'est pas encore connecté, envoyer un message d'attente

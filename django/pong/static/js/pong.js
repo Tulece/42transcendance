@@ -5,7 +5,7 @@ let lobbySocket = null;
 let gameSocket = null;
 let game_running = false;
 let key_pressed = {};
-let host = "";
+let host = window.location.hostname || "localhost";
 let role = "";
 let matchId = null; // On stockera le match_id pour le report
 
