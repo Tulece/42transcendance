@@ -86,26 +86,31 @@ function displayWaitingMessage(message, dots) {
   }
 }
 
-function connectToGame(gameId, roleParam) {
-  role = roleParam;
-  host = window.location.hostname;
-  gameSocket = new WebSocket(`ws://${host}:8000/ws/game/${gameId}/?player_id=${roleParam}`);
-  gameSocket.onopen = () => {
-    console.log(`Connecté à la partie : ${gameId}, rôle : ${roleParam}`);
-    initializeGameControls();
-    game_running = true;
-  };
-  gameSocket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    handleGameMessage(data, role);
-  };
-  gameSocket.onclose = () => {
-    console.log("Connexion à la partie fermée.");
-    game_running = false;
-  };
-  gameSocket.onerror = (error) => {
-    console.error("Erreur lors de la connexion au jeu :", error);
-  };
+function connectToGame(gameId, role) {
+    gameSocket = new WebSocket(`ws://${host}:8000/ws/game/${gameId}/?player_id=${role}`);
+
+    gameSocket.onopen = () => {
+        console.log(`Connecté à la partie : ${gameId}, rôle : ${role}`);
+        if (role == 'local')
+            initializeGameControls(role);
+        else
+            initializeGameControls();
+        game_running = true;
+    };
+
+    gameSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleGameMessage(data, role);
+    };
+
+    gameSocket.onclose = () => {
+        console.log("Connexion à la partie fermée.");
+        game_running = false;
+    };
+
+    gameSocket.onerror = (error) => {
+        console.error("Erreur lors de la connexion au jeu :", error);
+    };
 }
 
 function handleGameMessage(data, role) {
@@ -179,10 +184,15 @@ function handleGameMessage(data, role) {
   }
 }
 
-function initializeGameControls() {
-  document.addEventListener("keydown", onKeyDown);
-  document.addEventListener("keyup", onKeyUp);
-  console.log("Écouteurs d'événements ajoutés.");
+function initializeGameControls(role = undefined) {
+    if (role) {
+        document.addEventListener('keydown', localOnKeyDown);
+        document.addEventListener('keyup', localOnKeyUp);
+    } else {
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+    }
+    console.log("Écouteurs d'événements ajoutés.");
 }
 
 function destroyGameControls() {
@@ -224,12 +234,35 @@ function onKeyUp(e) {
   }
 }
 
-function sendAction(action) {
-  if (gameSocket && gameSocket.readyState === WebSocket.OPEN) {
-    gameSocket.send(JSON.stringify({ action }));
-  } else {
-    console.error("WebSocket pour le jeu non ouvert !");
-  }
+function localOnKeyDown(e) {
+    if (!key_pressed[e.key] && game_running) {
+        key_pressed[e.key] = true;
+
+        if (e.code === "KeyW") sendAction("move_up", "player1");
+        if (e.code === "KeyS") sendAction("move_down", "player1");
+        if (e.key === "ArrowUp") sendAction("move_up", "player2");
+        if (e.key === "ArrowDown") sendAction("move_down", "player2");
+        if (e.key === "Escape") sendAction("pause_game");
+    }
+}
+
+function localOnKeyUp(e) {
+    if (key_pressed[e.key]) {
+        delete key_pressed[e.key];
+
+        if (e.code === "KeyW") sendAction("stop_move_up", "player1");
+        if (e.code === "KeyS") sendAction("stop_move_down", "player1");
+        if (e.key === "ArrowUp") sendAction("stop_move_up", "player2");
+        if (e.key === "ArrowDown") sendAction("stop_move_down", "player2");
+    }
+}
+
+function sendAction(action, player = undefined) {
+    if (gameSocket && gameSocket.readyState === WebSocket.OPEN) {
+        gameSocket.send(JSON.stringify({ action, player }));
+    } else {
+        console.error("WebSocket pour le jeu non ouvert !");
+    }
 }
 
 function updateCanvas() {

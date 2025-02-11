@@ -238,7 +238,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         elif action == "quit_queue":
             await self.handle_quit_queue()
 
-    async def handle_find_game(self, mode, elo = 1000):
+    async def handle_find_game(self, mode):
         """Gère la demande de recherche d'une partie en fonction de l'ELO."""
         if mode == 'solo':
             game_id, player1 = await self.lobby.create_solo_game(self)
@@ -247,12 +247,18 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 "game_id": game_id,
                 "role": "player1"
             }))
+        elif mode == 'local':
+            game_id, player = await self.lobby.create_local_game(self)
+            await player.send(json.dumps({
+                "type": "game_found",
+                "game_id": game_id,
+                "role": "local"
+            }))
         else:
-            self.lobby.add_player_to_queue(self, elo)
-
-            self.waiting_task = asyncio.create_task(self.send_waiting_messages())
-
-            print(f"Joueur {self.player_id} en attente d'une partie (ELO {elo}).", flush=True)
+            user = self.scope["user"]
+            ratio = user.wins / user.match_played if user.match_played > 0 else 0.5
+            self.lobby.add_player_to_queue(self, ratio)
+            print(f"Joueur {self.player_id} en attente d'une partie (Ratio : {ratio}).", flush=True)
 
     async def handle_quit_queue(self):
         """Gère la demande de quitter la file d'attente."""
@@ -266,17 +272,6 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         }))
         print(f"Joueur {self.player_id} a quitté la file d'attente.", flush=True)
 
-    async def send_waiting_messages(self):
-        """Envoie des messages de statut régulièrement."""
-        try:
-            while True:
-                await self.send(json.dumps({
-                    "type": "waiting",
-                    "message": "En attente d'un adversaire"
-                }))
-                await asyncio.sleep(1)
-        except asyncio.CancelledError:
-            pass
 
 
 class PongConsumer(AsyncWebsocketConsumer):
@@ -301,7 +296,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         # Détermine si le joueur est en mode solo (pour une IA, par exemple)
         self.is_ai = query_params.get('mode', ['human'])[0] == 'solo' and self.player_id == 'player2'
 
-        if not self.player_id or self.player_id not in ["player1", "player2"]:
+        if not self.player_id or self.player_id not in ["player1", "player2"] and not self.player_id == 'local':
             print(f"[PongConsumer] Paramètre player_id invalide : {self.player_id}")
             await self.close()
             return
@@ -329,10 +324,12 @@ class PongConsumer(AsyncWebsocketConsumer):
         try:
             data = json.loads(text_data)
             action = data.get('action')
+            player_identifier = data.get('player', self.player_id)
+
             if not action:
                 return
             if self.game:
-                self.game.handle_player_action(self.player_id, action)
+                self.game.handle_player_action(player_identifier, action)
         except Exception as e:
             print(f"[PongConsumer] Erreur lors de la réception d'un message : {e}")
 
