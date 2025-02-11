@@ -113,7 +113,7 @@ class Game:
                      "type": "game_update",
                      "message": {
                          "type": "waiting",
-                         "message": "En attente de l'adversaire..."
+                         "message": "En attente de l'adversaire"
                      }
                  }
              )
