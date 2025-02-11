@@ -85,7 +85,10 @@ function connectToGame(gameId, role) {
 
     gameSocket.onopen = () => {
         console.log(`Connecté à la partie : ${gameId}, rôle : ${role}`);
-        initializeGameControls();
+        if (role == 'local')
+            initializeGameControls(role);
+        else
+            initializeGameControls();
         game_running = true;
     };
 
@@ -140,9 +143,14 @@ function handleGameMessage(data, role) {
     }
 }
 
-function initializeGameControls() {
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
+function initializeGameControls(role = undefined) {
+    if (role) {
+        document.addEventListener('keydown', localOnKeyDown);
+        document.addEventListener('keyup', localOnKeyUp);
+    } else {
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+    }
     console.log("Écouteurs d'événements ajoutés.");
 }
 
@@ -190,9 +198,32 @@ function onKeyUp(e) {
     }
 }
 
-function sendAction(action) {
+function localOnKeyDown(e) {
+    if (!key_pressed[e.key] && game_running) {
+        key_pressed[e.key] = true;
+
+        if (e.code === "KeyW") sendAction("move_up", "player1");
+        if (e.code === "KeyS") sendAction("move_down", "player1");
+        if (e.key === "ArrowUp") sendAction("move_up", "player2");
+        if (e.key === "ArrowDown") sendAction("move_down", "player2");
+        if (e.key === "Escape") sendAction("pause_game");
+    }
+}
+
+function localOnKeyUp(e) {
+    if (key_pressed[e.key]) {
+        delete key_pressed[e.key];
+
+        if (e.code === "KeyW") sendAction("stop_move_up", "player1");
+        if (e.code === "KeyS") sendAction("stop_move_down", "player1");
+        if (e.key === "ArrowUp") sendAction("stop_move_up", "player2");
+        if (e.key === "ArrowDown") sendAction("stop_move_down", "player2");
+    }
+}
+
+function sendAction(action, player = undefined) {
     if (gameSocket && gameSocket.readyState === WebSocket.OPEN) {
-        gameSocket.send(JSON.stringify({ action }));
+        gameSocket.send(JSON.stringify({ action, player }));
     } else {
         console.error("WebSocket pour le jeu non ouvert !");
     }

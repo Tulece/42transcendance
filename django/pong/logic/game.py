@@ -198,8 +198,7 @@ class Game:
         self.ball_state.update(DEFAULT_BALL_STATE)
         self.randomize_ball_direction()
         asyncio.create_task(self.countdown_task(3))
-        # self.paused = True
-        # self.resetting = True
+
 
     async def countdown_task(self, countdown_seconds=3):
         self.waiting_countdown = countdown_seconds

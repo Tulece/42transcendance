@@ -172,6 +172,19 @@ class Lobby:
 
         return game_id, player_consumer
 
+
+    async def create_local_game(self, player_consumer):
+        """Crée une partie si deux joueurs sont disponibles."""
+
+        game_id = str(uuid.uuid4())
+        game = Game(game_id)
+        self.active_games[game_id] = game
+
+        asyncio.create_task(game.start())
+
+        return game_id, player_consumer
+
+
     def get_game(self, game_id):
         """Récupère une instance de Game par son identifiant."""
         return self.active_games.get(game_id)
