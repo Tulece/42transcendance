@@ -1,4 +1,28 @@
-<h2>{{ tournament.name }}</h2>
+<div class="container mt-4">
+    <h2 class="text-center mb-4">{{ tournament.name }}</h2>
+    <div class="row">
+        {% for match in matches %}
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 clas="card-title">Round {{ match.round_number }}</h5>  
+                    <p class="card-text">
+                        {{ match.player1.username }} vs
+                        {% if match.player2 %}{{ match.player2.username }}{% else %}Bye{% endif %}
+                    </p>
+                    {% if match.winner %}
+                    <span class="badge bg-success">Gagnant : {{ match.winner.username }}</span>
+                    {% else %}
+                    <a href="{% url 'report_match_result' match.id %}" class="btn btn-primary btn-sm">Signaler le gagnant</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>  
+</div>
+
+<!-- <h2>{{ tournament.name }}</h2>
 <ul>
     {% for match in matches %}
     <li>
@@ -11,4 +35,4 @@
         {% endif %}
     </li>
     {% endfor %}
-</ul>
+</ul> -->
