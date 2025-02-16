@@ -356,6 +356,8 @@ window.initChat = () => {
       chatWrapper.innerHTML = ""; // Effacer le contenu
     }
 
+    localStorage.removeItem("chatHistory");
+
     // Réinitialiser la variable pour autoriser une future réouverture
     window.chatInitialized = false;
 };
