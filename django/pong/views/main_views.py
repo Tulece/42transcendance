@@ -353,6 +353,14 @@ def account_view(request, username=None):
     else:
         viewed_user = get_object_or_404(User, username=username)
 
+    is_friend = request.user.friends.filter(id=viewed_user.id).exists()
+    if request.headers.get("Accept") == "application/json":
+        return JsonResponse({
+            "username": viewed_user.username,
+            "online_status": viewed_user.online_status,
+            "is_friend": is_friend
+        })
+
     context = {
         "viewed_user": viewed_user
     } # Struct. qui contient les data à transmettre au html.
@@ -371,6 +379,7 @@ def chat_view(request):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, "chat.html")  # Fragment AJAX
     return render(request, "base.html", {"initial_fragment": "chat.html"})
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])  # Géré par DRF : session OU JWT
