@@ -6,8 +6,9 @@
   <!-- Liste des utilisateurs connectés -->
   <div id="user-list-container" 
        class="card shadow-sm">
-    <div class="card-header bg-light">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
       <h6 class="mb-0">Utilisateurs connectés</h6>
+      <button id="user-list-toggle" class="btn btn-sm btn-light">Réduire</button>
     </div>
     <div class="card-body p-3">
       <ul id="user-list" class="list-group"></ul> <!-- <ul> permet de créer une list unordered (insèrer dynamiquement les <li>)-->
@@ -48,9 +49,11 @@
 #user-list-container {
   width: 240px;
   height: 450px;
-  overflow:auto;
+  overflow:hidden;
   position: relative;
-  z-index: 1050;
+  /* z-index: 1050; */
+  transition: transform 0.3s ease-in-out; /* Animation when change its state */
+  transform: translateY(0);
 }
 
 #chat-container {
@@ -65,10 +68,18 @@
     transform: translateY(420px); /* Fais glisser le chat vers le bas + header visible */
 }
 
+#user-list-container.collapsed {
+  transform: translateY(420px);
+}
+
 /* Hide only footer + messages */
 #chat-container.collapsed #message-area,
 #chat-container.collapsed .card-footer {
     display: none;
+}
+
+#user-list-container.collapsed #user-list {
+  display: none;
 }
 
 /* To avoid que l'un prenne plus de 70% de la fenêtre (TO CHECK) */
@@ -90,6 +101,9 @@
   #chat-container.collapsed {
     transform: translateY(370px);
   }
+  #user-list-container.collapsed {
+    transform: translateY(370px);
+  }
 }
 
 /* < 992px */
@@ -103,6 +117,9 @@
     height: 350px;
   }
   #chat-container.collapsed {
+    transform: translateY(320px);
+  }
+  #user-list-container.collapsed {
     transform: translateY(320px);
   }
 }
@@ -120,6 +137,9 @@
   #chat-container.collapsed {
     transform: translateY(270px);
   }
+  #user-list-container.collapsed {
+    transform: translateY(270px);
+  }
 }
 
 /* < 576px */
@@ -133,6 +153,9 @@
     height: 250px;
   }
   #chat-container.collapsed {
+    transform: translateY(220px);
+  }
+  #user-list-container.collapsed {
     transform: translateY(220px);
   }
 }

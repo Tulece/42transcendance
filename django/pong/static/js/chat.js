@@ -2,22 +2,24 @@ window.initChat = () => {
 
     if (window.chatInitialized) return; 
     window.chatInitialized = true;
+    console.log("Chargement du chat ...", document.getElementById("chat-wrapper"));
 
     loadChatHistory();
     const chatWrapper = document.getElementById("chat-wrapper");
     if (chatWrapper) chatWrapper.style.display = "block"; // Display if connected
 
     // Init éléments HTML
+    const messageArea = document.getElementById("message-area");
     const messageList = document.getElementById("message-list");
     const messageInput = document.getElementById("message-input");
     const sendMessageBtn = document.getElementById("send-message-btn");
     const chatToggle = document.getElementById("chat-toggle");
-    const chatFooter = document.querySelector("#chat-container .card-footer");
     const chatContainer = document.getElementById("chat-container");
-    const messageArea = document.getElementById("message-area");
     const userList = document.getElementById("user-list");
     const privateRecipient = document.getElementById("private-recipient");
     const sendPrivateBtn = document.getElementById("send-private-btn");
+    const userListContainer = document.getElementById("user-list-container");
+    const userListToggle = document.getElementById("user-list-toggle");
   
     let ws = null;
     let blockedUsers = new Set(); // Stocker users bloqués
@@ -51,6 +53,10 @@ window.initChat = () => {
 
   
     function connectWebSocket() {
+      if (window.chatWebSocket && window.chatWebSocket.readyState === WebSocket.OPEN) {
+        console.warn("🔄 WebSocket déjà connecté, on ne réouvre pas !");
+        return;
+      }
       ws = new WebSocket(`ws://${window.location.host}/ws/chat/`);
       window.chatWebSocket = ws; // Stock to close later
   
@@ -81,17 +87,14 @@ window.initChat = () => {
     function handleMessage(data) {
       if (data.type === "chat_message") {
         addMessageToChat(data.username, data.message);
-        saveChatHistory();
       } else if (data.type === "private_message") {
         addPrivateMessageToChat(data.username, data.message);
-        saveChatHistory();
       } else if (data.type === "error") {
         console.warn("Erreur reçue - Non affichée sur la page chat :", data.message);
       } else if ( data.type === "error_private") {
         addErrorMessage(data.message);
       } else if (data.type === "system") {
         addSystemMessage(data.message);
-        saveChatHistory();
       } else if (data.type === "user_list") {
         updateUserList(data.users, data.blocked_users || []);
       }
@@ -111,12 +114,14 @@ window.initChat = () => {
       usernameLink.style.fontWeight = "bold";
       usernameLink.addEventListener("click", (event) => {
         event.preventDefault(); // Skip rechargement page
-        navigateTo('/account/${username}');
+        window.navigateTo(`/account/${username}`); // Appel spa global function (app.js)
       });
 
       messageDiv.appendChild(usernameLink);
       messageDiv.innerHTML += ` : ${message}`;
       messageList.appendChild(messageDiv);
+
+      saveChatHistory();
       scrollToBottom();
     }
   
@@ -126,6 +131,8 @@ window.initChat = () => {
       messageDiv.classList.add("message", "private");
       messageDiv.innerHTML = `<span class="username">${username} (privé) :</span> ${message}`;
       messageList.appendChild(messageDiv);
+
+      saveChatHistory();
       scrollToBottom();
     }
   
@@ -135,6 +142,8 @@ window.initChat = () => {
       messageDiv.classList.add("message", "system");
       messageDiv.innerText = message;
       messageList.appendChild(messageDiv);
+
+      saveChatHistory();
       scrollToBottom();
     }
 
@@ -184,6 +193,20 @@ window.initChat = () => {
         }
     });
 
+    userListToggle.addEventListener("click", function () {
+      const isCollapsed = userListContainer.classList.contains("collapsed");
+      
+      if (isCollapsed) {
+        userListContainer.classList.remove("collapsed");
+        userListToggle.innerText = "Réduire";
+      }
+      else {
+        userListContainer.classList.add("collapsed");
+        userListToggle.innerText = "Ouvrir";
+      }
+
+    });
+
     sendPrivateBtn.addEventListener("click", () => {
       const recipient = privateRecipient.value;
       const message = messageInput.value.trim();
@@ -208,8 +231,14 @@ window.initChat = () => {
     });
 
     // Check chq user de la liste et crée un élément html pour le display
-    function updateUserList(users) {
+    function updateUserList(users, blocked) {
       console.log("👥 Mise à jour de la liste des utilisateurs :", users);
+      if (!users) {
+        users = [];
+      }
+      if (!blocked) {
+        blocked = [];
+      }
 
       userList.innerHTML = ""; // On réinitialise la liste
   
@@ -226,7 +255,7 @@ window.initChat = () => {
           usernameLink.style.fontWeight = "bold";
           usernameLink.addEventListener("click", (event) => {
             event.preventDefault(); // Empêche le rechargement de la page
-            navigateTo(`/account/${user.username}`);
+            window.navigateTo(`/account/${user.username}`);
           });
 
           userItem.appendChild(usernameLink); // Insert element in the <ul>
@@ -248,18 +277,6 @@ window.initChat = () => {
   
       updatePrivateRecipientList(users);
     }
-
-    function navigateTo(url) {
-      history.pushState(null, "", url); // Change l'URL sans recharger
-      fetch(url)
-        .then((response) => response.text())
-        .then((html) => {
-          document.body.innerHTML = html; // Remplace le contenu de la page
-          window.initChat(); // Recharge le chat après le changement de page
-        })
-        .catch((error) => console.error("Erreur de navigation :", error));
-    }
-    
     
 
     function updatePrivateRecipientList(users) {
@@ -310,6 +327,7 @@ window.initChat = () => {
       }
     }
 
+
     function saveChatHistory() {
       const messageList = document.getElementById("message-list");
       if (!messageList) return;
@@ -334,7 +352,6 @@ window.initChat = () => {
           });
       }
     }
-  
 
     console.log("🚀 Tentative de connexion WebSocket...");
     connectWebSocket();
@@ -342,7 +359,6 @@ window.initChat = () => {
   };
 
   window.hideChat = () => {
-    console.log("👋 Déconnexion détectée, fermeture du chat.");
 
     // Fermer proprement le WebSocket s'il est encore ouvert
     if (window.chatWebSocket) {
@@ -355,8 +371,9 @@ window.initChat = () => {
       chatWrapper.style.display = "none";
       chatWrapper.innerHTML = ""; // Effacer le contenu
     }
-
-    localStorage.removeItem("chatHistory");
+    
+    if (!window.chatInitialized) // Check also if user has been deconnected
+      localStorage.removeItem("chatHistory");
 
     // Réinitialiser la variable pour autoriser une future réouverture
     window.chatInitialized = false;

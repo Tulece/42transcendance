@@ -34,6 +34,7 @@ from .views.tournament_views import (
 )
 
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def protected_view(request):
@@ -64,3 +65,8 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
+# path('api/friends/send/<str:username>/', send_friend_request, name="send_friend_request"),
+#     path('api/friends/accept/<int:request_id>/', accept_friend_request, name="accept_friend_request"),
+#     path('api/friends/decline/<int:request_id>/', decline_friend_request, name="decline_friend_request"),
+#     path('api/friends/cancel/<int:request_id>/', cancel_friend_request, name="cancel_friend_request"),
+#     path('api/friends/status/<str:username>/', get_friendship_status, name="get_friendship_status"),

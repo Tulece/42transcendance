@@ -6,7 +6,7 @@ class CustomUser(AbstractUser):
     avatar = models.ImageField(upload_to='avatars/', default='avatars/default.jpg')
     online_status = models.BooleanField(default=False)
 
-    # Un users peut bloquer d'autres users
+    # Un user peut bloquer d'autres users
     blocked_users = models.ManyToManyField(
         'self',
         symmetrical=False,

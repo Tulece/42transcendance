@@ -17,6 +17,12 @@
         <p><strong>Nom d'utilisateur :</strong> {{ viewed_user.username }}
         <span id="online-status" class="status-indicator" style="display: none;"></span>
         </p>
+        <div id="friendship-actions">
+            <button id="send-friend-request" class="btn btn-primary" style="display: none;">Ajouter en ami</button>
+            <button id="cancel-friend-request" class="btn btn-warning" style="display: none;">Annuler la demande</button>
+            <button id="accept-friend-request" class="btn btn-success" style="display: none;">Accepter</button>
+            <button id="decline-friend-request" class="btn btn-danger" style="display: none;">Refuser</button>
+        </div>
 
         {% if viewed_user.id == user.id %}
             <p><strong>Email :</strong> {{ user.email }}</p>

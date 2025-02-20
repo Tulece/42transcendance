@@ -76,16 +76,23 @@
         }
     }
 
-
     function handlePageSpecificScripts(url) {
         if (url.includes("/game")) {
             loadScriptOnce("/static/js/pong.js", () => {
                 if (window.initPong) window.initPong();
             });
         } else if (url.includes("/chat")) {
+            // Check si le chat était déjà init => Réinitialisation to go on /chat/ page
+            if (window.chatInitialized) {
+                console.warn("Chat déjà initialisé, réinitialisation...");
+                window.hideChat(); // Nettoie le chat avant de le réinitialiser
+            }
+
             loadScriptOnce("/static/js/chat.js", () => {
-                if (window.initChat) window.initChat();
-            });            
+                if (window.initChat) {
+                    window.initChat();
+                }
+            });         
         } else if (url.includes("/login")) {
             loadScriptOnce("/static/js/login.js", () => {
                 console.log("Script de connexion chargé.");

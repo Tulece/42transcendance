@@ -370,7 +370,6 @@ def account_view(request, username=None):
     return render(request, 'base.html', {"initial_fragment": "account.html", "viewed_user":viewed_user})
 
 def chat_view(request):
-    """Vue pour tester JWT et WebSocket - nécessite authentification."""
     if not request.user.is_authenticated:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return HttpResponseForbidden()

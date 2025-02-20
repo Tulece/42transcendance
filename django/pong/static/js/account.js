@@ -78,4 +78,3 @@ document.addEventListener("DOMContentLoaded", async function () {
         console.error("Erreur lors de la récupération du statut :", error);
     }
 });
-
