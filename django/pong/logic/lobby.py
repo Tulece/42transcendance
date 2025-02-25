@@ -152,21 +152,21 @@ class Lobby:
 
 
 
-    async def create_game(self):
-        """Crée une partie si deux joueurs sont disponibles."""
-        if len(self.waiting_queue) >= 2:
-            player1 = self.waiting_queue.pop(0)
-            player2 = self.waiting_queue.pop(0)
+    # async def create_game(self):
+    #     """Crée une partie si deux joueurs sont disponibles."""
+    #     if len(self.waiting_queue) >= 2:
+    #         player1 = self.waiting_queue.pop(0)
+    #         player2 = self.waiting_queue.pop(0)
 
-            game_id = str(uuid.uuid4())
+    #         game_id = str(uuid.uuid4())
 
-            game = Game(game_id, player1, player2)
-            self.active_games[game_id] = game
+    #         game = Game(game_id, player1, player2)
+    #         self.active_games[game_id] = game
 
-            asyncio.create_task(game.start())
+    #         asyncio.create_task(game.start())
 
-            return game_id, player1, player2
-        return None, None, None
+    #         return game_id, player1, player2
+    #     return None, None, None
 
     async def create_solo_game(self, player_consumer):
         """Crée une partie si deux joueurs sont disponibles."""
@@ -186,7 +186,12 @@ class Lobby:
     async def create_local_game(self, player_consumer):
         """Crée une partie si deux joueurs sont disponibles."""
 
+
+        # ?? Dirty as fuck but only 0.0015% chance of fake positive 
         game_id = str(uuid.uuid4())
+        game_id = game_id[4:]
+        game_id = "aaaa" + game_id
+
         game = Game(game_id)
         self.active_games[game_id] = game
 

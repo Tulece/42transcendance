@@ -345,6 +345,8 @@ class PongConsumer(AsyncWebsocketConsumer):
         # Récupère les paramètres de la query string (notamment le player_id)
         query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
         self.player_id = query_params.get('player_id', [None])[0]
+        if self.player_id == "local" :
+            self.player_id = "player1"
         # Détermine si le joueur est en mode solo (pour une IA, par exemple)
         self.is_ai = query_params.get('mode', ['human'])[0] == 'solo' and self.player_id == 'player2'
 
