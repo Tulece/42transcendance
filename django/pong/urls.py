@@ -27,6 +27,14 @@ from .logic.game import *
 from django.conf import settings
 from django.conf.urls.static import static
 from pong.views.main_views import home_view, game_view, update_a2f, account_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view
+from pong.views.friend_views import (
+    send_friend_request,
+    accept_friend_request,
+    cancel_friend_request,
+    decline_friend_request,
+    get_friendship_status,
+    received_friend_requests,
+)
 from .views.tournament_views import (
     create_tournament_view,
     get_tournament_detail_view,
@@ -58,6 +66,12 @@ urlpatterns = [
     path('api/tournaments/create/', create_tournament_view, name='create_tournament'),
     path('api/tournaments/<int:tournament_id>/', get_tournament_detail_view, name='tournament_detail_json'),
     path('api/tournaments/match/<int:match_id>/report/', report_match_result_view, name='report_match_result'),
+    path('api/friends/send/<str:username>/', send_friend_request, name="send_friend_request"),
+    path('api/friends/accept/<int:request_id>/', accept_friend_request, name="accept_friend_request"),
+    path('api/friends/decline/<int:request_id>/', decline_friend_request, name="decline_friend_request"),
+    path('api/friends/cancel/<int:request_id>/', cancel_friend_request, name="cancel_friend_request"),
+    path('api/friends/status/<str:username>/', get_friendship_status, name="get_friendship_status"),
+    path('api/friends/received/', received_friend_requests, name='received_friend_requests'),
 ]
 
 if settings.DEBUG:
@@ -65,8 +79,3 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
-# path('api/friends/send/<str:username>/', send_friend_request, name="send_friend_request"),
-#     path('api/friends/accept/<int:request_id>/', accept_friend_request, name="accept_friend_request"),
-#     path('api/friends/decline/<int:request_id>/', decline_friend_request, name="decline_friend_request"),
-#     path('api/friends/cancel/<int:request_id>/', cancel_friend_request, name="cancel_friend_request"),
-#     path('api/friends/status/<str:username>/', get_friendship_status, name="get_friendship_status"),

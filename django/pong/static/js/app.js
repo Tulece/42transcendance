@@ -100,6 +100,10 @@
         } else if (url.includes("/account")) {
             loadScriptOnce("/static/js/account.js", () => {
                 console.log("Script de la page compte chargé.");
+                if (window.initFriendshipActions) {
+                    console.log("PASSED APP.JS !!");
+                    window.initFriendshipActions();
+                }
             });
         }
     }

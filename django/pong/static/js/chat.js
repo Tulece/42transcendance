@@ -151,7 +151,7 @@ window.initChat = () => {
     function addErrorMessage(message) {
         const messageDiv = document.createElement("div");
         messageDiv.classList.add("message", "error-message"); // Classe spé. pour la mise en forme
-        messageDiv.innerHTML = `⚠️ <strong>Erreur :</strong> ${message}`;        messageList.appendChild(messageDiv);
+        messageDiv.innerHTML = `⚠️ <strong>Erreur :</strong> ${message}`;
         messageList.appendChild(messageDiv);
         scrollToBottom();
     }
