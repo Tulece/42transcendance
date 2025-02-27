@@ -175,8 +175,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return list(queryset)
 
 
-
-
     async def send_private_message(self, target_username, message):
         try:
             found_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)

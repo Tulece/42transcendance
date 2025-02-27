@@ -76,16 +76,23 @@
         }
     }
 
-
     function handlePageSpecificScripts(url) {
         if (url.includes("/game")) {
             loadScriptOnce("/static/js/pong.js", () => {
                 if (window.initPong) window.initPong();
             });
         } else if (url.includes("/chat")) {
+            // Check si le chat était déjà init => Réinitialisation to go on /chat/ page
+            if (window.chatInitialized) {
+                console.warn("Chat déjà initialisé, réinitialisation...");
+                window.hideChat(); // Nettoie le chat avant de le réinitialiser
+            }
+
             loadScriptOnce("/static/js/chat.js", () => {
-                if (window.initChat) window.initChat();
-            });            
+                if (window.initChat) {
+                    window.initChat();
+                }
+            });         
         } else if (url.includes("/login")) {
             loadScriptOnce("/static/js/login.js", () => {
                 console.log("Script de connexion chargé.");
@@ -93,6 +100,10 @@
         } else if (url.includes("/account")) {
             loadScriptOnce("/static/js/account.js", () => {
                 console.log("Script de la page compte chargé.");
+                if (window.initFriendshipActions) {
+                    console.log("PASSED APP.JS !!");
+                    window.initFriendshipActions();
+                }
             });
         }
     }
@@ -110,7 +121,8 @@
 
     // Charger la page initiale lors du chargement du DOM
     document.addEventListener("DOMContentLoaded", async function () {
-        await updateUserInfo();
+        await updateUserInfo(); // Check authentification + chat
+        
         if (location.pathname === "/" || location.pathname === "") {
             navigateTo("/", false);
         } else {
@@ -200,16 +212,29 @@ async function updateUserInfo() {
         if (response.ok) {
             const data = await response.json();
             updateHeaderUserInfo(data);
-        } else if (response.status === 403) {
+
+            const chatWrapper = document.getElementById("chat-wrapper");
+            if (chatWrapper) chatWrapper.style.display = "block";
+
+            if (window.initChat && !window.chatInitialized) {
+                console.log("Initialisation du chat ...");
+                window.initChat();
+            } 
+        } 
+        // else if (response.status === 403) {
+        //     console.info("Utilisateur non connecté.");
+        //     updateHeaderUserInfo(null);
+        //     if (window.hideChat) window.hideChat();
+        // }
+        else {
             console.info("Utilisateur non connecté.");
             updateHeaderUserInfo(null);
-        } else {
-            console.warn("Erreur inattendue lors de la récupération des infos utilisateur :", response.status);
-            updateHeaderUserInfo(null);
+            if (window.hideChat) window.hideChat(); // Désactive if user déconnecté.
         }
     } catch (error) {
         console.error("Erreur réseau lors de la récupération des informations utilisateur :", error);
         updateHeaderUserInfo(null);
+        if (window.hideChat) window.hideChat();
     }
 }
 

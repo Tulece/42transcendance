@@ -5,7 +5,6 @@
         <form id="login-form">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next_url|default:"/" }}">
-            <!-- Nom user -->
             <div class="mb-3">
                 <label for="username" class="form-label">Nom d'utilisateur</label> <!-- form-label: add un style uniforme pour les labels des champs-->
                 <input 
@@ -17,7 +16,6 @@
                     required
                 > <!-- form-control: add un style avec bordure, fond clair & padding-->
             </div>
-            <!-- MDP -->
             <div class="mb-3">
                 <label for="password" class="form-label">Mot de passe</label>
                 <input 
@@ -29,7 +27,6 @@
                     required
                 >
             </div>
-            <!-- Section OTP -->
             <div id="otp-container" class="mb-3" style="display: none;">
                 <label for="otp_code" class="form-label">Code de vérification</label>
                 <input 
@@ -42,12 +39,10 @@
                     inputmode="numeric"
                     maxlength="6"
                 >
-                <div class="form-text">Veuillez entrer le code reçu par email</div> <!-- Used pour les textes d'aide -->
+                <div class="form-text">Veuillez entrer le code reçu par email</div>
             </div>
-            <!-- Btn Connexion -->
             <button type="submit" class="btn btn-success w-100">Se connecter</button> <!-- w-100: le btn occupe toute la largeur -->
         </form>
-        <!-- Msg erreur -->
         <p id="login-error" class="mt-3 text-center text-danger" style="display: none;"></p>
     </div>
 </div>

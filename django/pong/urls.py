@@ -27,6 +27,14 @@ from .logic.game import *
 from django.conf import settings
 from django.conf.urls.static import static
 from pong.views.main_views import home_view, game_view, update_a2f, account_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view
+from pong.views.friend_views import (
+    send_friend_request,
+    accept_friend_request,
+    cancel_friend_request,
+    decline_friend_request,
+    get_friendship_status,
+    received_friend_requests,
+)
 from .views.tournament_views import (
     create_tournament_view,
     get_tournament_detail_view,
@@ -34,6 +42,7 @@ from .views.tournament_views import (
     list_tournaments_view,
     report_match_result_view,
 )
+
 
 
 @api_view(['GET'])
@@ -61,6 +70,12 @@ urlpatterns = [
     path('tournaments/match/<int:match_id>/start_game/', start_match_game_view, name='start_match_game'),
     path('tournaments/list/', list_tournaments_view, name='list_tournaments'),
     path('tournaments/match/<int:match_id>/report_result/', report_match_result_view, name='report_match_result'),
+    path('api/friends/send/<str:username>/', send_friend_request, name="send_friend_request"),
+    path('api/friends/accept/<int:request_id>/', accept_friend_request, name="accept_friend_request"),
+    path('api/friends/decline/<int:request_id>/', decline_friend_request, name="decline_friend_request"),
+    path('api/friends/cancel/<int:request_id>/', cancel_friend_request, name="cancel_friend_request"),
+    path('api/friends/status/<str:username>/', get_friendship_status, name="get_friendship_status"),
+    path('api/friends/received/', received_friend_requests, name='received_friend_requests'),
 
 ]
 

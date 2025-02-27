@@ -346,15 +346,30 @@ def account_view(request, username=None):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return HttpResponseForbidden("Vous devez être connecté pour voir ce profil.")
         else:
-            return redirect('/')  # redirige vers la page d'accueil
+            return redirect('/')
     
     if username is None or username == request.user.username:
         viewed_user = request.user
     else:
         viewed_user = get_object_or_404(User, username=username)
 
+    is_friend = request.user.friends.filter(id=viewed_user.id).exists()
+    if request.headers.get("Accept") == "application/json":
+        friend_list = [] # On send la liste si c'est mon profil ou si c'est un friend
+        if viewed_user == request.user or is_friend:
+            friend_list = list(
+                viewed_user.friends.values("username", "online_status")
+            )
+        return JsonResponse({
+            "username": viewed_user.username,
+            "online_status": viewed_user.online_status,
+            "is_friend": is_friend,
+            "friend_list": friend_list,
+        })
+
     context = {
-        "viewed_user": viewed_user
+        "viewed_user": viewed_user,
+        "is_friend": is_friend,
     } # Struct. qui contient les data à transmettre au html.
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -362,7 +377,6 @@ def account_view(request, username=None):
     return render(request, 'base.html', {"initial_fragment": "account.html", "viewed_user":viewed_user})
 
 def chat_view(request):
-    """Vue pour tester JWT et WebSocket - nécessite authentification."""
     if not request.user.is_authenticated:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return HttpResponseForbidden()
@@ -371,6 +385,7 @@ def chat_view(request):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, "chat.html")  # Fragment AJAX
     return render(request, "base.html", {"initial_fragment": "chat.html"})
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])  # Géré par DRF : session OU JWT
