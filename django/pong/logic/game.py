@@ -161,7 +161,7 @@ class Game:
                  await asyncio.sleep(1)
              self.resetting = False
              self.paused = False
-        else:
+        elif not self.paused:
              await self.channel_layer.group_send(
                  self.game_id,
                  {
