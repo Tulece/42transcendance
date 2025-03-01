@@ -186,10 +186,14 @@ window.initChat = () => {
             // Réouvrir le chat
             chatContainer.classList.remove("collapsed");
             chatToggle.innerText = "Réduire";
+            userListContainer.classList.remove("collapsed");
+            userListToggle.innerText = "Réduire";
         } else {
             // Réduire le chat
             chatContainer.classList.add("collapsed");
             chatToggle.innerText = "Ouvrir";
+            userListContainer.classList.add("collapsed");
+            userListToggle.innerText = "Ouvrir";
         }
     });
 
@@ -199,10 +203,14 @@ window.initChat = () => {
       if (isCollapsed) {
         userListContainer.classList.remove("collapsed");
         userListToggle.innerText = "Réduire";
+        chatContainer.classList.remove("collapsed");
+        chatToggle.innerText = "Réduire";
       }
       else {
         userListContainer.classList.add("collapsed");
         userListToggle.innerText = "Ouvrir";
+        chatContainer.classList.add("collapsed");
+        chatToggle.innerText = "Ouvrir";
       }
 
     });

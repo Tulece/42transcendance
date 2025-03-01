@@ -339,7 +339,7 @@ function loadProfileInfo(profileUsername) {
                 friendLink.textContent = friend.username;
                 friendLink.href = `/account/${friend.username}`;
                 friendLink.addEventListener("click", (e) => {
-                    e.preventDefault();
+                    e.preventDefault(); // To block a reload
                     window.navigateTo(friendLink.href);
                 });
 
@@ -353,5 +353,4 @@ function loadProfileInfo(profileUsername) {
         console.error("Erreur loadProfileInfo:", err);
     });
 }
-
 
