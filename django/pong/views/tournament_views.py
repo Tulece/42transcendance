@@ -1,140 +1,132 @@
-from django.shortcuts import get_object_or_404
+# tournament_views.py
+
+from django.shortcuts import get_object_or_404, render, redirect
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from ..models import Tournament, Match, CustomUser
 from ..logic.tournament_lobby import TournamentLobby
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render
-from django.views.decorators.http import require_http_methods
 from pong.logic.lobby import Lobby
 from asgiref.sync import sync_to_async
+import json
 
-lobby = TournamentLobby()  # On instancie 1 lobby global (optionnel)
+lobby = TournamentLobby() # Instance globale pour la gestion des tournois
 
 @csrf_exempt
 def create_tournament_view(request):
-    """
-    Crée un tournoi.
-    Si la requête est AJAX, renvoie du JSON.
-    Sinon, affiche une alerte puis redirige vers la liste des tournois.
-    """
-    if request.method == "GET":
-        users = CustomUser.objects.all()
-        return render(request, "tournaments/create_tournament.html", {"users": users})
-
-    name = request.POST.get("name")
-    player_ids = request.POST.getlist("players")
-    players = CustomUser.objects.filter(id__in=player_ids)
-
-    tournament = lobby.create_tournament(name, players)
-
-    # Vérifier si c'est une requête AJAX
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({
-            "success": True,
-            "tournament_id": tournament.id,
-            "message": "Tournoi créé avec succès."
-        }, status=201)
-    else:
-        # Pour une requête classique, on redirige
-        from django.shortcuts import redirect
-        # Vous pouvez aussi afficher un message en session ou dans l'URL
-        return redirect("list_tournaments")
-
+  if request.method == "GET":
+    users = CustomUser.objects.all()
+    return render(request, "tournaments/create_tournament.html", {"users": users})
+  name = request.POST.get("name")
+  player_ids = request.POST.getlist("players")
+  players = CustomUser.objects.filter(id__in=player_ids)
+  tournament = lobby.create_tournament(name, players)
+  if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    return JsonResponse({
+      "success": True,
+      "tournament_id": tournament.id,
+      "message": "Tournoi créé avec succès."
+    }, status=201)
+  else:
+    return redirect("list_tournaments")
 
 @require_GET
 @csrf_exempt
 def get_tournament_detail_view(request, tournament_id):
-    tournament = get_object_or_404(Tournament, id=tournament_id)
-    matches = tournament.matches.order_by("round_number", "created_at")
-    context = {
-        "tournament": tournament,
-        "matches": matches
-    }
-
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        # On renvoie uniquement le fragment (sans header)
-        return render(request, "tournaments/tournament_detail.html", context)
-    else:
-        # On renvoie la page "complète" (base.html), qui inclura ton fragment
-        return render(request, "base.html", {
-            "initial_fragment": "tournaments/tournament_detail.html",
-            "tournament": tournament,
-            "matches": matches
-        })
+  tournament = get_object_or_404(Tournament, id=tournament_id)
+  matches = tournament.matches.order_by("round_number", "created_at")
+  context = {"tournament": tournament, "matches": matches}
+  if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    return render(request, "tournaments/tournament_detail.html", context)
+  else:
+    return render(request, "base.html", {
+      "initial_fragment": "tournaments/tournament_detail.html",
+      "tournament": tournament,
+      "matches": matches
+    })
 
 @csrf_exempt
 @require_http_methods(["POST"])
 async def start_match_game_view(request, match_id):
-    try:
-        match = await sync_to_async(Match.objects.get)(id=match_id)
-    except Match.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Match non trouvé"}, status=404)
+  try:
+    match = await sync_to_async(Match.objects.get)(id=match_id)
+  except Match.DoesNotExist:
+    return JsonResponse({"success": False, "error": "Match non trouvé"}, status=404)
 
-    user_id = await sync_to_async(lambda: request.user.id)()
+  # Si le match est déjà terminé, on refuse de le relancer
+  if match.winner:
+    return JsonResponse({"success": False, "error": "Match terminé"}, status=400)
 
-    # Vérifier que l'utilisateur fait partie du match
-    if user_id not in [match.player1_id, match.player2_id]:
-        return JsonResponse({"success": False, "error": "Vous n'êtes pas participant de ce match."}, status=403)
+  user_id = await sync_to_async(lambda: request.user.id)()
 
-    # Regarder si on a déjà un game_id
-    if not match.game_id:
-        # Pas de partie encore créée -> on la crée
-        lobby_instance = Lobby.get_instance()
-        new_game_id = await lobby_instance.API_start_game_async()
+  # Accès asynchrone aux valeurs liées
+  match_player1_id = await sync_to_async(lambda: match.player1.id)()
+  match_player2_id = await sync_to_async(lambda: match.player2.id if match.player2 else None)()
 
-        # On enregistre dans le Match
-        match.game_id = new_game_id
-        await sync_to_async(match.save)()
-    else:
-        # Partie déjà en cours
-        new_game_id = match.game_id
+  if user_id not in [match_player1_id, match_player2_id]:
+    return JsonResponse({"success": False, "error": "Vous n'êtes pas participant de ce match."}, status=403)
 
-    return JsonResponse({"success": True, "game_id": new_game_id})
+  # Déterminer le rôle en fonction de l'identifiant de l'utilisateur connecté
+  role = "player1" if user_id == match_player1_id else "player2"
 
+  if not match.game_id:
+    lobby_instance = Lobby.get_instance()
+    new_game_id = await lobby_instance.API_start_game_async()
+    match.game_id = new_game_id
+    await sync_to_async(match.save)()
+  else:
+    new_game_id = match.game_id
 
+  return JsonResponse({
+    "success": True,
+    "game_id": new_game_id,
+    "role": role,
+    "player1_id": match_player1_id,
+    "player2_id": match_player2_id,
+  })
 
 @csrf_exempt
 def list_tournaments_view(request):
-    tournaments = Tournament.objects.filter(is_active=True)
-    context = {"tournaments": tournaments}
-
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        # On renvoie le fragment direct (sans extends)
-        return render(request, "tournaments/list_tournaments.html", context)
-    else:
-        # On renvoie la structure globale (base.html)
-        # qui inclut le fragment via initial_fragment
-        return render(request, "base.html", {
-            "initial_fragment": "tournaments/list_tournaments.html",
-            "tournaments": tournaments
-        })
+  tournaments = Tournament.objects.filter(is_active=True)
+  context = {"tournaments": tournaments}
+  if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    return render(request, "tournaments/list_tournaments.html", context)
+  else:
+    return render(request, "base.html", {
+      "initial_fragment": "tournaments/list_tournaments.html",
+      "tournaments": tournaments
+    })
 
 @require_POST
 @csrf_exempt
 def report_match_result_view(request, match_id):
-    try:
-        match = Match.objects.get(id=match_id)
-    except Match.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Match introuvable."}, status=404)
-
-    winner_id = request.POST.get("winner_id")  # ex: 'player1'
-    if not winner_id:
-        return JsonResponse({"success": False, "error": "Pas de vainqueur indiqué."}, status=400)
-
-    # Vérifier que le winner_id correspond bien à match.player1 ou match.player2
-    valid_winner_ids = []
-    if match.player1:
-        valid_winner_ids.append(str(match.player1.id))
-    if match.player2:
-        valid_winner_ids.append(str(match.player2.id))
-
-    if winner_id not in valid_winner_ids:
-        return JsonResponse({"success": False, "error": "winner_id invalide."}, status=400)
-
-    # Appel de la méthode du TournamentLobby
-    from ..logic.tournament_lobby import TournamentLobby
-    tlobby = TournamentLobby()
-    tlobby.report_match_result(match.id, winner_id)
-
-    return JsonResponse({"success": True, "message": "Match mis à jour, round suivant préparé si nécessaire."})
+  try:
+    match = Match.objects.get(id=match_id)
+  except Match.DoesNotExist:
+    return JsonResponse({"success": False, "error": "Match introuvable."}, status=404)
+  # Essayons de charger le JSON, sinon utilisons request.POST
+  try:
+    data = json.loads(request.body)
+  except Exception:
+    data = request.POST
+  winner_id = data.get("winner_id")
+  if not winner_id:
+    return JsonResponse({"success": False, "error": "Pas de vainqueur indiqué."}, status=400)
+  valid_winner_ids = []
+  if match.player1:
+    valid_winner_ids.append(str(match.player1.id))
+  if match.player2:
+    valid_winner_ids.append(str(match.player2.id))
+  if winner_id not in valid_winner_ids:
+    return JsonResponse({"success": False, "error": "winner_id invalide."}, status=400)
+  from ..logic.tournament_lobby import TournamentLobby
+  tlobby = TournamentLobby()
+  tlobby.report_match_result(match.id, winner_id)
+  from channels.layers import get_channel_layer
+  from asgiref.sync import async_to_sync
+  channel_layer = get_channel_layer()
+  async_to_sync(channel_layer.group_send)(
+    f"tournament_{match.tournament.id}",
+    {"type": "tournament_update", "message": {"success": True, "message": "Tournoi mis à jour !"}}
+  )
+  return JsonResponse({"success": True, "message": "Match mis à jour, round suivant préparé si nécessaire."})

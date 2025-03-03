@@ -1,63 +1,196 @@
-<div id="live-chat-container" class="container py-4">
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <button id="connect-ws" class="btn btn-warning" disabled>Se connecter au Websocket</button>
-            <pre id="ws-log" class="mt-3 p-3 bg-light border">Log des évènements Websocket ...</pre>
+<!-- Live chat -->
+<div id="chat-wrapper" 
+     class="position-fixed bottom-0 end-0 d-flex flex-row gap-2 p-3 align-items-end" 
+     style="z-index:999; display:none;">
+
+  <!-- Liste des utilisateurs connectés -->
+  <div id="user-list-container" 
+       class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <h6 class="mb-0">Utilisateurs connectés</h6>
+      <button id="user-list-toggle" class="btn btn-sm btn-light">Réduire</button>
+    </div>
+    <div class="card-body p-3">
+      <ul id="user-list" class="list-group"></ul> <!-- <ul> permet de créer une list unordered (insèrer dynamiquement les <li>)-->
+    </div> <!-- <li> dans le script représente chq élément de la liste + own info -->
+  </div>
+
+  <!-- Fenêtre de chat -->
+  <div id="chat-container" 
+       class="card shadow-lg">
+
+    <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
+      <h5 class="mb-0">Live Chat</h5>
+      <button id="chat-toggle" class="btn btn-sm btn-light">Réduire</button>
+    </div>
+    
+    <div id="message-area" class="card-body p-3 overflow-auto">
+      <div id="message-list"></div>
+    </div>
+
+    <div class="card-footer">
+        <div class="input-group mb-2">
+            <input type="text" id="message-input" class="form-control" placeholder="Entrez votre message...">
+            <button id="send-message-btn" class="btn btn-primary">Envoyer</button>
+        </div>
+        <div class="input-group">
+            <select id="private-recipient" class="form-select">
+                <option value="" disabled selected>Choisir un destinataire</option>
+            </select>
+            <button id="send-private-btn" class="btn btn-secondary">Envoyer privé</button>
         </div>
     </div>
-    <div class="row mb-4">
-        <div class="col-12 col-md-6">
-            <h3>Messages</h3>
-            <div id="message-list" class="border p-3 mb-3" style="height: 200px; overflow-y: auto;">
-            </div>
-            <div id="send-message-section" class="d-flex">
-                <input
-                    type="text"
-                    id="ws-message"
-                    class="form-control me-2"
-                    placeholder="Entrez votre message"
-                    disabled
-                />
-                <button id="send-ws-message" class="btn btn-primary" disabled>Envoyer</button>
-            </div>
-            
-        </div>
-        <div class="col-12 col-md-6">
-            <h3>Bloquer un utilisateur</h3>
-            <div class="d-flex mb-3">
-                <input
-                    type="text"
-                    id="block-username"
-                    class="form-control me-2"
-                    placeholder="Pseudo à bloquer"
-                />
-                <button id="block-btn" class="btn btn-danger" disabled>Bloquer</button>
-            </div>
-            <h3>Débloquer un utilisateur</h3>
-            <div class="d-flex mb-3">
-                <input
-                    type="text"
-                    id="unblock-username"
-                    class="form-control me-2"
-                    placeholder="Pseudo à débloquer"
-                />
-                <button id="unblock-btn" class="btn btn-danger" disabled>Débloquer</button>
-            </div>
-        </div>
-        
-    </div>
-    <div class="row mb-4"> <!-- Marge bottom -->
-        <div class="col-12 col-md-6">
-            <h3>Envoyer un message privé</h3>
-            <div class="d-flex mb-3"> <!-- d-flex: dispose champ & bouton sur une même ligne / Tech. de mise en pace CSS qui permet d'orga les éléments enfants dans un conteneur (aligner les éléments, ajuster la taille, espace entre éléments, etc.)-->
-                <input
-                    type="text"
-                    id="target-username"
-                    class="form-control me-2"
-                    placeholder="Pseudo du destinataire"
-                /> <!-- form-control : apply un style cohérent aux éléments du form (champs texte, zones de texte, listes, etc.), ici étire le champ pour occuper la largeur - me-2: add un espace entre le champ et le bouton -->
-                <button id="send-private-btn" class="btn btn-warning" disabled>Envoyer</button>
-            </div>
-        </div>
-    </div>
+  </div>
 </div>
+
+<style>
+
+/* Styles "par défaut" (Desktop first) > Check si conflict with Boostrap ?*/
+#user-list-container {
+  width: 240px;
+  height: 450px;
+  overflow:hidden;
+  position: relative;
+  /* z-index: 1050; */
+  transition: transform 0.3s ease-in-out; /* Animation when change its state */
+  transform: translateY(0);
+}
+
+#chat-container {
+  width: 450px;
+  height: 450px;
+  overflow: hidden;
+  transition: transform 0.3s ease-in-out; /* Animation when change its state */
+  transform: translateY(0); /* État "ouvert" */
+}
+
+#chat-container.collapsed {
+    transform: translateY(420px); /* Fais glisser le chat vers le bas + header visible */
+}
+
+#user-list-container.collapsed {
+  transform: translateY(420px);
+}
+
+/* Hide only footer + messages */
+#chat-container.collapsed #message-area,
+#chat-container.collapsed .card-footer {
+    display: none;
+}
+
+#user-list-container.collapsed #user-list {
+  display: none;
+}
+
+/* To avoid que l'un prenne plus de 70% de la fenêtre (TO CHECK) */
+#user-list-container, #chat-container {
+  max-width: 70vw;
+  max-height: 80vh;
+}
+
+/* < 1200px */
+   @media (max-width: 1200px) {
+  #user-list-container {
+    width: 210px;
+    height: 400px;
+  }
+  #chat-container {
+    width: 380px;
+    height: 400px;
+  }
+  #chat-container.collapsed {
+    transform: translateY(370px);
+  }
+  #user-list-container.collapsed {
+    transform: translateY(370px);
+  }
+}
+
+/* < 992px */
+@media (max-width: 992px) {
+  #user-list-container {
+    width: 180px;
+    height: 350px;
+  }
+  #chat-container {
+    width: 320px;
+    height: 350px;
+  }
+  #chat-container.collapsed {
+    transform: translateY(320px);
+  }
+  #user-list-container.collapsed {
+    transform: translateY(320px);
+  }
+}
+
+/* < 768px */
+@media (max-width: 768px) {
+  #user-list-container {
+    width: 160px;
+    height: 300px;
+  }
+  #chat-container {
+    width: 280px;
+    height: 300px;
+  }
+  #chat-container.collapsed {
+    transform: translateY(270px);
+  }
+  #user-list-container.collapsed {
+    transform: translateY(270px);
+  }
+}
+
+/* < 576px */
+@media (max-width: 576px) {
+  #user-list-container {
+    width: 130px;
+    height: 250px;
+  }
+  #chat-container {
+    width: 230px;
+    height: 250px;
+  }
+  #chat-container.collapsed {
+    transform: translateY(220px);
+  }
+  #user-list-container.collapsed {
+    transform: translateY(220px);
+  }
+}
+
+#message-area {
+    background-color: #f8f9fa;
+    border-top: 1px solid #ddd;
+}
+.message {
+    margin-bottom: 10px;
+    padding: 5px;
+    border-radius: 5px;
+}
+.message .username {
+    font-weight: bold;
+}
+.message.system {
+    color: #999;
+    font-style: italic;
+}
+
+
+.error-message {
+    color: red;
+    font-weight: bold;
+    padding: 5px;
+    border: 1px solid red;
+    background-color: #ffe6e6;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.custom-padding {
+    padding: 12px 20px;
+    margin: 5px;
+}
+
+</style>

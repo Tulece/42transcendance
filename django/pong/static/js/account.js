@@ -1,52 +1,356 @@
-function toggleA2F() {
-    const checkbox = document.getElementById('a2f');
-    const statusText = document.getElementById('a2f-status');
+document.addEventListener("DOMContentLoaded", function () {
+    window.initFriendshipActions = initFriendshipActions;
 
-    if (checkbox.checked) {
-        statusText.textContent = 'Activé';
-    } else {
-        statusText.textContent = 'Désactivé';
-    }
-}
+    // const pathParts = window.location.pathname.split("/").filter(part => part !== "");
+    
+    // let profileUsername = null;    
+    
+    // if (pathParts.length === 1 && pathParts[0] === "account") {
+    //     profileUsername = window.currentUsername;
+    // } else if (pathParts.length >= 2 && pathParts[0] === "account") {
+    //     profileUsername = pathParts[1];
+    // }
+    // console.log("ProfileUsername:", profileUsername);
+    // console.log("CurrentUser: ", window.currentUsername);
+    
+    // if (!profileUsername)
+    //     return;
+    
+    // const currentUser = window.currentUsername || null;
+    // if (currentUser && profileUsername === currentUser) {
+    //     loadReceivedFriendRequests();
+    //     return;
+    // }
 
-function saveChanges() {
-    const isA2FEnabled = document.getElementById('a2f').checked;
+    
+    // // else, other user profile
+    // const sendBtn = document.getElementById("send-friend-request");
+    // const cancelBtn = document.getElementById("cancel-friend-request");
+    // let currentRequestId = null;
+    
+    // function fetchFriendshipStatus() {
+    //     fetch(`/api/friends/status/${profileUsername}/`, {
+    //         method: "GET",
+    //         credentials: "include",
+    //         headers: {
+    //             "X-Requested-With": "XMLHttpRequest",
+    //             "Content-Type": "application/json"
+    //         }
+    //     })
+    //     .then(response => response.json())
+    //     .then(data => {
+    //         console.log("Friendship status data:", data);  // Ajout du log pour voir le JSON
+    //         if (sendBtn) {
+    //             sendBtn.style.display = "inline-block";
+    //             console.log("sendBtn affiché:", sendBtn);
+    //         }            
+    //         if (data.is_friend) {
+    //             console.log("Vous êtes déjà amis.");
+    //         } else if (data.request_sent) {
+    //             // Tu as déjà envoyé une demande, affiche le bouton pour l'annuler
+    //             currentRequestId = data.friend_request_id;
+    //             if (cancelBtn) cancelBtn.style.display = "inline-block";
+    //         } else if (data.request_received) {
+    //             // Une demande t'a été envoyée – on ne te permet pas d'en envoyer une nouvelle ici.
+    //             console.log("Une demande vous a déjà été envoyée. Veuillez la traiter sur votre profil.");
+    //         } else {
+    //             // Aucune demande dans aucun sens, affiche le bouton pour envoyer une demande
+    //             if (sendBtn) sendBtn.style.display = "inline-block";
+    //         }
+    //         console.log("Fin fetchFriendshipStatus, sendBtn.style.display:", sendBtn.style.display);
+    //     })
+    //     .catch(error => console.error("Erreur lors de la récupération du statut d'amitié :", error));
+    // }
+    
+    // if (sendBtn) {
+    //     sendBtn.addEventListener("click", function () {
+    //         fetch(`/api/friends/send/${profileUsername}/`, {
+    //             method: "POST",
+    //             credentials: "include",
+    //             headers: {
+    //                 "X-Requested-With": "XMLHttpRequest",
+    //                 "Content-Type": "application/json",
+    //                 "X-CSRFToken": getCSRFToken() 
+    //             }
+    //         })
+    //         .then(response => response.json())
+    //         .then(data => {
+    //             alert(data.message);
+    //             fetchFriendshipStatus();
+    //         })
+    //         .catch(error => console.error("Erreur lors de l'envoi de la demande :", error));
+    //     });
+    // }
+    
+    // if (cancelBtn) {
+    //     cancelBtn.addEventListener("click", function () {
+    //         if (!currentRequestId) return;
+    //         fetch(`/api/friends/cancel/${currentRequestId}/`, {
+    //             method: "POST",
+    //             credentials: "include",
+    //             headers: {
+    //                 "X-Requested-With": "XMLHttpRequest",
+    //                 "Content-Type": "application/json",
+    //                 "X-CSRFToken": getCSRFToken() 
+    //             }
+    //         })
+    //         .then(response => response.json())
+    //         .then(data => {
+    //             alert(data.message);
+    //             fetchFriendshipStatus();
+    //         })
+    //         .catch(error => console.error("Erreur lors de l'annulation de la demande :", error));
+    //     });
+    // }
+    
+    // // Appeler fetchFriendshipStatus dès le chargement de la page pour un profil d'autre utilisateur
+    // fetchFriendshipStatus();
+    
 
-    fetch('/api/account/update_a2f/', {
-        method: 'POST',
+    window.initFriendshipActions = initFriendshipActions;
+});
+
+function loadReceivedFriendRequests() {
+
+    fetch(`/api/friends/received/`, {
+        method: "GET",
+        credentials: "include",
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')  // Assure-toi d'avoir un token CSRF valide
-        },
-        body: JSON.stringify({
-            is_a2f_enabled: isA2FEnabled
-        })
+            "X-Requested-With": "XMLHttpRequest",
+            "Content-Type": "application/json"
+        }
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            alert('Paramètres mis à jour avec succès !');
-        } else {
-            alert('Erreur lors de la mise à jour des paramètres.');
-        }
+        const listContainer = document.getElementById("friend-requests-list");
+        if (!listContainer) return;
+        listContainer.innerHTML = "";
+        data.forEach(request => {
+            const item = document.createElement("div");
+            item.className = "friend-request-item";
+            item.dataset.requestId = request.id;
+            item.innerHTML = `<span>${request.sender_username}</span>
+                              <button class="accept-request btn btn-success btn-sm">Accepter</button>
+                              <button class="decline-request btn btn-danger btn-sm">Refuser</button>`;
+            listContainer.appendChild(item);
+        });
+        attachRequestEventListeners();
     })
-    .catch(error => {
-        console.error('Erreur:', error);
-        alert('Erreur lors de la mise à jour des paramètres.');
+    .catch(error => console.error("Erreur lors du chargement des demandes reçues :", error));
+}
+
+function initFriendshipActions() {
+
+    const pathParts = window.location.pathname.split("/").filter(part => part !== "");
+
+    let profileUsername = null;
+
+    if (pathParts.length === 1 && pathParts[0] === "account") {
+        profileUsername = window.currentUsername;
+    } else if (pathParts.length >= 2 && pathParts[0] === "account") {
+        profileUsername = pathParts[1];
+    }
+    
+    console.log("CurrentUser: ", window.currentUsername);
+
+    console.log("ProfileUsername: ", profileUsername);
+    
+    if (!profileUsername)
+        return;
+
+    loadProfileInfo(profileUsername);
+    
+    const currentUser = window.currentUsername || null;
+    
+    if (currentUser && profileUsername === currentUser) {
+        console.log("PASSED INIT TO LOAD !!");
+        loadReceivedFriendRequests();
+        return;
+    }
+    
+    // Else, c'est le profil d'un autre user
+    const sendBtn = document.getElementById("send-friend-request");
+    const cancelBtn = document.getElementById("cancel-friend-request");
+    let currentRequestId = null;
+    
+    function fetchFriendshipStatus() {
+        fetch(`/api/friends/status/${profileUsername}/`, {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "Content-Type": "application/json",
+
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Friendship status data:", data);
+            if (sendBtn) sendBtn.style.display = "none";
+            if (cancelBtn) cancelBtn.style.display = "none";
+            
+            if (data.is_friend) {
+                console.log("Déjà amis");
+            } else if (data.request_sent) {
+                currentRequestId = data.friend_request_id;
+                if (cancelBtn) cancelBtn.style.display = "inline-block";
+            } else if (data.request_received) {
+                console.log("Une demande vous a été envoyée sur ce profil");
+            } else {
+                if (sendBtn) sendBtn.style.display = "inline-block";
+            }
+        })
+        .catch(error => console.error("Erreur lors de la récupération du statut d'amitié :", error));
+    }
+    
+    if (sendBtn) {
+        sendBtn.addEventListener("click", function () {
+            fetch(`/api/friends/send/${profileUsername}/`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken()  // Ajout du CSRF token ici
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                fetchFriendshipStatus();
+            })
+            .catch(error => console.error("Erreur lors de l'envoi de la demande :", error));
+        });
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", function () {
+            if (!currentRequestId) return;
+            fetch(`/api/friends/cancel/${currentRequestId}/`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken() 
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                fetchFriendshipStatus();
+            })
+            .catch(error => console.error("Erreur lors de l'annulation de la demande :", error));
+        });
+    }
+    fetchFriendshipStatus();
+}
+    
+
+function attachRequestEventListeners() {
+    const requestItems = document.querySelectorAll(".friend-request-item");
+    requestItems.forEach(item => {
+        const requestId = item.dataset.requestId;
+        const acceptBtn = item.querySelector(".accept-request");
+        const declineBtn = item.querySelector(".decline-request");
+        
+        if (acceptBtn) {
+            acceptBtn.addEventListener("click", function () {
+                fetch(`/api/friends/accept/${requestId}/`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCSRFToken() 
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    loadReceivedFriendRequests();
+                })
+                .catch(error => console.error("Erreur lors de l'acceptation de la demande :", error));
+            });
+        }
+        if (declineBtn) {
+            declineBtn.addEventListener("click", function () {
+                fetch(`/api/friends/decline/${requestId}/`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCSRFToken() 
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    loadReceivedFriendRequests();
+                })
+                .catch(error => console.error("Erreur lors du refus de la demande :", error));
+            });
+        }
     });
 }
 
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
+function loadProfileInfo(profileUsername) {
+    fetch(`/account/${profileUsername}/`, {
+        method: "GET",
+        headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json"
+        },
+        credentials: "include"
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("Profil info:", data);
+        const status = document.getElementById("online-status");
+        if (status) {
+            status.style.display = "inline-block";
+            if (data.online_status) {
+                status.style.backgroundColor = "green";
+                status.title = "Utilisateur en ligne"; // Tooltip when on button
+            } else {
+                status.style.backgroundColor = "red";
+                status.title = "Utilisateur hors-ligne";
             }
         }
-    }
-    return cookieValue;
+
+        const friendList = document.getElementById("friend-list");
+        if (friendList && data.friend_list && data.friend_list.length > 0) {
+            friendList.innerHTML = "";
+
+            data.friend_list.forEach(friend => {
+                const li = document.createElement("li"); // Element in list (li)
+                li.classList.add("list-group-item");
+
+                const circle = document.createElement("span");
+                circle.style.display = "inline-block";
+                circle.style.width = "10px";
+                circle.style.height = "10px";
+                circle.style.borderRadius = "50%";
+                circle.style.marginRight = "8px";
+                circle.style.backgroundColor = friend.online_status ? "green" : "red";
+
+                const friendLink = document.createElement("a");
+                friendLink.textContent = friend.username;
+                friendLink.href = `/account/${friend.username}`;
+                friendLink.addEventListener("click", (e) => {
+                    e.preventDefault(); // To block a reload
+                    window.navigateTo(friendLink.href);
+                });
+
+                li.appendChild(circle);
+                li.appendChild(friendLink);
+                friendList.appendChild(li);
+            });
+        }
+    })
+    .catch(err => {
+        console.error("Erreur loadProfileInfo:", err);
+    });
 }
+

@@ -4,7 +4,7 @@
 
             <!-- Titre -->
             <div class="d-flex align-items-center order-1 order-lg-1">
-                <a class="navbar-brand me-auto" href="/">
+                <a class="navbar-brand me-auto p-3" href="/">
                     ProxyFeatures
                 </a>
                 <!-- Bouton hamburger (visible uniquement sur petits écrans) -->
@@ -33,7 +33,10 @@
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <li>
-                                <a href="/game?mode=multi" class="dropdown-item spa-link">Play Duel</a>
+                                <a href="/game?mode=multi" class="dropdown-item spa-link">Play Online Duel</a>
+                            </li>
+                            <li>
+                                <a href="/game?mode=local" class="dropdown-item spa-link">Play Local Duel</a>
                             </li>
                             <li>
                                 <a href="/game?mode=solo" class="dropdown-item spa-link">Play Solo</a>
@@ -59,11 +62,9 @@
                 </ul>
             </div>
 
-            <!-- Bloc user-info -->
             <div
                 id="user-info"
-                class="d-flex align-items-center order-2 order-lg-3 mt-3 mt-lg-0"
-            >
+                class="d-flex align-items-center order-2 order-lg-3 mt-3 mt-lg-0">
                 <span id="user-display" class="me-3">Non connecté</span>
                 <a href="/login" class="spa-link nav-link" id="login-link">Connexion</a>
                 <button

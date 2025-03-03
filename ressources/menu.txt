@@ -18,7 +18,7 @@ Major module : Introduce an AI Opponent.
 
 Cybersecurity :
 Major module : Implement Two-Factor Authentication (2FA) and JWT.
-
+esa
 Accessibility :
 Minor module : Server-Side Rendering (SSR) Integration.
 

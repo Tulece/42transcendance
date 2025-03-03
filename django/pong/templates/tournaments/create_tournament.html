@@ -1,21 +1,30 @@
 <!-- templates/tournaments/create_tournament.html -->
 {% load static %}
-<form id="createTournamentForm" action="/tournaments/create/" method="POST">
-  {% csrf_token %}
-  <label for="name">Nom du tournoi :</label>
-  <input type="text" id="name" name="name" required>
-  <br />
+<div class="container d-flex justify-content-center align-items-center vh-100">
+	<div class="card shadow-lg p-4" style="max-width: 500px; width: 100%;">
+		<h2 class="text-center mb-3">Créer un Tournoi</h2>
+		<form id="createTournamentForm" action="/tournaments/create/" method="POST">
+			{% csrf_token %}
+			<div class="mb-3">
+				<label for="name" class="form-label">Nom du tournoi :</label>
+				<input type="text" id="name" name="name" class="form-control" required>
+				<br />
+			</div>
 
-  <label for="players">Sélection des joueurs :</label>
-  <select multiple id="players" name="players">
-    {% for user in users %}
-      <option value="{{ user.id }}">{{ user.username }}</option>
-    {% endfor %}
-  </select>
-  <br />
+			<div class="mb-3">
+				<label for="players" class="form-label">Sélection des joueurs :</label>
+				<select multiple id="players" name="players" class="form-select">
+				{% for user in users %}
+				<option value="{{ user.id }}">{{ user.username }}</option>
+				{% endfor %}
+				</select>
+				<br />
+			</div>
 
-  <button type="submit">Créer</button>
-</form>
+			<button type="submit" class="btn btn-primary w-100">Créer</button>
+		</form>
+	</div>
+</div>
 
 <div id="tournamentContainer"></div> <!-- Ce conteneur sera rempli en AJAX -->
 <script src="{% static 'js/tournaments.js' %}"></script>
