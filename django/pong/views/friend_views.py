@@ -38,7 +38,7 @@ def accept_friend_request(request, request_id):
         friend_request.status = 'accepted'
         friend_request.save()
         sender = friend_request.sender
-        sender.friends.add(current_user)
+        # sender.friends.add(current_user)
         current_user.friends.add(sender)
         return Response({"message": "Demande acceptée."}, status=status.HTTP_200_OK)
     return Response({"message": "Aucune demande à accepter trouvée."}, status=status.HTTP_400_BAD_REQUEST)

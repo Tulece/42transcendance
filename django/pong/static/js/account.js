@@ -1,113 +1,8 @@
 document.addEventListener("DOMContentLoaded", function () {
-    window.initFriendshipActions = initFriendshipActions;
+    // window.initFriendshipActions = initFriendshipActions;
 
-    // const pathParts = window.location.pathname.split("/").filter(part => part !== "");
-    
-    // let profileUsername = null;    
-    
-    // if (pathParts.length === 1 && pathParts[0] === "account") {
-    //     profileUsername = window.currentUsername;
-    // } else if (pathParts.length >= 2 && pathParts[0] === "account") {
-    //     profileUsername = pathParts[1];
-    // }
-    // console.log("ProfileUsername:", profileUsername);
-    // console.log("CurrentUser: ", window.currentUsername);
-    
-    // if (!profileUsername)
-    //     return;
-    
-    // const currentUser = window.currentUsername || null;
-    // if (currentUser && profileUsername === currentUser) {
-    //     loadReceivedFriendRequests();
-    //     return;
-    // }
-
-    
-    // // else, other user profile
-    // const sendBtn = document.getElementById("send-friend-request");
-    // const cancelBtn = document.getElementById("cancel-friend-request");
-    // let currentRequestId = null;
-    
-    // function fetchFriendshipStatus() {
-    //     fetch(`/api/friends/status/${profileUsername}/`, {
-    //         method: "GET",
-    //         credentials: "include",
-    //         headers: {
-    //             "X-Requested-With": "XMLHttpRequest",
-    //             "Content-Type": "application/json"
-    //         }
-    //     })
-    //     .then(response => response.json())
-    //     .then(data => {
-    //         console.log("Friendship status data:", data);  // Ajout du log pour voir le JSON
-    //         if (sendBtn) {
-    //             sendBtn.style.display = "inline-block";
-    //             console.log("sendBtn affiché:", sendBtn);
-    //         }            
-    //         if (data.is_friend) {
-    //             console.log("Vous êtes déjà amis.");
-    //         } else if (data.request_sent) {
-    //             // Tu as déjà envoyé une demande, affiche le bouton pour l'annuler
-    //             currentRequestId = data.friend_request_id;
-    //             if (cancelBtn) cancelBtn.style.display = "inline-block";
-    //         } else if (data.request_received) {
-    //             // Une demande t'a été envoyée – on ne te permet pas d'en envoyer une nouvelle ici.
-    //             console.log("Une demande vous a déjà été envoyée. Veuillez la traiter sur votre profil.");
-    //         } else {
-    //             // Aucune demande dans aucun sens, affiche le bouton pour envoyer une demande
-    //             if (sendBtn) sendBtn.style.display = "inline-block";
-    //         }
-    //         console.log("Fin fetchFriendshipStatus, sendBtn.style.display:", sendBtn.style.display);
-    //     })
-    //     .catch(error => console.error("Erreur lors de la récupération du statut d'amitié :", error));
-    // }
-    
-    // if (sendBtn) {
-    //     sendBtn.addEventListener("click", function () {
-    //         fetch(`/api/friends/send/${profileUsername}/`, {
-    //             method: "POST",
-    //             credentials: "include",
-    //             headers: {
-    //                 "X-Requested-With": "XMLHttpRequest",
-    //                 "Content-Type": "application/json",
-    //                 "X-CSRFToken": getCSRFToken() 
-    //             }
-    //         })
-    //         .then(response => response.json())
-    //         .then(data => {
-    //             alert(data.message);
-    //             fetchFriendshipStatus();
-    //         })
-    //         .catch(error => console.error("Erreur lors de l'envoi de la demande :", error));
-    //     });
-    // }
-    
-    // if (cancelBtn) {
-    //     cancelBtn.addEventListener("click", function () {
-    //         if (!currentRequestId) return;
-    //         fetch(`/api/friends/cancel/${currentRequestId}/`, {
-    //             method: "POST",
-    //             credentials: "include",
-    //             headers: {
-    //                 "X-Requested-With": "XMLHttpRequest",
-    //                 "Content-Type": "application/json",
-    //                 "X-CSRFToken": getCSRFToken() 
-    //             }
-    //         })
-    //         .then(response => response.json())
-    //         .then(data => {
-    //             alert(data.message);
-    //             fetchFriendshipStatus();
-    //         })
-    //         .catch(error => console.error("Erreur lors de l'annulation de la demande :", error));
-    //     });
-    // }
-    
-    // // Appeler fetchFriendshipStatus dès le chargement de la page pour un profil d'autre utilisateur
-    // fetchFriendshipStatus();
-    
-
-    window.initFriendshipActions = initFriendshipActions;
+    // window.initFriendshipActions = initFriendshipActions;
+    // loadProfileInfo();
 });
 
 function loadReceivedFriendRequests() {
@@ -143,6 +38,7 @@ function initFriendshipActions() {
 
     const pathParts = window.location.pathname.split("/").filter(part => part !== "");
 
+    window.currentProfileUsername;
     let profileUsername = null;
 
     if (pathParts.length === 1 && pathParts[0] === "account") {
@@ -158,7 +54,9 @@ function initFriendshipActions() {
     if (!profileUsername)
         return;
 
-    loadProfileInfo(profileUsername);
+    window.currentProfileUsername = profileUsername;
+
+    loadProfileInfo(window.currentProfileUsername);
     
     const currentUser = window.currentUsername || null;
     
@@ -269,6 +167,7 @@ function attachRequestEventListeners() {
                 .then(data => {
                     alert(data.message);
                     loadReceivedFriendRequests();
+                    loadProfileInfo(window.currentProfileUsername);
                 })
                 .catch(error => console.error("Erreur lors de l'acceptation de la demande :", error));
             });
@@ -288,6 +187,7 @@ function attachRequestEventListeners() {
                 .then(data => {
                     alert(data.message);
                     loadReceivedFriendRequests();
+                    loadProfileInfo(window.currentProfileUsername);
                 })
                 .catch(error => console.error("Erreur lors du refus de la demande :", error));
             });
@@ -327,6 +227,12 @@ function loadProfileInfo(profileUsername) {
                 const li = document.createElement("li"); // Element in list (li)
                 li.classList.add("list-group-item");
 
+                const avatar = document.createElement("img");
+                avatar.src = friend.avatar_url;
+                avatar.classList.add("rounded-circle", "me-2");
+                avatar.style.height = "30px";
+                avatar.style.width = "30px";
+
                 const circle = document.createElement("span");
                 circle.style.display = "inline-block";
                 circle.style.width = "10px";
@@ -342,7 +248,7 @@ function loadProfileInfo(profileUsername) {
                     e.preventDefault(); // To block a reload
                     window.navigateTo(friendLink.href);
                 });
-
+                li.appendChild(avatar);
                 li.appendChild(circle);
                 li.appendChild(friendLink);
                 friendList.appendChild(li);
