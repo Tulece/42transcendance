@@ -27,6 +27,8 @@ from .logic.game import *
 from django.conf import settings
 from django.conf.urls.static import static
 from pong.views.main_views import home_view, game_view, update_a2f, account_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view
+from pong.views import oauth42_views
+from pong.views.oauth42_views import auth_42_callback, auth_42_login
 from pong.views.friend_views import (
     send_friend_request,
     accept_friend_request,
@@ -51,7 +53,7 @@ def protected_view(request):
     return Response({"message": "Vous êtes authentifié !"})
 
 urlpatterns = [
-    path('', home_view, name='home'),
+    path('', oauth42_views.root_view, name='root'),
     path('register/', register_view, name='register'),
     path('game/', game_view, name='game'),
     path('chat/', chat_view, name='chat'),
@@ -76,7 +78,8 @@ urlpatterns = [
     path('api/friends/cancel/<int:request_id>/', cancel_friend_request, name="cancel_friend_request"),
     path('api/friends/status/<str:username>/', get_friendship_status, name="get_friendship_status"),
     path('api/friends/received/', received_friend_requests, name='received_friend_requests'),
-
+    # OAuth42 routes
+    path('auth/42/', auth_42_login, name='auth_42_login'),
 ]
 
 if settings.DEBUG:

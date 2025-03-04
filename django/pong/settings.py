@@ -185,3 +185,32 @@ EMAIL_HOST_USER = '42transcendencemailer@gmail.com'
 EMAIL_HOST_PASSWORD = 'nnle uutz gqpn zduu'
 
 AUTH_USER_MODEL = 'pong.CustomUser'
+
+# 42 OAuth Configuration
+# CLIENT_ID and CLIENT_SECRET must be set in environment variables
+# Example in .env file:
+# OAUTH42_CLIENT_ID=your-client-id
+# OAUTH42_CLIENT_SECRET=your-client-secret
+# OAUTH42_REDIRECT_URI=http://localhost:8000
+OAUTH42_CLIENT_ID = os.getenv('OAUTH42_CLIENT_ID')
+OAUTH42_CLIENT_SECRET = os.getenv('OAUTH42_CLIENT_SECRET')
+
+if not OAUTH42_CLIENT_ID or not OAUTH42_CLIENT_SECRET:
+    if DEBUG:
+        # Only show warning in development mode
+        import warnings
+        warnings.warn(
+            "OAUTH42_CLIENT_ID or OAUTH42_CLIENT_SECRET environment variables are not set. "
+            "42 OAuth authentication will not work properly."
+        )
+
+OAUTH42 = {
+    'CLIENT_ID': OAUTH42_CLIENT_ID,
+    'CLIENT_SECRET': OAUTH42_CLIENT_SECRET,
+    'REDIRECT_URI': os.getenv('OAUTH42_REDIRECT_URI', 'http://localhost:8000'),
+    'AUTH_URL': 'https://api.intra.42.fr/oauth/authorize',
+    'TOKEN_URL': 'https://api.intra.42.fr/oauth/token',
+    'API_URL': 'https://api.intra.42.fr/v2',
+    'SCOPE': 'public',
+}
+

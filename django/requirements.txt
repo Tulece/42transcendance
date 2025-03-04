@@ -8,3 +8,4 @@ whitenoise
 websockets
 pyotp
 Pillow
+requests
