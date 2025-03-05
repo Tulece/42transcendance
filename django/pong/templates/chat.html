@@ -10,7 +10,7 @@
       <h6 class="mb-0">Utilisateurs connectés</h6>
       <button id="user-list-toggle" class="btn btn-sm btn-light">Réduire</button>
     </div>
-    <div class="card-body p-3">
+    <div class="card-body p-3 overflow-y: auto;">
 
       <h6 class="mb-2">Amis connectés</h6>
       <ul id="friends-connected" class="list-group mb-3"></ul>
@@ -59,6 +59,11 @@
   /* z-index: 1050; */
   transition: transform 0.3s ease-in-out; /* Animation when change its state */
   transform: translateY(0);
+}
+
+#user-list-container .card-body {
+  max-height: 350px;
+  overflow-y: auto;
 }
 
 #chat-container {

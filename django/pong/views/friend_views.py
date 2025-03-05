@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from pong.models import CustomUser, FriendRequest
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -40,6 +42,7 @@ def accept_friend_request(request, request_id):
         sender = friend_request.sender
         # sender.friends.add(current_user)
         current_user.friends.add(sender)
+
         return Response({"message": "Demande acceptée."}, status=status.HTTP_200_OK)
     return Response({"message": "Aucune demande à accepter trouvée."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -53,6 +56,18 @@ def decline_friend_request(request, request_id):
         friend_request.save()
         return Response({"message": "Demande refusée."}, status=status.HTTP_200_OK)
     return Response({"message": "Aucune demande à refuser trouvée."}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def delete_friend(request, request_id):
+    current_user = request.user
+    friend_request = FriendRequest.objects.filter(receiver=current_user, id=request_id, status='pending').first()
+    if friend_request:
+        sender = friend_request.sender
+        current_user.friends.delete(sender) #Check if well deleted from DB??
+
+        return Response({"message": "Ami supprimé."}, status=status.HTTP_200_OK)
+    return Response({"message": "Aucun ami trouvé à supprimer"}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

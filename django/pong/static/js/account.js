@@ -1,9 +1,4 @@
-document.addEventListener("DOMContentLoaded", function () {
-    // window.initFriendshipActions = initFriendshipActions;
-
-    // window.initFriendshipActions = initFriendshipActions;
-    // loadProfileInfo();
-});
+window.initFriendshipActions = initFriendshipActions; 
 
 function loadReceivedFriendRequests() {
 
@@ -50,6 +45,9 @@ function initFriendshipActions() {
     console.log("CurrentUser: ", window.currentUsername);
 
     console.log("ProfileUsername: ", profileUsername);
+    console.log("PathParts[0]: ", pathParts[0]);
+    if (pathParts[1])
+        console.log("PathParts[1]: ", pathParts[1]);
     
     if (!profileUsername)
         return;

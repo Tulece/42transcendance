@@ -132,7 +132,7 @@ window.initChat = async () => {
         addSystemMessage(data.message);
       } else if (data.type === "user_list") {
         updateUserList(data.users, data.blocked_users || []);
-      }
+      } 
     }
   
     // Add un message utilisateur

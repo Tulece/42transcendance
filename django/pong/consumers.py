@@ -165,8 +165,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def set_user_online_state(self, user, state: bool): # Modifier un user en BFF
         """MAJ du champ online_status en DB."""
+        # user_db = CustomUser.objects.get(username=user.username)
+        # user_db.online_status = stat
         user.online_status = state
         user.save()
+        # NE PAS SAVE (enregistre un ancien état) => ME POSE PAS DE PB MOI ...
     
     @database_sync_to_async
     def get_online_users(self): # read la liste des users qui sont online

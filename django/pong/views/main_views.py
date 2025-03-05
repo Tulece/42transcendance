@@ -362,7 +362,6 @@ def account_view(request, username=None):
                     "username": friend.username,
                     "online_status": friend.online_status,
                     "avatar_url": friend.avatar.url if friend.avatar else "/media/avatars/default.jpg"
-                    # viewed_user.friends.values("username", "online_status")
                 }
                 for friend in viewed_user.friends.all()
             ]
