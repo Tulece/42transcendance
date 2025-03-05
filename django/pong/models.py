@@ -17,7 +17,7 @@ class CustomUser(AbstractUser):
     friends = models.ManyToManyField(
         'self',
         symmetrical=True, # A ami avec B donc B ami avec A
-        related_name='friends_list',
+        #related_name='friends_list',
         blank=True
     )
 
@@ -43,14 +43,29 @@ class Tournament(models.Model):
     players = models.ManyToManyField(CustomUser, related_name="tournaments")
     is_active = models.BooleanField(default=True)
 
-class Match(models.Model):
-    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name="matches")
-    player1 = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="match_player1")
-    player2 = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="match_player2", null=True, blank=True)
-    winner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name="won_matches")
-    round_number = models.IntegerField()
+class BaseMatch(models.Model):
+    player1 = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="%(class)s_player1"
+    )
+    player2 = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="%(class)s_player2", null=True, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     game_id = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        abstract = True 
+        
+class TournamentMatch(BaseMatch):
+    winner = models.ForeignKey(
+        CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name="%(class)s_won_matches"
+    )
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name="matches")
+    round_number = models.IntegerField()
+
+class SimpleMatch(BaseMatch):
+    winner = models.CharField(max_length=10, null=True, blank=True)
+    pass 
 
 class FriendRequest(models.Model):
     sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="sent_requests")

@@ -2,8 +2,11 @@ import uuid
 import asyncio
 import time
 import json
+from ..models import SimpleMatch
 from .game import Game
 from .ai_player import AIPlayer, launch_ai
+from channels.db import database_sync_to_async
+
 
 class Lobby:
     _instance = None
@@ -129,6 +132,8 @@ class Lobby:
 
         game_id = str(uuid.uuid4())
 
+        await self.create_match_entry(player1.scope["user"], player2.scope["user"], game_id)
+
         game = Game(game_id)
         self.active_games[game_id] = game
         self.remove_player_from_queue(player1)
@@ -149,33 +154,25 @@ class Lobby:
 
         print(f"Partie créée avec l'ID {game_id} entre {player1} et {player2}", flush=True)
         return game_id
-
-
-
-    # async def create_game(self):
-    #     """Crée une partie si deux joueurs sont disponibles."""
-    #     if len(self.waiting_queue) >= 2:
-    #         player1 = self.waiting_queue.pop(0)
-    #         player2 = self.waiting_queue.pop(0)
-
-    #         game_id = str(uuid.uuid4())
-
-    #         game = Game(game_id, player1, player2)
-    #         self.active_games[game_id] = game
-
-    #         asyncio.create_task(game.start())
-
-    #         return game_id, player1, player2
-    #     return None, None, None
+    
+    @database_sync_to_async
+    def create_match_entry(self, player1, player2, game_id):
+        """Crée l'entree en mode synchrone dans un thread"""
+        SimpleMatch.objects.create(
+            player1=player1,
+            player2=player2 if player2 else None,
+            game_id=game_id
+        )
 
     async def create_solo_game(self, player_consumer):
         """Crée une partie si deux joueurs sont disponibles."""
-
         game_id = str(uuid.uuid4())
 
+        await self.create_match_entry(player_consumer.scope['user'], None, game_id)
+        
+        game = Game(game_id)
         ai_bot = asyncio.create_task(launch_ai("localhost", game_id))
 
-        game = Game(game_id)
         self.active_games[game_id] = game
 
         asyncio.create_task(game.start())
@@ -186,13 +183,15 @@ class Lobby:
     async def create_local_game(self, player_consumer):
         """Crée une partie si deux joueurs sont disponibles."""
 
-
         # ?? Dirty as fuck but only 0.0015% chance of fake positive 
         game_id = str(uuid.uuid4())
         game_id = game_id[4:]
         game_id = "aaaa" + game_id
 
+        await self.create_match_entry(player_consumer.scope['user'], None, game_id)
+
         game = Game(game_id)
+        
         self.active_games[game_id] = game
 
         asyncio.create_task(game.start())

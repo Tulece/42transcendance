@@ -26,7 +26,7 @@ from .views.main_views import register_view
 from .logic.game import *
 from django.conf import settings
 from django.conf.urls.static import static
-from pong.views.main_views import home_view, game_view, update_a2f, account_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view
+from pong.views.main_views import home_view, game_view, update_a2f, account_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view, get_player_matches
 from pong.views import oauth42_views
 from pong.views.oauth42_views import auth_42_callback, auth_42_login
 from pong.views.friend_views import (
@@ -79,7 +79,9 @@ urlpatterns = [
     path('api/friends/status/<str:username>/', get_friendship_status, name="get_friendship_status"),
     path('api/friends/received/', received_friend_requests, name='received_friend_requests'),
     # OAuth42 routes
-    path('auth/42/', auth_42_login, name='auth_42_login'),
+    path('auth/42/', auth_42_login, name='auth_42_login'),    path('api/matches/<str:username>/', get_player_matches, name='get_player_matches'),
+
+
 ]
 
 if settings.DEBUG:

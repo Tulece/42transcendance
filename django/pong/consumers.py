@@ -11,7 +11,7 @@ import uuid
 import asyncio
 from channels.db import database_sync_to_async
 from django.db import transaction
-from pong.models import CustomUser
+from pong.models import CustomUser, SimpleMatch
 from datetime import datetime
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -164,9 +164,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     @database_sync_to_async
     def set_user_online_state(self, user, state: bool): # Modifier un user en BFF
-        """MAJ du champ online_status en DB."""
-        user.online_status = state
-        user.save()
+        user = CustomUser.objects.get(username=user.username)
+        if user:
+            user.online_status = state
+            user.save()
+        else:
+            print(f"Utilisateur introuvable : {user.username}")
     
     @database_sync_to_async
     def get_online_users(self): # read la liste des users qui sont online
@@ -391,20 +394,37 @@ class PongConsumer(AsyncWebsocketConsumer):
             await self.update_stats(event["message"]['message'])
         await self.send(json.dumps(event["message"]))
 
+
     async def update_stats(self, go_message):
         db_user = self.scope.get("user", None)
-        if db_user:
-            if self.player_id in go_message:
-                db_user.loses += 1
+        if db_user and db_user.is_authenticated:
+            db_user = await database_sync_to_async(CustomUser.objects.get)(username=db_user.username)
+            if db_user:
+                print(f"Enregistrement des statistiques pour {db_user.username}")
+                if self.player_id in go_message:
+                    db_user.loses += 1
+                else:
+                    db_user.wins += 1
+                db_user.match_played += 1
             else:
-                db_user.wins += 1
-            db_user.match_played += 1
+                print(f"Utilisateur introuvable.")
+
             await database_sync_to_async(self._save_user)(db_user)
+        match = await database_sync_to_async(SimpleMatch.objects.get)(game_id=self.game_id)
+        if match and match.winner is None:
+            print(f"Match {match.id} terminé, enregistrement du vainqueur.")
+            match.winner = "Player 1" if "player2" in go_message else "Player 2"
+            await database_sync_to_async(self._save_match)(match)
+        else:
+            print(f"Match introuvable ou déjà terminé.")
 
     @staticmethod
-    @transaction.atomic
     def _save_user(user):
         user.save()
+
+    @staticmethod
+    def _save_match(match):
+        match.save()
 
 
 

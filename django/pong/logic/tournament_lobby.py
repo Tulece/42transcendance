@@ -1,5 +1,5 @@
 import uuid
-from ..models import Tournament, Match, CustomUser
+from ..models import Tournament, TournamentMatch, CustomUser
 from .lobby import Lobby
 import random
 
@@ -31,7 +31,7 @@ class TournamentLobby:
             player1 = players.pop(0)
             player2 = players.pop(0) if players else None
 
-            match = Match.objects.create(
+            match = TournamentMatch.objects.create(
                 tournament=tournament,
                 player1=player1,
                 player2=player2,
@@ -62,7 +62,7 @@ class TournamentLobby:
 
     def report_match_result(self, match_id, winner_id):
         """Enregistre le résultat d'un match et prépare le tour suivant si nécessaire."""
-        match = Match.objects.get(id=match_id)
+        match = TournamentMatch.objects.get(id=match_id)
         # Si le match a déjà un vainqueur, on ne refait pas l'étape
         if match.winner:
             return  # ou lever une exception
@@ -106,7 +106,7 @@ class TournamentLobby:
             bye_player_id = random.choice(winners)
             winners.remove(bye_player_id)
             bye_player = CustomUser.objects.get(id=bye_player_id)
-            match = Match.objects.create(
+            match = TournamentMatch.objects.create(
                 tournament=tournament,
                 player1=bye_player,
                 player2=None,
@@ -123,7 +123,7 @@ class TournamentLobby:
             player2_id = winners.pop(0)
             player1 = CustomUser.objects.get(id=player1_id)
             player2 = CustomUser.objects.get(id=player2_id)
-            match = Match.objects.create(
+            match = TournamentMatch.objects.create(
                 tournament=tournament,
                 player1=player1,
                 player2=player2,
