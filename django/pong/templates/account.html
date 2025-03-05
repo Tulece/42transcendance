@@ -61,8 +61,9 @@
         {% endif %}
     </div>
     <br>
-    <p><strong>Played Matches :</strong> {{ user.match_played }}</p>
-    <p><strong>Won Matches :</strong> {{ user.wins }}</p>
+    {% comment %} <p><strong>Played Matches :</strong> {{ user.match_played }}</p>
+    <p><strong>Won Matches :</strong> {{ user.wins }}</p> {% endcomment %}
+    <div id="matches-list"></div>
 </div>
 
 <style>

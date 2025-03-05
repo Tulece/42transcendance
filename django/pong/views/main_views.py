@@ -1,6 +1,7 @@
 # main_views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from pong.models import CustomUser as User
+from pong.models import SimpleMatch
 from django.contrib.auth.hashers import make_password
 from django.core.files.storage import FileSystemStorage
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -437,3 +438,27 @@ def logout_view(request):
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return response
+
+def get_player_matches(request, username):
+    matches = SimpleMatch.objects.filter(player1__username=username) | SimpleMatch.objects.filter(player2__username=username)
+    matches_data = []
+    user = User.objects.get(username=username)
+    global_stats = []
+    global_stats.append({
+        'total_matches': user.match_played,
+        'total_wins': user.wins,
+    })
+    for match in matches:
+        match_data = {
+            'id': match.id,
+            'player1_username': match.player1.username,
+            'player2_username': match.player2.username if match.player2 else None,
+            'game_id': match.game_id,
+            'created_at': match.created_at,
+        }
+        matches_data.append(match_data)
+    data = {
+        'stats': global_stats,
+        'matches': matches_data,
+    }
+    return JsonResponse(data, safe=False)

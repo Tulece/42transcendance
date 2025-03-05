@@ -3,7 +3,7 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
-from ..models import Tournament, Match, CustomUser
+from ..models import Tournament, TournamentMatch, CustomUser
 from ..logic.tournament_lobby import TournamentLobby
 from django.views.decorators.csrf import csrf_exempt
 from pong.logic.lobby import Lobby
@@ -49,8 +49,8 @@ def get_tournament_detail_view(request, tournament_id):
 @require_http_methods(["POST"])
 async def start_match_game_view(request, match_id):
   try:
-    match = await sync_to_async(Match.objects.get)(id=match_id)
-  except Match.DoesNotExist:
+    match = await sync_to_async(TournamentMatch.objects.get)(id=match_id)
+  except TournamentMatch.DoesNotExist:
     return JsonResponse({"success": False, "error": "Match non trouvé"}, status=404)
 
   # Si le match est déjà terminé, on refuse de le relancer
@@ -101,8 +101,8 @@ def list_tournaments_view(request):
 @csrf_exempt
 def report_match_result_view(request, match_id):
   try:
-    match = Match.objects.get(id=match_id)
-  except Match.DoesNotExist:
+    match = TournamentMatch.objects.get(id=match_id)
+  except TournamentMatch.DoesNotExist:
     return JsonResponse({"success": False, "error": "Match introuvable."}, status=404)
   # Essayons de charger le JSON, sinon utilisons request.POST
   try:

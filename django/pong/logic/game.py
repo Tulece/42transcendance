@@ -107,7 +107,6 @@ class Game:
     async def send_game_state(self):
         # Si l'un des joueurs n'est pas encore connecté, envoyer un message d'attente
         if (not self.players["player1"]["connected"] or (not self.players["player2"]["connected"] and not self.game_id.startswith("aaaa"))):
-             print("Problem is where we think it is...")
              await self.channel_layer.group_send(
                  self.game_id,
                  {
