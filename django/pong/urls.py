@@ -34,6 +34,7 @@ from pong.views.friend_views import (
     decline_friend_request,
     get_friendship_status,
     received_friend_requests,
+    delete_friend,
 )
 from .views.tournament_views import (
     create_tournament_view,
@@ -74,6 +75,7 @@ urlpatterns = [
     path('api/friends/accept/<int:request_id>/', accept_friend_request, name="accept_friend_request"),
     path('api/friends/decline/<int:request_id>/', decline_friend_request, name="decline_friend_request"),
     path('api/friends/cancel/<int:request_id>/', cancel_friend_request, name="cancel_friend_request"),
+    path('api/friends/delete/<str:username>/', delete_friend, name="delete_friend"),
     path('api/friends/status/<str:username>/', get_friendship_status, name="get_friendship_status"),
     path('api/friends/received/', received_friend_requests, name='received_friend_requests'),
 

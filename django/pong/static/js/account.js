@@ -190,6 +190,7 @@ function attachRequestEventListeners() {
                 .catch(error => console.error("Erreur lors du refus de la demande :", error));
             });
         }
+
     });
 }
 
@@ -204,7 +205,7 @@ function loadProfileInfo(profileUsername) {
     })
     .then(res => res.json())
     .then(data => {
-        console.log("Profil info:", data);
+        console.log("🔄 Rechargement du profil avec :", data);
         const status = document.getElementById("online-status");
         if (status) {
             status.style.display = "inline-block";
@@ -218,7 +219,7 @@ function loadProfileInfo(profileUsername) {
         }
 
         const friendList = document.getElementById("friend-list");
-        if (friendList && data.friend_list && data.friend_list.length > 0) {
+        if (data.friend_list && data.friend_list.length > 0) {
             friendList.innerHTML = "";
 
             data.friend_list.forEach(friend => {
@@ -239,6 +240,12 @@ function loadProfileInfo(profileUsername) {
                 circle.style.marginRight = "8px";
                 circle.style.backgroundColor = friend.online_status ? "green" : "red";
 
+                console.log("BUTTON PASSED");
+                const deleteBtn = document.createElement("button");
+                deleteBtn.classList.add("btn", "btn-danger", "btn-sm", "delete-friend-btn");
+                deleteBtn.textContent = "❌";
+                deleteBtn.dataset.username = friend.username; // TO CHECK
+
                 const friendLink = document.createElement("a");
                 friendLink.textContent = friend.username;
                 friendLink.href = `/account/${friend.username}`;
@@ -246,15 +253,57 @@ function loadProfileInfo(profileUsername) {
                     e.preventDefault(); // To block a reload
                     window.navigateTo(friendLink.href);
                 });
-                li.appendChild(avatar);
-                li.appendChild(circle);
-                li.appendChild(friendLink);
+
+                const friendInfoDiv = document.createElement("div");
+                friendInfoDiv.appendChild(avatar);
+                friendInfoDiv.appendChild(friendLink);
+                friendInfoDiv.appendChild(circle);
+                friendInfoDiv.appendChild(deleteBtn);
+                
+                li.appendChild(friendInfoDiv);
                 friendList.appendChild(li);
             });
+            attachDeleteFriendEventListeners();
+        }
+        else {
+            friendList.innerHTML = "<p class='text-muted'>Vous n'avez pas encore d'amis.</p>";
         }
     })
     .catch(err => {
         console.error("Erreur loadProfileInfo:", err);
     });
 }
+
+
+function attachDeleteFriendEventListeners() {
+    const deleteButtons = document.querySelectorAll(".delete-friend-btn"); // In order to get all the delete btns (from each friend user)
+
+    deleteButtons.forEach(button => {
+        button.addEventListener("click", function () {
+            const usernameToRemove = this.dataset.username;
+            console.log("UsernameToRemove: ", usernameToRemove);
+
+            if (confirm(`Voulez-vous vraiment supprimer ${usernameToRemove} de votre liste d'amis ?`)) {
+                fetch(`/api/friends/delete/${usernameToRemove}/`, {
+                    method: "DELETE",
+                    credentials: "include",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCSRFToken()
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    console.log("🔄 Rafraîchissement de la liste des amis après suppression...");
+                    loadProfileInfo(window.currentProfileUsername); // Pour refresh la liste
+                    console.log("✅ Rafraîchissement effectué !");
+                })
+                .catch(error => console.error("Erreur lors de la suppression de l'ami :", error));
+            }
+        });
+    });
+}
+
 
