@@ -1,10 +1,46 @@
-window.initChat = () => {
+
+let myFriends = new Set(); // To stock friends
+async function fetchMyFriends() {
+
+  if (!window.currentUsername) return;
+  
+  try {
+    // On appelle /account/monUsername/ en JSON, comme on l'a fait pour loadProfileInfo
+    const res = await fetch(`/account/${window.currentUsername}`, {
+      method: "GET",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json"
+      },
+      credentials: "include"
+    });
+    if (!res.ok) {
+      console.warn("Impossible de récupérer la liste d'amis.");
+      return;
+    }
+    const data = await res.json();
+
+    if (data.friend_list) {
+      // data.friend_list = tableau d'objets: [{username: "...", online_status: bool}, ...]
+      // On ne veut que la partie username
+      myFriends = new Set(data.friend_list.map(friend => friend.username));
+      console.log("Liste de mes amis :", myFriends);
+    }
+  } catch (err) {
+    console.error("Erreur lors du fetch de mes amis :", err);
+  }
+}
+
+window.initChat = async () => {
 
     if (window.chatInitialized) return; 
     window.chatInitialized = true;
     console.log("Chargement du chat ...", document.getElementById("chat-wrapper"));
 
     loadChatHistory();
+
+    await fetchMyFriends(); // Await > To wait until we get our resp. (friends list) from our server.
+
     const chatWrapper = document.getElementById("chat-wrapper");
     if (chatWrapper) chatWrapper.style.display = "block"; // Display if connected
 
@@ -15,7 +51,6 @@ window.initChat = () => {
     const sendMessageBtn = document.getElementById("send-message-btn");
     const chatToggle = document.getElementById("chat-toggle");
     const chatContainer = document.getElementById("chat-container");
-    const userList = document.getElementById("user-list");
     const privateRecipient = document.getElementById("private-recipient");
     const sendPrivateBtn = document.getElementById("send-private-btn");
     const userListContainer = document.getElementById("user-list-container");
@@ -97,7 +132,7 @@ window.initChat = () => {
         addSystemMessage(data.message);
       } else if (data.type === "user_list") {
         updateUserList(data.users, data.blocked_users || []);
-      }
+      } 
     }
   
     // Add un message utilisateur
@@ -202,7 +237,7 @@ window.initChat = () => {
       
       if (isCollapsed) {
         userListContainer.classList.remove("collapsed");
-        userListToggle.innerText = "Réduire";
+        userListToggle.innerText = "Réduire"; // Or textContent TO TRY !! (maybe is not taking css rules into account so not really relevant here) + inner : can add balises, styles (gras), etc.
         chatContainer.classList.remove("collapsed");
         chatToggle.innerText = "Réduire";
       }
@@ -248,7 +283,11 @@ window.initChat = () => {
         blocked = [];
       }
 
+      const friendsList = document.getElementById("friends-connected");
+      const userList = document.getElementById("others-connected");
+
       userList.innerHTML = ""; // On réinitialise la liste
+      friendsList.innerHTML = "";
   
       users.forEach((user) => {
           const userItem = document.createElement("li");
@@ -280,7 +319,11 @@ window.initChat = () => {
           blockButton.addEventListener("click", () => toggleBlockUser(user.username));
   
           userItem.appendChild(blockButton);
-          userList.appendChild(userItem); // Exp.
+
+          if (myFriends.has(user.username))
+            friendsList.appendChild(userItem);
+          else
+            userList.appendChild(userItem); // Exp.
       });
   
       updatePrivateRecipientList(users);

@@ -1,13 +1,5 @@
-// document.addEventListener("DOMContentLoaded", function () {
-//     window.initFriendshipActions = initFriendshipActions;
-//     // // Appeler fetchFriendshipStatus dès le chargement de la page pour un profil d'autre utilisateur
-//     // ??!! Pas au chargement de la page car le site est en SPA et le DOM n'est pas rechargé
-//     // ===>
-//     // fetchFriendshipStatus();
-
-// });
-
 window.initFriendshipActions = initFriendshipActions;
+
 function loadReceivedFriendRequests() {
 
     fetch(`/api/friends/received/`, {
@@ -91,6 +83,7 @@ function initFriendshipActions() {
 
     const pathParts = window.location.pathname.split("/").filter(part => part !== "");
 
+    window.currentProfileUsername;
     let profileUsername = null;
 
     if (pathParts.length === 1 && pathParts[0] === "account") {
@@ -102,11 +95,16 @@ function initFriendshipActions() {
     console.log("CurrentUser: ", window.currentUsername);
 
     console.log("ProfileUsername: ", profileUsername);
+    console.log("PathParts[0]: ", pathParts[0]);
+    if (pathParts[1])
+        console.log("PathParts[1]: ", pathParts[1]);
 
     if (!profileUsername)
         return;
 
-    loadProfileInfo(profileUsername);
+    window.currentProfileUsername = profileUsername;
+
+    loadProfileInfo(window.currentProfileUsername);
     loadPlayerMatches(profileUsername);
 
     const currentUser = window.currentUsername || null;
@@ -218,6 +216,7 @@ function attachRequestEventListeners() {
                 .then(data => {
                     alert(data.message);
                     loadReceivedFriendRequests();
+                    loadProfileInfo(window.currentProfileUsername);
                 })
                 .catch(error => console.error("Erreur lors de l'acceptation de la demande :", error));
             });
@@ -237,6 +236,7 @@ function attachRequestEventListeners() {
                 .then(data => {
                     alert(data.message);
                     loadReceivedFriendRequests();
+                    loadProfileInfo(window.currentProfileUsername);
                 })
                 .catch(error => console.error("Erreur lors du refus de la demande :", error));
             });
@@ -276,6 +276,12 @@ function loadProfileInfo(profileUsername) {
                 const li = document.createElement("li"); // Element in list (li)
                 li.classList.add("list-group-item");
 
+                const avatar = document.createElement("img");
+                avatar.src = friend.avatar_url;
+                avatar.classList.add("rounded-circle", "me-2");
+                avatar.style.height = "30px";
+                avatar.style.width = "30px";
+
                 const circle = document.createElement("span");
                 circle.style.display = "inline-block";
                 circle.style.width = "10px";
@@ -291,7 +297,7 @@ function loadProfileInfo(profileUsername) {
                     e.preventDefault(); // To block a reload
                     window.navigateTo(friendLink.href);
                 });
-
+                li.appendChild(avatar);
                 li.appendChild(circle);
                 li.appendChild(friendLink);
                 friendList.appendChild(li);

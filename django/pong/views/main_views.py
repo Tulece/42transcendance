@@ -358,9 +358,14 @@ def account_view(request, username=None):
     if request.headers.get("Accept") == "application/json":
         friend_list = [] # On send la liste si c'est mon profil ou si c'est un friend
         if viewed_user == request.user or is_friend:
-            friend_list = list(
-                viewed_user.friends.values("username", "online_status")
-            )
+            friend_list = [
+                {
+                    "username": friend.username,
+                    "online_status": friend.online_status,
+                    "avatar_url": friend.avatar.url if friend.avatar else "/media/avatars/default.jpg"
+                }
+                for friend in viewed_user.friends.all()
+            ]
         return JsonResponse({
             "username": viewed_user.username,
             "online_status": viewed_user.online_status,
