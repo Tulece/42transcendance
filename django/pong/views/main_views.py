@@ -319,7 +319,7 @@ def register_view(request):
             }, status=201)
 
         # Redirection normale pour les requêtes non AJAX
-        return redirect('home')
+        return redirect('/')
 
     # Gestion des requêtes GET
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
