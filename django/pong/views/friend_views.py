@@ -16,7 +16,7 @@ def send_friend_request(request, username):
     target_user = get_object_or_404(CustomUser, username=username)
     if target_user == current_user:
         return Response({"message": "Vous ne pouvez pas vous envoyer une demande."}, status=status.HTTP_400_BAD_REQUEST)
-    if FriendRequest.objects.filter(sender=current_user, receiver=target_user, status='pending').exists():
+    if FriendRequest.objects.filter(sender=current_user, receiver=target_user).exists():
         return Response({"message": "Demande déjà envoyée."}, status=status.HTTP_400_BAD_REQUEST)
     FriendRequest.objects.create(sender=current_user, receiver=target_user, status='pending')
     return Response({"message": "Demande envoyée avec succès."}, status=status.HTTP_200_OK)
@@ -57,17 +57,29 @@ def decline_friend_request(request, request_id):
         return Response({"message": "Demande refusée."}, status=status.HTTP_200_OK)
     return Response({"message": "Aucune demande à refuser trouvée."}, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['POST'])
+@api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
-def delete_friend(request, request_id):
+def delete_friend(request, username):
     current_user = request.user
-    friend_request = FriendRequest.objects.filter(receiver=current_user, id=request_id, status='pending').first()
-    if friend_request:
-        sender = friend_request.sender
-        current_user.friends.delete(sender) #Check if well deleted from DB??
+    friend_to_remove = get_object_or_404(CustomUser, username=username)
+    
+    if friend_to_remove not in current_user.friends.all():
+        print(f"[DEBUG] ❌ {current_user.username} et {friend_to_remove.username} ne sont PAS amis en BDD.")
+        return Response({"message": "Cet utilisateur n'est pas dans votre liste d'amis."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    current_user.friends.remove(friend_to_remove)
+    # friend_to_remove.friends.remove(current_user)
+    print(f"[DEBUG] ✅ {current_user.username} a bien supprimé {friend_to_remove.username} de ses amis.")
+    # current_user.save()
+    # friend_to_remove.save()
+    # current_user.refresh_from_db()
+    # friend_to_remove.refresh_from_db()
 
-        return Response({"message": "Ami supprimé."}, status=status.HTTP_200_OK)
-    return Response({"message": "Aucun ami trouvé à supprimer"}, status=status.HTTP_400_BAD_REQUEST)
+    FriendRequest.objects.filter(sender=current_user, receiver=friend_to_remove).delete()
+    FriendRequest.objects.filter(sender=friend_to_remove, receiver=current_user).delete()
+
+    return Response({"message": "Ami supprimé."}, status=status.HTTP_200_OK)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

@@ -55,8 +55,7 @@
         {% if viewed_user.id == user.id or is_friend %}
           <div class="mt-3" id="friend-list-section">
             <h4>Liste d'amis de {{ viewed_user.username }}</h4>
-            <ul id="friend-list" class="list-group">
-            </ul>
+            <ul id="friend-list" class="list-group"></ul>
           </div>
         {% endif %}
     </div>
