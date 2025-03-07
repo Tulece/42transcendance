@@ -454,6 +454,7 @@ def get_player_matches(request, username):
             'player1_username': match.player1.username,
             'player2_username': match.player2.username if match.player2 else None,
             'game_id': match.game_id,
+            'winner': match.winner if match.winner else None,
             'created_at': match.created_at,
         }
         matches_data.append(match_data)

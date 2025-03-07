@@ -71,7 +71,7 @@ async def start_match_game_view(request, match_id):
 
   if not match.game_id:
     lobby_instance = Lobby.get_instance()
-    new_game_id = await lobby_instance.API_start_game_async()
+    new_game_id = await lobby_instance.API_start_game_async(match_player1_id, match_player2_id)
     match.game_id = new_game_id
     await sync_to_async(match.save)()
   else:
