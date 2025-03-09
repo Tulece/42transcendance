@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		  const data = await response.json();
 		  if (response.ok && data.success) {
 			alert(data.message);
-			window.location.href = "/tournaments/list/";
+			navigateTo("/tournaments/list/");
 		  } else {
 			console.error("Erreur:", data.error);
 			alert("Erreur lors de la création du tournoi.");
@@ -167,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	  if (resp.ok && data.success) {
 		if (data.game_id) {
 		  // Redirige vers la game en mode tournoi en incluant match_id, tournament_id, player1_id et player2_id
-		  window.location.href = `/game/?game_id=${data.game_id}&mode=tournament&role=${data.role}&match_id=${matchId}&tournament_id=${tournamentId}&player1_id=${data.player1_id}&player2_id=${data.player2_id}`;
+		  navigateTo(`/game/?game_id=${data.game_id}&mode=tournament&role=${data.role}&match_id=${matchId}&tournament_id=${tournamentId}&player1_id=${data.player1_id}&player2_id=${data.player2_id}`);
 		} else if (data.message) {
 		  alert(data.message);
 		}

@@ -408,9 +408,12 @@ class PongConsumer(AsyncWebsocketConsumer):
                 db_user.match_played += 1
             else:
                 print(f"Utilisateur introuvable.")
-
             await database_sync_to_async(self._save_user)(db_user)
-        match = await database_sync_to_async(SimpleMatch.objects.get)(game_id=self.game_id)
+        try:
+            match = await database_sync_to_async(SimpleMatch.objects.get)(game_id=self.game_id)
+        except SimpleMatch.DoesNotExist:
+            print(f"Match avec game_id {self.game_id} non trouvé, mise à jour des stats annulée.")
+            return
         if match and match.winner is None:
             print(f"Match {match.id} terminé, enregistrement du vainqueur.")
             match.winner = "Player 1" if "player2" in go_message else "Player 2"
