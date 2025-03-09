@@ -12,19 +12,29 @@
         {% else %}
           Bye
         {% endif %}
-        {% if not match.winner %}
-          {% if user.id == match.player1.id or user.id == match.player2.id %}
-            <button class="btn btn-success mt-2"
-              data-match-id="{{ match.id }}"
-              data-tournament-id="{{ tournament.id }}"
-              data-player1="{{ match.player1.id }}"
-              data-player2="{% if match.player2 %}{{ match.player2.id }}{% endif %}"
-              onclick="startMatch(this.dataset.matchId, this.dataset.tournamentId, this)">
-              Lancer la partie
-            </button>
+
+        {% if tournament.is_active %}
+          {% if not match.winner %}
+            {% if user.id == match.player1.id or user.id == match.player2.id %}
+              <button class="btn btn-success mt-2"
+                data-match-id="{{ match.id }}"
+                data-tournament-id="{{ tournament.id }}"
+                data-player1="{{ match.player1.id }}"
+                data-player2="{% if match.player2 %}{{ match.player2.id }}{% endif %}"
+                onclick="startMatch(this.dataset.matchId, this.dataset.tournamentId, this)">
+                Lancer la partie
+              </button>
+            {% endif %}
+          {% else %}
+            (Gagnant : {{ match.winner.username }})
           {% endif %}
         {% else %}
-           (Gagnant : {{ match.winner.username }})
+          {# Le tournoi est terminé, on n'affiche que les résultats #}
+          {% if match.winner %}
+            (Gagnant : {{ match.winner.username }})
+          {% else %}
+            (Match non joué)
+          {% endif %}
         {% endif %}
       </li>
     {% endfor %}

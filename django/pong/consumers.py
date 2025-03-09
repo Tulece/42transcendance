@@ -13,6 +13,8 @@ from channels.db import database_sync_to_async
 from django.db import transaction
 from pong.models import CustomUser, SimpleMatch
 from datetime import datetime
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
@@ -261,6 +263,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({
             "type": "user_list",
             "users": online_users,
+        }))
+
+    async def system(self, event):
+        # Envoi le message système au client
+        await self.send(json.dumps({
+            "type": "system",
+            "message": event["message"]
         }))
 
 
