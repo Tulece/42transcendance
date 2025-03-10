@@ -17,30 +17,40 @@ lobby = TournamentLobby() # Instance globale pour la gestion des tournois
 
 @csrf_exempt
 def create_tournament_view(request):
-  if request.method == "GET":
     users = CustomUser.objects.all()
-    return render(request, "tournaments/create_tournament.html", {"users": users})
-  name = request.POST.get("name")
-  player_ids = request.POST.getlist("players")
-  players = CustomUser.objects.filter(id__in=player_ids)
-  tournament = lobby.create_tournament(name, players)
-  channel_layer = get_channel_layer()
-  for player in players:
-    async_to_sync(channel_layer.group_send)(
-        f"user_{player.id}",
-        {
-            "type": "system",  # le type qui déclenchera la méthode system dans le consumer
-            "message": "Attention : Vous avez été ajouté à un tournoi. Merci de respecter les règles."
-        }
-    )
-  if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-    return JsonResponse({
-      "success": True,
-      "tournament_id": tournament.id,
-      "message": "Tournoi créé avec succès."
-    }, status=201)
-  else:
-    return redirect("list_tournaments")
+    if request.method == "GET":
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            # Requête AJAX, renvoyer uniquement le fragment
+            return render(request, "tournaments/create_tournament.html", {"users": users})
+        else:
+            # Requête classique, renvoyer la page complète via base.html
+            return render(request, "base.html", {
+                "initial_fragment": "tournaments/create_tournament.html",
+                "users": users
+            })
+
+    name = request.POST.get("name")
+    player_ids = request.POST.getlist("players")
+    players = CustomUser.objects.filter(id__in=player_ids)
+    tournament = lobby.create_tournament(name, players)
+    channel_layer = get_channel_layer()
+    for player in players:
+        async_to_sync(channel_layer.group_send)(
+            f"user_{player.id}",
+            {
+                "type": "system",  # déclenche la méthode system dans le consumer
+                "message": "Attention : Vous avez été ajouté à un tournoi. Merci de respecter les règles."
+            }
+        )
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({
+            "success": True,
+            "tournament_id": tournament.id,
+            "message": "Tournoi créé avec succès."
+        }, status=201)
+    else:
+        return redirect("list_tournaments")
+
 
 @require_GET
 @csrf_exempt
