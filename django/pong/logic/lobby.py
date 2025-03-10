@@ -2,6 +2,7 @@ import uuid
 import asyncio
 import time
 import json
+from ..models import SimpleMatch, CustomUser
 from .game import Game
 from .ai_player import AIPlayer, launch_ai
 from channels.db import database_sync_to_async
@@ -30,7 +31,7 @@ class Lobby:
 
     async def API_start_game_async(self, player_id1, player_id2):
         game_id = str(uuid.uuid4())
-        game = await Game.create(player_id1, player_id2)
+        game = await Game.create(game_id, player_id1, player_id2)
         self.active_games[game_id] = game
         # Ici, nous sommes dans un contexte asynchrone, la boucle est garantie
         asyncio.create_task(game.start())
@@ -71,6 +72,16 @@ class Lobby:
                 game.stop()
                 print(f"Partie {game_id} supprimée.")
 
+    # def API_start_game(self):
+    #     game_id = str(uuid.uuid4())
+
+    #     game = Game(game_id)
+    #     self.active_games[game_id] = game
+
+    #     asyncio.create_task(game.start())
+
+    #     print(f"Partie créée avec l'ID {game_id}", flush=True)
+    #     return game_id
 
     async def matchmaking(self):
         """Effectue un matchmaking progressif basé sur le ratio (wins / match_played)."""

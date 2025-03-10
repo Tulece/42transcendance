@@ -69,9 +69,12 @@ async def start_match_game_view(request, match_id):
   # Déterminer le rôle en fonction de l'identifiant de l'utilisateur connecté
   role = "player1" if user_id == match_player1_id else "player2"
 
+  user1 = match.player1.username
+  user2 = match.player2.username
+
   if not match.game_id:
-    lobby_instance = Lobby.get_instance()
-    new_game_id = await lobby_instance.API_start_game_async(match_player1_id, match_player2_id)
+    lobby_instance = Lobby.get_instance()  
+    new_game_id = await lobby_instance.API_start_game_async(user1, user2)
     match.game_id = new_game_id
     await sync_to_async(match.save)()
   else:
