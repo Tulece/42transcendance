@@ -294,13 +294,14 @@ def register_view(request):
         avatar_name = None
         if avatar:
             fs = FileSystemStorage(location='media/avatars/')
-            avatar_name = fs.save(avatar.name, avatar)
+            avatar_name = fs.save(f"{username}.jpg", avatar)
 
         # Création de l'utilisateur
         user = User.objects.create(
             username=username,
             email=email,
-            password=make_password(password)
+            password=make_password(password),
+            avatar_url = '/media/avatars/' + avatar_name if avatar_name else '/media/avatars/default.jpg'
         )
 
         # Génération des tokens JWT (optionnel si on veut auto-connecter l’utilisateur après l’inscription)
@@ -362,7 +363,7 @@ def account_view(request, username=None):
                 {
                     "username": friend.username,
                     "online_status": friend.online_status,
-                    "avatar_url": friend.avatar.url if friend.avatar else "/media/avatars/default.jpg"
+                    "avatar_url": friend.avatar_url,
                 }
                 for friend in viewed_user.friends.all()
             ]
@@ -400,7 +401,7 @@ def get_user_info(request):
     user = request.user
     return Response({
         "username": user.username,
-        "avatar_url": f"/media/avatars/{user.username}.jpg" if user.username else None
+        "avatar_url": user.avatar_url
     })
 
 class CookieTokenRefreshView(TokenRefreshView):
