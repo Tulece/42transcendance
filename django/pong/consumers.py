@@ -13,6 +13,20 @@ from channels.db import database_sync_to_async
 from django.db import transaction
 from pong.models import CustomUser
 from datetime import datetime
+import time
+from .urls import INVITATIONS
+
+
+
+def clean_expired_invitations():
+    now = time.time()
+    expired_keys = [key for key, inv in INVITATIONS.items() if inv["expires_at"] < now]
+
+    for key in expired_keys:
+        del INVITATIONS[key]
+
+    return f"{len(expired_keys)} invitations expirées supprimées"
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
@@ -28,6 +42,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         # Mettre is_online = True
         await self.set_user_online_state(self.user, True)
+        # await database_sync_to_async(self.reset_in_game_state)()
+        
+        clean_expired_invitations()
 
         self.username = self.user.username or "Anonyme"
 
@@ -44,11 +61,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
         # Définir les groupes
-        self.room_group_name = "chat_room"
+        self.room_group_name = "chat_room" #Global grp
         self.personal_group = f"user_{self.user.id}"
 
         # Joindre les groupes
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name) # Add le user au groupe de users connected
         print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}")
         await self.channel_layer.group_add(self.personal_group, self.channel_name)
         
@@ -75,7 +92,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if self.personal_group:
             await self.channel_layer.group_discard(self.personal_group, self.channel_name)
         
-        # Diffuser la liste actualisée
+        # Diffuser la liste actualisée aux users
         await self.channel_layer.group_send(
             self.room_group_name,
             {"type": "broadcast_user_list"}
@@ -102,6 +119,73 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 username_to_unblock = data.get("username_to_unblock")
                 await self.unblock_user(username_to_unblock)
                 return
+            elif action == "accept_invitation":
+                invite_id = data.get("invite_id")
+                await self.accept_invitation(invite_id)
+                return
+            elif action == "invite_to_game":
+                target_username = data.get("target_username")
+
+                # Check if invitation already sent & running
+                if any(inv["to"] == target_username for inv in INVITATIONS.values()):
+                    await self.send(json.dumps({
+                        "type": "error",
+                        "message": f"{target_username} a déjà une invitation en attente."
+                    }))
+                    return
+
+
+                # if self.user_already_in_game(self.user): # Function > Maybe à déclarer ailleurs ?? TO CHECK
+                #     await self.send(json.dumps({
+                #         "type": "error",
+                #         "message": "Vous êtes déjà dans une partie !"
+                #     }))
+                #     return
+                try:
+                    target_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)
+                except CustomUser.DoesNotExist:
+                    return
+                # if self.user_already_in_game(target_user):
+                #     return
+                
+                clean_expired_invitations()
+                game_id = str(uuid.uuid4()) # Creating game id
+                invite_id = str(uuid.uuid4()) # Stocker l'invit'
+                expiration = time.time() + 300
+                INVITATIONS[invite_id] = { # To stock these info in a dict.
+                    "from": self.user.username,
+                    "to": target_username,
+                    "game_id": game_id,
+                    "expires_at": expiration
+                }
+
+                # Notif' le dest. (send to the group dest)
+                target_group = f"user_{target_user.id}"
+                await self.channel_layer.group_send(
+                    target_group,
+                    {
+                        "type": "private_message",
+                        "sender_id": self.user.id,
+                        "sender": self.user.username,
+                        "message": "",
+                        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        "invitation": {
+                            "invite_id": invite_id,
+                            "game_id": game_id,
+                            "expires_at": expiration,
+                        },
+                    "invite_type": "pong_invite", # Spécifier un mess. privé différent (spé. au pong)
+                    }
+                )
+                # Validation envoi
+                await self.send(json.dumps({
+                    "type": "system",
+                    "message": (
+                        f"Invitation à jouer envoyée à {target_username}. "
+                        f'<a href="/game?game_id={game_id}&invite_id={invite_id}" '
+                        f'target="_blank" style="color:blue;">[lancer le jeu]</a>'
+                    )
+                }))
 
             message = data.get("message", "")
             target_username = data.get("target_username")
@@ -176,6 +260,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """Retourne la liste des users online."""
         queryset = CustomUser.objects.filter(online_status=True).values("username")
         return list(queryset)
+    
+    @database_sync_to_async
+    def reset_in_game_state(self):
+        self.user.in_game = False
+        self.user.save()
 
 
     async def send_private_message(self, target_username, message):
@@ -226,6 +315,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def private_message(self, event):
+
+        # if invitation to pong game
+        if event.get("invite_type") == "pong_invite":
+            invitation_data = event["invitation"]
+            #on send le JSON spécific au front
+            await self.send(json.dumps({
+                "type": "game_invitation",
+                "from": event["sender"],
+                "game_id": invitation_data["game_id"],
+                "invite_id": invitation_data["invite_id"],
+                "expires_at": invitation_data["expires_at"],
+            }))
+
         sender_id = event["sender_id"]
 
         sender = event["sender"]
@@ -241,7 +343,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     async def block_user(self, username): # ADD USER ERROR
         blocked_user = await self.toggle_block_user_in_db(username, block=True)
-        self.blocked_users_ids = await self.get_blocked_users_ids() # HOW MAJ ???
+        self.blocked_users_ids = await self.get_blocked_users_ids()
         await self.send_blocked_users_list()
         await self.send_user_list()
         await self.send(json.dumps({"type": "system", "message": f"Vous avez bloqué {blocked_user.username}"}))
@@ -254,14 +356,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({"type": "system", "message": f"Vous avez débloqué {unblocked_user.username}"}))
 
     async def broadcast_user_list(self, event):
-    # Charger la liste des users online_status = True
+    # Charger la liste des users online
         online_users = await self.get_online_users()
 
-    # Envoyer par WebSocket
-        await self.send(json.dumps({
+        await self.send(json.dumps({ # Each user will receive the instruction
             "type": "user_list",
             "users": online_users,
         }))
+
+    # async def user_already_in_game(self, user): # Check is user is exp. or dest.
+    #     fresh = CustomUser.objects.get(pk=user.pk)
+    #     return fresh.in_game
+    
+
 
 
 
@@ -328,6 +435,11 @@ class LobbyConsumer(AsyncWebsocketConsumer):
 
 
 class PongConsumer(AsyncWebsocketConsumer):
+    # @database_sync_to_async
+    # def set_in_game_status(self, user, status: bool):
+    #     user.in_game = status
+    #     user.save()
+
     async def connect(self):
         # Récupère l'ID de la partie depuis l'URL
         self.game_id = self.scope['url_route']['kwargs']['game_id']
@@ -363,7 +475,10 @@ class PongConsumer(AsyncWebsocketConsumer):
         # Appel synchrone (sans await) car set_player_connected est une méthode synchrone
         self.game.set_player_connected(self.player_id)
 
+        # await self.set_in_game_status(self.user, True) # MAYBE USING set_player_connected pour accédé au user connecte dans le pong plutôt que créer une nouvelle entrée en bdd non ??
+
     async def disconnect(self, close_code):
+        await self.set_in_game_status(self.user, False)
         # Retire le socket du groupe
         await self.channel_layer.group_discard(self.game_id, self.channel_name)
         # Utilise getattr pour éviter une AttributeError si player_id n'est pas défini

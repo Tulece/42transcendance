@@ -219,54 +219,60 @@ function loadProfileInfo(profileUsername) {
         }
 
         const friendList = document.getElementById("friend-list");
-        if (data.friend_list && data.friend_list.length > 0) {
-            friendList.innerHTML = "";
+        if (friendList) {
+            if (data.friend_list && data.friend_list.length > 0) {
+                friendList.innerHTML = "";
 
-            data.friend_list.forEach(friend => {
-                const li = document.createElement("li"); // Element in list (li)
-                li.classList.add("list-group-item");
+                data.friend_list.forEach(friend => {
+                    const li = document.createElement("li"); // Element in list (li)
+                    li.classList.add("list-group-item");
 
-                const avatar = document.createElement("img");
-                avatar.src = friend.avatar_url;
-                avatar.classList.add("rounded-circle", "me-2");
-                avatar.style.height = "30px";
-                avatar.style.width = "30px";
+                    const avatar = document.createElement("img");
+                    avatar.src = friend.avatar_url;
+                    avatar.classList.add("rounded-circle", "me-2");
+                    avatar.style.height = "30px";
+                    avatar.style.width = "30px";
 
-                const circle = document.createElement("span");
-                circle.style.display = "inline-block";
-                circle.style.width = "10px";
-                circle.style.height = "10px";
-                circle.style.borderRadius = "50%";
-                circle.style.marginRight = "8px";
-                circle.style.backgroundColor = friend.online_status ? "green" : "red";
+                    const circle = document.createElement("span");
+                    circle.style.display = "inline-block";
+                    circle.style.width = "10px";
+                    circle.style.height = "10px";
+                    circle.style.borderRadius = "50%";
+                    circle.style.marginRight = "8px";
+                    circle.style.marginLeft = "2px";
+                    circle.style.backgroundColor = friend.online_status ? "green" : "red";
 
-                console.log("BUTTON PASSED");
-                const deleteBtn = document.createElement("button");
-                deleteBtn.classList.add("btn", "btn-danger", "btn-sm", "delete-friend-btn");
-                deleteBtn.textContent = "❌";
-                deleteBtn.dataset.username = friend.username; // TO CHECK
+                    const friendLink = document.createElement("a");
+                    friendLink.textContent = friend.username;
+                    friendLink.href = `/account/${friend.username}`;
+                    friendLink.addEventListener("click", (e) => {
+                        e.preventDefault(); // To block a reload
+                        window.navigateTo(friendLink.href);
+                    });
 
-                const friendLink = document.createElement("a");
-                friendLink.textContent = friend.username;
-                friendLink.href = `/account/${friend.username}`;
-                friendLink.addEventListener("click", (e) => {
-                    e.preventDefault(); // To block a reload
-                    window.navigateTo(friendLink.href);
+                    const friendInfoDiv = document.createElement("div");
+                    friendInfoDiv.appendChild(avatar);
+                    friendInfoDiv.appendChild(friendLink);
+                    friendInfoDiv.appendChild(circle);
+
+                    if (profileUsername === window.currentUsername) {
+                        console.log("BUTTON PASSED");
+                        const deleteBtn = document.createElement("button");
+                        deleteBtn.classList.add("btn", "btn-danger", "btn-sm", "delete-friend-btn");
+                        deleteBtn.textContent = "❌";
+                        deleteBtn.dataset.username = friend.username; // TO CHECK
+                        friendInfoDiv.appendChild(deleteBtn);
+                    }    
+
+                    li.appendChild(friendInfoDiv);
+                    friendList.appendChild(li);
                 });
-
-                const friendInfoDiv = document.createElement("div");
-                friendInfoDiv.appendChild(avatar);
-                friendInfoDiv.appendChild(friendLink);
-                friendInfoDiv.appendChild(circle);
-                friendInfoDiv.appendChild(deleteBtn);
-                
-                li.appendChild(friendInfoDiv);
-                friendList.appendChild(li);
-            });
-            attachDeleteFriendEventListeners();
-        }
-        else {
-            friendList.innerHTML = "<p class='text-muted'>Vous n'avez pas encore d'amis.</p>";
+                if (profileUsername === window.currentUsername)
+                    attachDeleteFriendEventListeners();
+            }
+            else {
+                friendList.innerHTML = "<p class='text-muted'>Vous n'avez pas encore d'amis.</p>";
+            }
         }
     })
     .catch(err => {

@@ -35,9 +35,10 @@
                 {% if user.is_a2f_enabled %}Activé{% else %}Désactivé{% endif %}
             </span>
         </div>
-
-        <button id="save-btn" class="btn btn-primary w-100 mt-3" onclick="saveChanges()">Enregistrer</button>
-        {% endif %}
+        <div class="text-center">
+            <button id="save-btn" class="btn btn-primary w-100 mt-3"  style="max-width: 500px" onclick="saveChanges()">Enregistrer</button>
+        </div>
+            {% endif %}
 
         {% if viewed_user.id != user.id %}
         <div id="friendship-actions">
@@ -75,5 +76,4 @@
 
 </style>
 
-<!-- <script src="{% static 'js/account.js' %}"></script> -->
 

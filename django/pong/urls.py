@@ -44,7 +44,7 @@ from .views.tournament_views import (
     report_match_result_view,
 )
 
-
+INVITATIONS = {} # CHECK SI ON MET PAS ATTRIBUT DE CLASSE !!!
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
