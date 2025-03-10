@@ -43,33 +43,63 @@ function loadPlayerMatches(profileUsername) {
         console.log("Matches info:", data);
         const matchesContainer = document.getElementById("matches-list");
         if (!matchesContainer) return;
+
         matchesContainer.innerHTML = "";
 
-        // Affichage des statistiques globales du joueur
         if (data.stats && data.stats.length > 0) {
             const stats = data.stats[0];
             const statsItem = document.createElement("div");
-            statsItem.className = "player-stats";
-            statsItem.innerHTML = `<h3>Statistiques du joueur</h3>
-                                   <p>Total de matchs joués: ${stats.total_matches}</p>
-                                   <p>Total de victoires: ${stats.total_wins}</p>`;
+            statsItem.className = "card shadow-sm p-3 mb-4";
+            statsItem.innerHTML = `<h4 class=\"text-center\">Statistiques du joueur</h4>
+                                   <p><strong>Total de matchs joués :</strong> ${stats.total_matches}</p>
+                                   <p><strong>Total de victoires :</strong> ${stats.total_wins}</p>`;
             matchesContainer.appendChild(statsItem);
         }
 
-        // Affichage des matchs
         if (data.matches && data.matches.length > 0) {
-            data.matches.forEach(match => {
-                const item = document.createElement("div");
-                item.className = "match-item";
-                item.innerHTML = `<span>Match ID: ${match.id}</span>
-                                  <span>Player 1: ${match.player1_username}</span>
-                                  <span>Player 2: ${match.player2_username || 'N/A'}</span>
-                                  <span>Game ID: ${match.game_id}</span>
-                                  <span>Created At: ${new Date(match.created_at).toLocaleString()}</span>`;
-                matchesContainer.appendChild(item);
+            const table = document.createElement("table");
+            table.className = "table table-striped table-bordered table-hover shadow-sm";
+
+            const thead = document.createElement("thead");
+            thead.className = "table-dark";
+            const headerRow = document.createElement("tr");
+            const headers = ["Match ID", "Joueur 1", "Joueur 2", "Gagnant", "Créé le"];
+            headers.forEach(headerText => {
+                const header = document.createElement("th");
+                header.scope = "col";
+                header.innerText = headerText;
+                headerRow.appendChild(header);
             });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+
+            data.matches.forEach(match => {
+                const row = document.createElement("tr");
+
+                const cells = [
+                    match.id,
+                    match.player1_username,
+                    match.player2_username || 'N/A',
+                    match.winner || 'N/A',
+                    new Date(match.created_at).toLocaleString()
+                ];
+
+                cells.forEach(cellText => {
+                    const cell = document.createElement("td");
+                    cell.innerText = cellText;
+                    row.appendChild(cell);
+                });
+
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(tbody);
+            matchesContainer.appendChild(table);
         } else {
             const noMatches = document.createElement("p");
+            noMatches.className = "text-muted text-center";
             noMatches.innerText = "Aucun match trouvé.";
             matchesContainer.appendChild(noMatches);
         }
