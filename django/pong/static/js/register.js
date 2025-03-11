@@ -27,7 +27,7 @@
             return;
         }
         const avatarInput = document.getElementById("avatar");
-        if (avatarInput.value && !avatarInput.value.endsWith(".jpg")) {
+        if (avatarInput.value && avatarInput.files[0].type !== "image/jpeg") {
             alert("Veuillez choisir un avatar au format jpg.");
             return;
         }
