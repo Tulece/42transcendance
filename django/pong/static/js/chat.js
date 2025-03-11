@@ -219,12 +219,14 @@ window.initChat = async () => {
 
         if (isCollapsed) {
             // Réouvrir le chat
+            chatWrapper.style.pointerEvents = "auto";
             chatContainer.classList.remove("collapsed");
             chatToggle.innerText = "Réduire";
             userListContainer.classList.remove("collapsed");
             userListToggle.innerText = "Réduire";
         } else {
             // Réduire le chat
+            chatWrapper.style.pointerEvents = "none";
             chatContainer.classList.add("collapsed");
             chatToggle.innerText = "Ouvrir";
             userListContainer.classList.add("collapsed");
@@ -236,16 +238,21 @@ window.initChat = async () => {
       const isCollapsed = userListContainer.classList.contains("collapsed");
       
       if (isCollapsed) {
+        chatWrapper.style.pointerEvents = "auto";
         userListContainer.classList.remove("collapsed");
         userListToggle.innerText = "Réduire"; // Or textContent TO TRY !! (maybe is not taking css rules into account so not really relevant here) + inner : can add balises, styles (gras), etc.
+        //Here, change the z_index of chat wrapper so it doesn't bother other elements
         chatContainer.classList.remove("collapsed");
         chatToggle.innerText = "Réduire";
       }
       else {
+        chatWrapper.style.pointerEvents = "none";
         userListContainer.classList.add("collapsed");
         userListToggle.innerText = "Ouvrir";
+        userListToggle,this.style.pointerEvents = "auto";
         chatContainer.classList.add("collapsed");
         chatToggle.innerText = "Ouvrir";
+        chatToggle.style.pointerEvents = "auto";
       }
 
     });

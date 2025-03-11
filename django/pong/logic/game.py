@@ -167,6 +167,9 @@ class Game:
                  reason, player = "disconnected", "player2"
              else:
                  reason, player = "Unknown", "Unknown"
+             if not self.ignore_match_act:
+                await self.register_match_winner(player, self.game_id)
+                self.ignore_match_act = True
              await self.channel_layer.group_send(
                  self.game_id,
                  {
@@ -177,9 +180,6 @@ class Game:
                      }
                  }
              )
-             if not self.ignore_match_act:
-                await self.register_match_winner(player, self.game_id)
-                self.ignore_match_act = True
              self.stop()
              return
         elif self.resetting:
