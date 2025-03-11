@@ -203,3 +203,13 @@ class Lobby:
     def get_game(self, game_id):
         """Récupère une instance de Game par son identifiant."""
         return self.active_games.get(game_id)
+
+    def get_game_id_by_player(self, username):
+        """Récupère le game_id si un joueur est déjà en partie."""
+        for game_id, game in self.active_games.items():
+            if game.players["player1"]["connected"] and game.players["player1"]["username"] == username:
+                return game_id
+            if game.players["player2"]["connected"] and game.players["player2"]["username"] == username:
+                return game_id
+        return None
+

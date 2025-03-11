@@ -17,20 +17,56 @@ import time
 from .urls import INVITATIONS
 
 
-
-def clean_expired_invitations():
-    now = time.time()
-    expired_keys = [key for key, inv in INVITATIONS.items() if inv["expires_at"] < now]
-
-    for key in expired_keys:
-        del INVITATIONS[key]
-
-    return f"{len(expired_keys)} invitations expirées supprimées"
-
-
 class ChatConsumer(AsyncWebsocketConsumer):
 
     room_group_name = None
+    async def start_cleanup_task(self):
+        while True:
+            expired_keys = []
+            now = time.time()
+            #Iterer sur les invitations en cours
+            for key, inv in list(INVITATIONS.items()):
+                if inv["expires_at"] < now:
+                    expired_keys.append(key)
+
+            for key in expired_keys:
+                invitation = INVITATIONS.pop(key, None)
+                if invitation is None:
+                    continue
+
+                from_id = invitation["from_id"]
+                to_id = invitation["to_id"]
+                
+                await self.channel_layer.group_send(
+                    f"user_{from_id}",
+                    {
+                        "type": "invitation_expired",
+                        "invite_id": key, #UUID from invitation
+                    }
+                )
+                await self.channel_layer.group_send(
+                    f"user_{to_id}",
+                    {
+                        "type": "invitation_expired",
+                        "invite_id": key,
+                    }
+                )
+
+            # Wait for 1s
+            await asyncio.sleep(1)
+
+    async def invitation_expired(self, event):
+        """
+        Méthode interne Channels appelée quand on reçoit
+        un group_send(type="invitation_expired") dans le user_xxx group.
+        """
+        invite_id = event["invite_id"]
+        # On relaie au frontend
+        await self.send(json.dumps({
+            "type": "invitation_expired",
+            "invite_id": invite_id
+        }))
+
 
     async def connect(self):
         self.user = self.scope.get("user", None)
@@ -44,7 +80,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.set_user_online_state(self.user, True)
         # await database_sync_to_async(self.reset_in_game_state)()
         
-        clean_expired_invitations()
 
         self.username = self.user.username or "Anonyme"
 
@@ -54,6 +89,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
         print(f"Connexion WebSocket acceptée pour l'utilisateur : {self.username}")
         
+        asyncio.create_task(self.start_cleanup_task())
+
         blocked_users = await self.get_blocked_users()
         await self.send(json.dumps({ 
             "type": "user_list",
@@ -148,13 +185,30 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 # if self.user_already_in_game(target_user):
                 #     return
                 
-                clean_expired_invitations()
-                game_id = str(uuid.uuid4()) # Creating game id
+                lobby_instance = Lobby.get_instance()
+                existing_game_id = lobby_instance.get_game_id_by_player(target_username)
+
+                if existing_game_id:
+                    game_id = existing_game_id
+                else:
+                    game_id = await lobby_instance.API_start_game_async()
+                
+                # Vérifier si la partie existe bien dans le lobby
+                if game_id not in lobby_instance.active_games:
+                    print(f"Erreur : La partie {game_id} n'a pas été ajoutée au lobby.")
+                    await self.send(json.dumps({
+                        "type": "error",
+                        "message": "Erreur lors de la création de la partie."
+                    }))
+                    return
+
                 invite_id = str(uuid.uuid4()) # Stocker l'invit'
-                expiration = time.time() + 300
+                expiration = time.time() + 500
                 INVITATIONS[invite_id] = { # To stock these info in a dict.
                     "from": self.user.username,
+                    "from_id": self.user.id,
                     "to": target_username,
+                    "to_id": target_user.id,
                     "game_id": game_id,
                     "expires_at": expiration
                 }
@@ -177,12 +231,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "invite_type": "pong_invite", # Spécifier un mess. privé différent (spé. au pong)
                     }
                 )
+
+                print(f"✅ Envoi de l'invitation à {target_username} avec game_id={game_id}")
+
                 # Validation envoi
                 await self.send(json.dumps({
                     "type": "system",
                     "message": (
                         f"Invitation à jouer envoyée à {target_username}. "
-                        f'<a href="/game?game_id={game_id}&invite_id={invite_id}" '
+                        f'<a href="/game?game_id={game_id}&mode=private&invite_id={invite_id}&role=player1" '
                         f'target="_blank" style="color:blue;">[lancer le jeu]</a>'
                     )
                 }))
@@ -327,6 +384,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "invite_id": invitation_data["invite_id"],
                 "expires_at": invitation_data["expires_at"],
             }))
+            return
 
         sender_id = event["sender_id"]
 
@@ -478,7 +536,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         # await self.set_in_game_status(self.user, True) # MAYBE USING set_player_connected pour accédé au user connecte dans le pong plutôt que créer une nouvelle entrée en bdd non ??
 
     async def disconnect(self, close_code):
-        await self.set_in_game_status(self.user, False)
+        # await self.set_in_game_status(self.user, False)
         # Retire le socket du groupe
         await self.channel_layer.group_discard(self.game_id, self.channel_name)
         # Utilise getattr pour éviter une AttributeError si player_id n'est pas défini

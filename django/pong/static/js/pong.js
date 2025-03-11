@@ -18,8 +18,9 @@ window.initPong = function () {
   setupCanvas();
   const params = new URLSearchParams(window.location.search);
   const mode = params.get("mode");
+  const gameId = params.get("game_id");
+  const roleParam = params.get("role");
   if (mode === "tournament") {
-    const gameId = params.get("game_id");
     role = params.get("role");
     matchId = params.get("match_id"); // récupérer le match_id
     if (gameId && role) {
@@ -27,6 +28,9 @@ window.initPong = function () {
     } else {
       console.error("Game ID ou rôle manquant en mode tournoi.");
     }
+  } else if (mode === 'private' && gameId) {
+      connectToGame(gameId, roleParam);
+      return;
   } else {
     connectToLobby();
   }
@@ -86,7 +90,8 @@ function displayWaitingMessage(message, dots) {
   }
 }
 
-function connectToGame(gameId, role) {
+function connectToGame(gameId, userRole) {
+    role = userRole; //?? CHECK IF IT'S OK FOR TEDDY !!
     gameSocket = new WebSocket(`ws://${host}:8000/ws/game/${gameId}/?player_id=${role}`);
 
     gameSocket.onopen = () => {

@@ -134,6 +134,8 @@ window.initChat = async () => {
         updateUserList(data.users, data.blocked_users || []);
       } else if (data.type === "game_invitation") {
         showGameInvitation(data);
+      } else if (data.type === "invitation_expired") {
+        removeInvitation(data.invite_id);
       }
     }
   
@@ -164,6 +166,8 @@ window.initChat = async () => {
   
     // Add un message privé
     function addPrivateMessageToChat(username, message) {
+      if (message.length === 0)
+        return;
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", "private");
       messageDiv.innerHTML = `<span class="username">${username} (privé) :</span> ${message}`;
@@ -291,7 +295,6 @@ window.initChat = async () => {
             target_username: recipient
           })
         );
-        addSystemMessage(`Invitation à jouer envoyée à ${recipient} !`);
       } else {
         addSystemMessage("WebSocket non connecté.");
       }
@@ -431,7 +434,6 @@ window.initChat = async () => {
 
     function showGameInvitation(inviteData) {
       
-
         const now = Date.now() / 1000;
         if (inviteData.expires_at < now) {
           console.warn(`Invitation de ${inviteData.from} expirée, non affichée.`);
@@ -440,23 +442,31 @@ window.initChat = async () => {
 
       const invitationDiv = document.createElement("div");
       invitationDiv.classList.add("message", "system");// Style system message
+      invitationDiv.id = "invite_" + inviteData.invite_id;
 
       const textNode = document.createTextNode(`${inviteData.from} vous invite à jouer à Pong ! `);
       invitationDiv.appendChild(textNode);
 
 
       const link = document.createElement("a");
-      link.href = `/game?game_id=${inviteData.game_id}&invite_id=${inviteData.invite_id}`;
+      link.href = `/game?game_id=${inviteData.game_id}&mode=private&invite_id=${inviteData.invite_id}&role=player2`;
       link.innerText = "Vers le jeu Pong";
       link.target = "_blank";
 
-      invitationDiv.appendChild(document.createElement("br"));
+      invitationDiv.appendChild(document.createElement("br")); //Saut de ligne
       invitationDiv.appendChild(link);
 
       const messageList = document.getElementById("message-list");
       if (messageList)
         messageList.appendChild(invitationDiv);
     }
+
+    function removeInvitation(inviteId) {
+      const invitation = document.getElementById("invite_" + inviteId);
+      if (invitation) {
+        invitation.remove();
+      }
+    }    
 
     console.log("🚀 Tentative de connexion WebSocket...");
     connectWebSocket();
