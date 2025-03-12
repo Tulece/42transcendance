@@ -128,7 +128,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if self.room_group_name:
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-        if self.personal_group:
+        if hasattr(self, "personal_group"):
             await self.channel_layer.group_discard(self.personal_group, self.channel_name)
         
         # Diffuser la liste actualisée aux users
@@ -183,6 +183,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 try:
                     target_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)
                 except CustomUser.DoesNotExist:
+                    print(f"Erreur : Utilisateur {target_username} introuvable.", flush=True)
                     return
                 # if self.user_already_in_game(target_user):
                 #     return
@@ -193,7 +194,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 if existing_game_id:
                     game_id = existing_game_id
                 else:
-                    game_id = await lobby_instance.API_start_game_async()
+                    game_id = await lobby_instance.API_start_game_async(self.scope["user"].username, target_username)
                 
                 # Vérifier si la partie existe bien dans le lobby
                 if game_id not in lobby_instance.active_games:
