@@ -39,7 +39,7 @@ def create_tournament_view(request):
             f"user_{player.id}",
             {
                 "type": "system",  # déclenche la méthode system dans le consumer
-                "message": "Attention : Vous avez été ajouté à un tournoi. Merci de respecter les règles."
+                "message": f"Attention : Vous avez été ajouté au tournoi '{tournament.name}'. Merci de respecter les règles."
             }
         )
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -99,7 +99,7 @@ async def start_match_game_view(request, match_id):
   user2 = match.player2.username
 
   if not match.game_id:
-    lobby_instance = Lobby.get_instance()  
+    lobby_instance = Lobby.get_instance()
     new_game_id = await lobby_instance.API_start_game_async(user1, user2)
     match.game_id = new_game_id
     await sync_to_async(match.save)()
@@ -163,6 +163,8 @@ def report_match_result_view(request, match_id):
         "message": "Match mis à jour, round suivant préparé si nécessaire.",
         "tournament_active": tournament.is_active
     })
+
+
 
 
 
