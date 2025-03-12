@@ -20,6 +20,8 @@ import pyotp
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import datetime, timedelta
+import os
+from django.core.files.base import ContentFile
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -469,3 +471,127 @@ def get_player_matches(request, username):
         'matches': matches_data,
     }
     return JsonResponse(data, safe=False)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_avatar_view(request):
+    """
+    API endpoint to handle avatar updates for authenticated users.
+    Accepts only POST requests with an image file.
+    """
+    if 'avatar' not in request.FILES:
+        return JsonResponse({
+            "success": False,
+            "error": "No image file provided"
+        }, status=400)
+
+    avatar_file = request.FILES['avatar']
+    
+    # Validate file type
+    allowed_types = ['image/jpeg', 'image/png', 'image/gif']
+    if avatar_file.content_type not in allowed_types:
+        return JsonResponse({
+            "success": False,
+            "error": "Invalid file type. Only JPEG, PNG, and GIF are allowed."
+        }, status=400)
+    
+    # Validate file size (max 5MB)
+    if avatar_file.size > 5 * 1024 * 1024:
+        return JsonResponse({
+            "success": False,
+            "error": "File too large. Maximum size is 5MB."
+        }, status=400)
+
+    try:
+        user = request.user
+        
+        # Determine file extension
+        file_ext = os.path.splitext(avatar_file.name)[1].lower()
+        if not file_ext:
+            file_ext = '.jpg'  # Default extension
+        
+        # Create the filename
+        avatar_filename = f"{user.username}{file_ext}"
+        
+        # Save the avatar to the user's avatar field
+        # This will automatically use the upload_to path from the model
+        if user.avatar:
+            # Delete old avatar file if it exists
+            user.avatar.delete(save=False)
+        
+        # Read the file content
+        avatar_content = ContentFile(avatar_file.read())
+        
+        # Save the new avatar
+        user.avatar.save(avatar_filename, avatar_content, save=True)
+        
+        return JsonResponse({
+            "success": True,
+            "message": "Avatar updated successfully",
+            "avatar_url": user.avatar.url
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": f"Failed to update avatar: {str(e)}"
+        }, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password_view(request):
+    """
+    API endpoint to change a user's password.
+    Requires authentication and validates the current password before setting a new one.
+    """
+    user = request.user
+    
+    # Check if the user is a 42 user (they don't have a password to change)
+    if user.is_42_user:
+        return JsonResponse({
+            "success": False,
+            "error": "42 users cannot change their password."
+        }, status=403)
+    
+    # Get passwords from request
+    current_password = request.POST.get('current_password')
+    new_password = request.POST.get('new_password')
+    
+    # Validate that both passwords were provided
+    if not current_password or not new_password:
+        return JsonResponse({
+            "success": False,
+            "error": "Both current and new passwords are required."
+        }, status=400)
+    
+    # Validate new password length
+    if len(new_password) < 8:
+        return JsonResponse({
+            "success": False,
+            "error": "New password must be at least 8 characters long."
+        }, status=400)
+    
+    # Verify current password
+    if not authenticate(username=user.username, password=current_password):
+        return JsonResponse({
+            "success": False,
+            "error": "Current password is incorrect."
+        }, status=401)
+    
+    try:
+        # Set the new password and save the user
+        user.password = make_password(new_password)
+        user.save()
+        
+        return JsonResponse({
+            "success": True,
+            "message": "Password changed successfully."
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": f"Failed to change password: {str(e)}"
+        }, status=500)
+

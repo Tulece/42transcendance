@@ -18,6 +18,7 @@ class CustomUser(AbstractUser):
         'self',
         symmetrical=True, # A ami avec B donc B ami avec A
         #related_name='friends_list',
+        #related_name='friends_list',
         blank=True
     )
 

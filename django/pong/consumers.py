@@ -137,9 +137,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {"type": "broadcast_user_list"}
         )
 
+
         print(f"Déconnexion de l'utilisateur {self.username} - code: {close_code}")
 
     async def receive(self, text_data):
+
 
         try:
             if not text_data:

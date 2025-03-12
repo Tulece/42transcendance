@@ -180,6 +180,8 @@ class Game:
                      }
                  }
              )
+             if not self.ignore_match_act:
+                await self.register_match_winner(player, self.game_id)
              self.stop()
              return
         elif self.resetting:
@@ -223,6 +225,23 @@ class Game:
                      },
                  }
              )
+
+    @database_sync_to_async
+    def set_match_winner(self, game_id, loser):
+        try:
+            match = SimpleMatch.objects.get(game_id=game_id)
+            if match.winner is None:
+                print(f"Match {match.id} terminé, enregistrement du vainqueur.")
+                match.winner = "Player 1" if loser == "player2" else "Player 2"
+                match.save()
+            else:
+                print("Le match a déjà un vainqueur.")
+        except SimpleMatch.DoesNotExist:
+            print("Match introuvable dans la DB.")
+
+
+    async def register_match_winner(self, loser, game_id):
+        await self.set_match_winner(game_id, loser)
 
     @database_sync_to_async
     def set_match_winner(self, game_id, loser):
