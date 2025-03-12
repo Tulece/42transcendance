@@ -326,8 +326,10 @@ window.initChat = async () => {
       friendsList.innerHTML = "";
   
       users.forEach((user) => {
+        
         if (user.username === window.currentUsername)
           return;
+
         const userItem = document.createElement("li");
         userItem.className = "list-group-item d-flex justify-content-between align-items-center";
   
