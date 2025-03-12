@@ -142,9 +142,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {"type": "broadcast_user_list"}
         )
 
+
         print(f"Déconnexion de l'utilisateur {self.username} - code: {close_code}")
 
     async def receive(self, text_data):
+
 
         try:
             if not text_data:
@@ -188,6 +190,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 try:
                     target_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)
                 except CustomUser.DoesNotExist:
+                    print(f"Erreur : Utilisateur {target_username} introuvable.", flush=True)
                     return
                 # if self.user_already_in_game(target_user):
                 #     return
@@ -198,7 +201,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 if existing_game_id:
                     game_id = existing_game_id
                 else:
-                    game_id = await lobby_instance.API_start_game_async()
+                    game_id = await lobby_instance.API_start_game_async(self.scope["user"].username, target_username)
                 
                 # Vérifier si la partie existe bien dans le lobby
                 if game_id not in lobby_instance.active_games:

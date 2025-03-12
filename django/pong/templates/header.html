@@ -43,9 +43,12 @@
                             </li>
                         </ul>
                     </li>
+                    {% if not user.is_authenticated %}
                     <li class="nav-item">
                         <a href="/register" class="nav-link spa-link">S'inscrire</a>
                     </li>
+                    {% endif %}
+
                     <li class="nav-item">
                         <a href="/account" class="nav-link spa-link">Mon compte</a>
                     </li>

@@ -10,7 +10,12 @@
 
         {% comment %} {% if viewed_user.avatar %} {% endcomment %}
         <div class="text-center mb-3">
-            <img src="{{ viewed_user.avatar_url }}" alt="Avatar" class="rounded-circle border border-secondary" width="120" height="120" style="object-fit: cover;">
+            {% if viewed_user.id == user.id %}
+                <img src="{{ viewed_user.avatar.url }}" alt="Avatar" class="rounded-circle border border-secondary avatar-clickable" width="120" height="120" id="profile-avatar" onclick="document.getElementById('avatar-upload').click();">
+                <input type="file" id="avatar-upload" name="avatar" style="display: none;" accept="image/*" onchange="uploadAvatar(this.files[0])">
+            {% else %}
+                <img src="{{ viewed_user.avatar.url }}" alt="Avatar" class="rounded-circle border border-secondary" width="120" height="120">
+            {% endif %}
         </div>
         {% comment %} {% endif %} {% endcomment %}
 
@@ -25,7 +30,7 @@
 
         <p><strong>Display name :</strong> {{ viewed_user.display_name|default:"(non renseigné)" }}</p>
 
-        {% if viewed_user.id == user.id %}
+        {% if viewed_user.id == user.id and not user.is_42_user %}
         <div class="d-flex align-items-center mb-3">
             <label for="a2f" class="form-label me-2">Activer l'authentification 2FA :</label>
             <input type="checkbox" id="a2f" class="form-check-input me-2"
@@ -35,10 +40,13 @@
                 {% if user.is_a2f_enabled %}Activé{% else %}Désactivé{% endif %}
             </span>
         </div>
-        <div class="text-center">
-            <button id="save-btn" class="btn btn-primary w-100 mt-3"  style="max-width: 500px" onclick="saveChanges()">Enregistrer</button>
-        </div>
-            {% endif %}
+        {% endif %}
+
+        <button id="save-btn" class="btn btn-primary w-100 mt-3" onclick="saveChanges()">Enregistrer</button>
+        
+        {% if viewed_user.id == user.id and not user.is_42_user %}
+        <button id="change-password-btn" class="btn btn-secondary w-100 mt-2" onclick="openPasswordModal()">Change Password</button>
+        {% endif %}
 
         {% if viewed_user.id != user.id %}
         <div id="friendship-actions">
@@ -74,7 +82,162 @@
         border-radius: 50%;
         margin-left: 5px;
     }
+    
+    .avatar-clickable {
+        cursor: pointer;
+        transition: opacity 0.3s;
+    }
+    
+    .avatar-clickable:hover {
+        opacity: 0.8;
+    }
 
 </style>
 
+<!-- <script src="{% static 'js/account.js' %}"></script> -->
 
+<script>
+    function uploadAvatar(file) {
+        if (!file) {
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('avatar', file);
+        
+        fetch('/update-avatar/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Upload failed');
+        })
+        .then(data => {
+            if (data.success) {
+                // Refresh the page to show the new avatar
+                window.location.reload();
+            } else {
+                alert('Failed to update avatar: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred during upload');
+        });
+    }
+    
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Function to open the password change modal
+    function openPasswordModal() {
+        const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+        // Clear previous form data
+        document.getElementById('password-form').reset();
+        document.getElementById('password-mismatch').style.display = 'none';
+        passwordModal.show();
+    }
+    
+    // Function to validate and submit the password change
+    function changePassword() {
+        const currentPassword = document.getElementById('current-password').value;
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        
+        // Basic validation
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            alert('Veuillez remplir tous les champs.');
+            return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+            document.getElementById('password-mismatch').style.display = 'block';
+            return;
+        }
+        
+        // Reset validation message
+        document.getElementById('password-mismatch').style.display = 'none';
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('current_password', currentPassword);
+        formData.append('new_password', newPassword);
+        
+        // Send request to backend
+        fetch('/change-password/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Mot de passe changé avec succès!');
+                // Close the modal
+                bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+            } else {
+                alert(data.error || 'Échec du changement de mot de passe.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Une erreur est survenue lors du changement de mot de passe.');
+        });
+    }
+</script>
+
+<!-- Password Change Modal -->
+<div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="passwordModalLabel">Change Password</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="password-form">
+          <div class="mb-3">
+            <label for="current-password" class="form-label">Mot de passe acctuel</label>
+            <input type="password" class="form-control" id="current-password" required>
+          </div>
+          <div class="mb-3">
+            <label for="new-password" class="form-label">Nouveau mot de passe</label>
+            <input type="password" class="form-control" id="new-password" required>
+          </div>
+          <div class="mb-3">
+            <label for="confirm-password" class="form-label">Nouveau mot de passe</label>
+            <input type="password" class="form-control" id="confirm-password" required>
+          </div>
+          <div class="alert alert-danger" id="password-mismatch" style="display: none;">
+            Le mot de passe ne correspond pas
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="changePassword()">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
