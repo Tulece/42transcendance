@@ -101,6 +101,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # Définir les groupes
         self.room_group_name = "chat_room" #Global grp
+
+        if not self.user or not self.user.id:
+            print("Erreur: ID utilisateur non défini.")
+            await self.close(code=4003)
+            return
         self.personal_group = f"user_{self.user.id}"
 
         # Joindre les groupes
@@ -128,7 +133,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if self.room_group_name:
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-        if self.personal_group:
+        if hasattr(self, "personal_group"):
             await self.channel_layer.group_discard(self.personal_group, self.channel_name)
         
         # Diffuser la liste actualisée aux users
