@@ -224,14 +224,16 @@ window.initChat = async () => {
             chatToggle.innerText = "Réduire";
             userListContainer.classList.remove("collapsed");
             userListToggle.innerText = "Réduire";
-        } else {
-            // Réduire le chat
-            chatWrapper.style.pointerEvents = "none";
-            chatContainer.classList.add("collapsed");
-            chatToggle.innerText = "Ouvrir";
-            userListContainer.classList.add("collapsed");
-            userListToggle.innerText = "Ouvrir";
-        }
+            }
+            else {
+              chatWrapper.style.pointerEvents = "none";
+              userListContainer.classList.add("collapsed");
+              userListToggle.innerText = "Ouvrir";
+              userListToggle,this.style.pointerEvents = "auto";
+              chatContainer.classList.add("collapsed");
+              chatToggle.innerText = "Ouvrir";
+              chatToggle.style.pointerEvents = "auto";
+            }
     });
 
     userListToggle.addEventListener("click", function () {
