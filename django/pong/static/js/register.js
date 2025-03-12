@@ -26,7 +26,11 @@
             alert("Veuillez entrer un email.");
             return;
         }
-
+        const avatarInput = document.getElementById("avatar");
+        if (avatarInput.value && avatarInput.files[0].type !== "image/jpeg") {
+            alert("Veuillez choisir un avatar au format jpg.");
+            return;
+        }
         const formData = new FormData(form);
 
         try {
@@ -34,7 +38,7 @@
                 method: "POST",
                 headers: {
                     "X-Requested-With": "XMLHttpRequest",
-                    "X-CSRFToken": getCookie("csrftoken")  // Ajout du token CSRF
+                    "X-CSRFToken": getCookie("csrftoken")
                 },
                 body: formData
             });

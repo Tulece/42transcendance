@@ -3,7 +3,7 @@ from django.db import models
 
 class CustomUser(AbstractUser):
     display_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
-    avatar = models.ImageField(upload_to='avatars/', default='avatars/default.jpg')
+    avatar_url = models.CharField(default='/media/avatars/default.jpg')
     online_status = models.BooleanField(default=False)
 
     # Un user peut bloquer d'autres users
@@ -82,20 +82,3 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f"{self.sender.username} → {self.receiver.username} ({self.status})"
-
-class FriendRequest(models.Model):
-    sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="sent_requests")
-    receiver = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="received_requests")
-    status = models.CharField(
-        max_length=20,
-        choices=[("pending", "En attente"), ("accepted", "Acceptée"), ("declined", "Refusée")],
-        default="pending"
-    ) # Stocker un status sur la demande
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('sender', 'receiver')  # Empêche de send pls demandes au même user
-
-    def __str__(self):
-        return f"{self.sender.username} → {self.receiver.username} ({self.status})"
-

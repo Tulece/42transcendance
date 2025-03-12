@@ -43,7 +43,7 @@ def absadd(number, n):
     return number - n if number < 0 else number + n
 
 class Game:
-    def __init__(self, game_id, player1, player2 = None, ignore=False):
+    def __init__(self, game_id, player1, player2 = None):
         self.game_id = game_id
         self.game_over = False
         self.players = {
@@ -66,13 +66,13 @@ class Game:
         self.resetting = False
         self.waiting_countdown = 0
         self.channel_layer = get_channel_layer()
-        self.ignore_match_act = ignore
+        self.ignore_match_act = False
         print(f"Appel de create_match_entry pour la partie {game_id} avec {player1} et {player2}.", flush=True)
 
 
     @classmethod
     async def create(cls, game_id, player1, player2=None):
-        game = cls(game_id, player1, player2, True)
+        game = cls(game_id, player1, player2)
         await game.create_match_entry(player1, player2, game_id)
         return game
     
@@ -167,6 +167,9 @@ class Game:
                  reason, player = "disconnected", "player2"
              else:
                  reason, player = "Unknown", "Unknown"
+             if not self.ignore_match_act:
+                await self.register_match_winner(player, self.game_id)
+                self.ignore_match_act = True
              await self.channel_layer.group_send(
                  self.game_id,
                  {
@@ -177,8 +180,6 @@ class Game:
                      }
                  }
              )
-             if not self.ignore_match_act:
-                await self.register_match_winner(player, self.game_id)
              self.stop()
              return
         elif self.resetting:
@@ -275,7 +276,12 @@ class Game:
     def set_player_connected(self, player_id):
         if player_id in self.players:
             self.players[player_id]['connected'] = True
-            print(f"[Game {self.game_id}] {player_id} connecté.", flush=True)
+            print(f"[Game {self.game_id}] {player_id} CONNECTÉ !", flush=True)
+        else:
+            print(f"[Game {self.game_id}] Erreur : {player_id} non trouvé", flush=True)
+        # if player_id in self.players:
+        #     self.players[player_id]['connected'] = True
+        #     print(f"[Game {self.game_id}] {player_id} connecté.", flush=True)
 
     def reset_pos(self):
         # Réinitialise uniquement la position et la vitesse, sans toucher aux points de vie.
