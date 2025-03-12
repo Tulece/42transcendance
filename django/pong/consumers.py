@@ -11,8 +11,10 @@ import uuid
 import asyncio
 from channels.db import database_sync_to_async
 from django.db import transaction
-from pong.models import CustomUser
+from pong.models import CustomUser, SimpleMatch
 from datetime import datetime
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
@@ -25,7 +27,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print("Utilisateur non authentifié. Fermeture de la connexion.")
             await self.close(code=4003)
             return
-        
+
         # Mettre is_online = True
         await self.set_user_online_state(self.user, True)
 
@@ -36,9 +38,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
         print(f"Connexion WebSocket acceptée pour l'utilisateur : {self.username}")
-        
+
         blocked_users = await self.get_blocked_users()
-        await self.send(json.dumps({ 
+        await self.send(json.dumps({
             "type": "user_list",
             "blocked_users": blocked_users
         }))
@@ -51,7 +53,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}")
         await self.channel_layer.group_add(self.personal_group, self.channel_name)
-        
+
         # Diffuser la liste actualisée
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -66,7 +68,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
 
-        
+
         if self.user.is_authenticated:
             await self.set_user_online_state(self.user, False)
 
@@ -74,17 +76,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
         if self.personal_group:
             await self.channel_layer.group_discard(self.personal_group, self.channel_name)
-        
+
         # Diffuser la liste actualisée
         await self.channel_layer.group_send(
             self.room_group_name,
             {"type": "broadcast_user_list"}
         )
-        
+
         print(f"Déconnexion de l'utilisateur {self.username} - code: {close_code}")
 
     async def receive(self, text_data):
-        
+
         try:
             if not text_data:
                 await self.send(json.dumps({"type": "error", "message": "Message vide"}))
@@ -156,18 +158,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
         else:
             self.user.blocked_users.remove(user)
         return user
-    
+
     @database_sync_to_async
     def get_blocked_users(self): #utilisée pour envoyer la liste des bloqués au frontend
         """Retourne la liste des users bloqués"""
         return list(self.user.blocked_users.values("username"))
-    
+
     @database_sync_to_async
     def set_user_online_state(self, user, state: bool): # Modifier un user en BFF
-        """MAJ du champ online_status en DB."""
-        user.online_status = state
-        user.save()
-    
+        user = CustomUser.objects.get(username=user.username)
+        if user:
+            user.online_status = state
+            user.save()
+        else:
+            print(f"Utilisateur introuvable : {user.username}")
+
     @database_sync_to_async
     def get_online_users(self): # read la liste des users qui sont online
         """Retourne la liste des users online."""
@@ -235,7 +240,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message": message,
             "timestamp": timestamp
         }))
-    
+
     async def block_user(self, username): # ADD USER ERROR
         blocked_user = await self.toggle_block_user_in_db(username, block=True)
         self.blocked_users_ids = await self.get_blocked_users_ids() # HOW MAJ ???
@@ -258,6 +263,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps({
             "type": "user_list",
             "users": online_users,
+        }))
+
+    async def system(self, event):
+        # Envoi le message système au client
+        await self.send(json.dumps({
+            "type": "system",
+            "message": event["message"]
         }))
 
 
@@ -391,20 +403,29 @@ class PongConsumer(AsyncWebsocketConsumer):
             await self.update_stats(event["message"]['message'])
         await self.send(json.dumps(event["message"]))
 
+
     async def update_stats(self, go_message):
         db_user = self.scope.get("user", None)
-        if db_user:
-            if self.player_id in go_message:
-                db_user.loses += 1
+        if db_user and db_user.is_authenticated:
+            db_user = await database_sync_to_async(CustomUser.objects.get)(username=db_user.username)
+            if db_user:
+                print(f"Enregistrement des statistiques pour {db_user.username}")
+                if self.player_id in go_message:
+                    db_user.loses += 1
+                else:
+                    db_user.wins += 1
+                db_user.match_played += 1
             else:
-                db_user.wins += 1
-            db_user.match_played += 1
+                print(f"Utilisateur introuvable.")
             await database_sync_to_async(self._save_user)(db_user)
 
     @staticmethod
-    @transaction.atomic
     def _save_user(user):
         user.save()
+
+    @staticmethod
+    def _save_match(match):
+        match.save()
 
 
 

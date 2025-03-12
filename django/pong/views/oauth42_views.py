@@ -2,6 +2,10 @@ import os
 import requests
 import json
 import datetime
+import logging
+from urllib.parse import urlparse
+from pathlib import Path
+from django.core.files.base import ContentFile
 from django.conf import settings
 from django.shortcuts import redirect
 from django.http import HttpResponseRedirect
@@ -15,6 +19,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from pong.models import CustomUser
 
+logger = logging.getLogger(__name__)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -103,7 +108,31 @@ def auth_42_callback(request):
             user.token_expires_at = datetime.datetime.now() + datetime.timedelta(seconds=expires_in)
             user.save()
         else:
-            # Create new user
+            # Create new user - for new users, we'll try to get their avatar
+            avatar_url = user_info.get('image', {}).get('link')
+            avatar_image = None
+            
+            # Only try to download avatar if we have a valid URL
+            if avatar_url:
+                try:
+                    # Validate URL format
+                    parsed_url = urlparse(avatar_url)
+                    if not parsed_url.scheme or not parsed_url.netloc:
+                        raise ValueError("Invalid URL format")
+                    
+                    # Download the avatar image
+                    avatar_response = requests.get(avatar_url, timeout=10)
+                    avatar_response.raise_for_status()
+                    
+                    # Prepare the file path and content
+                    avatar_filename = f"{username}.jpg"
+                    avatar_content = ContentFile(avatar_response.content)
+                    logger.info(f"Successfully downloaded avatar for user {username}")
+                    
+                except (requests.exceptions.RequestException, ValueError) as e:
+                    # Log the error but continue with user creation
+                    logger.warning(f"Failed to download avatar for user {username}: {str(e)}")
+            # Create the user
             user = CustomUser.objects.create(
                 username=username,
                 email=email,
@@ -113,9 +142,21 @@ def auth_42_callback(request):
                 refresh_token=refresh_token,
                 token_expires_at=datetime.datetime.now() + datetime.timedelta(seconds=expires_in)
             )
+            
+            # Set the avatar if we successfully downloaded it
+            if avatar_url and 'avatar_content' in locals():
+                try:
+                    # Save the avatar to the user's avatar field
+                    # No need to include 'avatars/' as that's handled by the upload_to parameter of the ImageField
+                    user.avatar.save(avatar_filename, avatar_content, save=True)
+                    logger.info(f"Successfully saved avatar for user {username}")
+                except Exception as e:
+                    logger.error(f"Failed to save avatar to user record for {username}: {str(e)}")
     except Exception as e:
+        error_msg = f"Failed to create or update user: {str(e)}"
+        logger.error(error_msg)
         return Response(
-            {"error": f"Failed to create or update user: {str(e)}"},
+            {"error": error_msg},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 

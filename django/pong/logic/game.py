@@ -1,10 +1,10 @@
 import asyncio
 import time
 import math
-import math
-import random
 import random
 from channels.layers import get_channel_layer
+from channels.db import database_sync_to_async
+from ..models import SimpleMatch, CustomUser
 import json
 
 # Constantes
@@ -43,7 +43,7 @@ def absadd(number, n):
     return number - n if number < 0 else number + n
 
 class Game:
-    def __init__(self, game_id):
+    def __init__(self, game_id, player1, player2 = None, ignore=False):
         self.game_id = game_id
         self.game_over = False
         self.players = {
@@ -66,6 +66,40 @@ class Game:
         self.resetting = False
         self.waiting_countdown = 0
         self.channel_layer = get_channel_layer()
+        self.ignore_match_act = ignore
+        print(f"Appel de create_match_entry pour la partie {game_id} avec {player1} et {player2}.", flush=True)
+
+
+    @classmethod
+    async def create(cls, game_id, player1, player2=None):
+        game = cls(game_id, player1, player2, True)
+        await game.create_match_entry(player1, player2, game_id)
+        return game
+    
+
+    @database_sync_to_async
+    def create_match_entry(self, player1, player2, game_id):
+        print(f"Création de l'entrée de match pour {game_id}.", flush=True)
+        
+        try:
+            user1 = CustomUser.objects.get(username=player1)
+        except CustomUser.DoesNotExist:
+            raise ValueError(f"User {player1} does not exist")
+
+        user2 = None
+        if player2:
+            try:
+                user2 = CustomUser.objects.get(username=player2)
+            except CustomUser.DoesNotExist:
+                raise ValueError(f"User {player2} does not exist")
+
+        SimpleMatch.objects.create(
+            player1=user1,
+            player2=user2,
+            game_id=game_id
+        )
+
+
 
     async def start(self):
         """Démarre la boucle de jeu."""
@@ -107,7 +141,6 @@ class Game:
     async def send_game_state(self):
         # Si l'un des joueurs n'est pas encore connecté, envoyer un message d'attente
         if (not self.players["player1"]["connected"] or (not self.players["player2"]["connected"] and not self.game_id.startswith("aaaa"))):
-             print("Problem is where we think it is...")
              await self.channel_layer.group_send(
                  self.game_id,
                  {
@@ -144,6 +177,8 @@ class Game:
                      }
                  }
              )
+             if not self.ignore_match_act:
+                await self.register_match_winner(player, self.game_id)
              self.stop()
              return
         elif self.resetting:
@@ -187,6 +222,23 @@ class Game:
                      },
                  }
              )
+
+    @database_sync_to_async
+    def set_match_winner(self, game_id, loser):
+        try:
+            match = SimpleMatch.objects.get(game_id=game_id)
+            if match.winner is None:
+                print(f"Match {match.id} terminé, enregistrement du vainqueur.")
+                match.winner = "Player 1" if loser == "player2" else "Player 2"
+                match.save()
+            else:
+                print("Le match a déjà un vainqueur.")
+        except SimpleMatch.DoesNotExist:
+            print("Match introuvable dans la DB.")
+
+
+    async def register_match_winner(self, loser, game_id):
+        await self.set_match_winner(game_id, loser)
 
     async def send_game_over(self, reason, player):
         print("send_game_over called", flush=True)

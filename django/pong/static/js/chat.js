@@ -1,10 +1,46 @@
-window.initChat = () => {
 
-    if (window.chatInitialized) return; 
+let myFriends = new Set(); // To stock friends
+async function fetchMyFriends() {
+
+  if (!window.currentUsername) return;
+
+  try {
+    // On appelle /account/monUsername/ en JSON, comme on l'a fait pour loadProfileInfo
+    const res = await fetch(`/account/${window.currentUsername}`, {
+      method: "GET",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json"
+      },
+      credentials: "include"
+    });
+    if (!res.ok) {
+      console.warn("Impossible de récupérer la liste d'amis.");
+      return;
+    }
+    const data = await res.json();
+
+    if (data.friend_list) {
+      // data.friend_list = tableau d'objets: [{username: "...", online_status: bool}, ...]
+      // On ne veut que la partie username
+      myFriends = new Set(data.friend_list.map(friend => friend.username));
+      console.log("Liste de mes amis :", myFriends);
+    }
+  } catch (err) {
+    console.error("Erreur lors du fetch de mes amis :", err);
+  }
+}
+
+window.initChat = async () => {
+
+    if (window.chatInitialized) return;
     window.chatInitialized = true;
     console.log("Chargement du chat ...", document.getElementById("chat-wrapper"));
 
     loadChatHistory();
+
+    await fetchMyFriends(); // Await > To wait until we get our resp. (friends list) from our server.
+
     const chatWrapper = document.getElementById("chat-wrapper");
     if (chatWrapper) chatWrapper.style.display = "block"; // Display if connected
 
@@ -15,12 +51,11 @@ window.initChat = () => {
     const sendMessageBtn = document.getElementById("send-message-btn");
     const chatToggle = document.getElementById("chat-toggle");
     const chatContainer = document.getElementById("chat-container");
-    const userList = document.getElementById("user-list");
     const privateRecipient = document.getElementById("private-recipient");
     const sendPrivateBtn = document.getElementById("send-private-btn");
     const userListContainer = document.getElementById("user-list-container");
     const userListToggle = document.getElementById("user-list-toggle");
-  
+
     let ws = null;
     let blockedUsers = new Set(); // Stocker users bloqués
 
@@ -51,7 +86,7 @@ window.initChat = () => {
 
     checkAuthentication();
 
-  
+
     function connectWebSocket() {
       if (window.chatWebSocket && window.chatWebSocket.readyState === WebSocket.OPEN) {
         console.warn("🔄 WebSocket déjà connecté, on ne réouvre pas !");
@@ -59,30 +94,30 @@ window.initChat = () => {
       }
       ws = new WebSocket(`ws://${window.location.host}/ws/chat/`);
       window.chatWebSocket = ws; // Stock to close later
-  
+
       ws.onopen = () => {
         console.log("WebSocket connecté.");
         addSystemMessage("Vous êtes connecté au chat !");
-        
+
       };
-  
+
       ws.onmessage = (event) => {
         console.log("📩 Message reçu :", event.data);
         const data = JSON.parse(event.data);
         handleMessage(data); // Gérer le message reçu
       };
-  
+
       ws.onerror = (error) => {
         console.error("Erreur WebSocket :", error);
         addSystemMessage("Erreur de connexion au WebSocket.");
       };
-  
+
       ws.onclose = () => {
         console.log("WebSocket déconnecté.");
         addSystemMessage("Connexion au chat perdue.");
       };
     }
-  
+
     // Étape 2 : Gestion des messages reçus
     function handleMessage(data) {
       if (data.type === "chat_message") {
@@ -99,7 +134,7 @@ window.initChat = () => {
         updateUserList(data.users, data.blocked_users || []);
       }
     }
-  
+
     // Add un message utilisateur
     function addMessageToChat(username, message) {
       console.log("🖊️ Ajout d'un message dans le chat :", username, message);
@@ -124,7 +159,7 @@ window.initChat = () => {
       saveChatHistory();
       scrollToBottom();
     }
-  
+
     // Add un message privé
     function addPrivateMessageToChat(username, message) {
       const messageDiv = document.createElement("div");
@@ -135,11 +170,14 @@ window.initChat = () => {
       saveChatHistory();
       scrollToBottom();
     }
-  
+
     // Add un message système
     function addSystemMessage(message) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", "system");
+      if (message.toLowerCase().includes("tournoi")) {
+		messageDiv.style.color = "red";
+	  }
       messageDiv.innerText = message;
       messageList.appendChild(messageDiv);
 
@@ -155,13 +193,13 @@ window.initChat = () => {
         messageList.appendChild(messageDiv);
         scrollToBottom();
     }
-    
-  
+
+
     // Scroller automatiquement vers le bas
     function scrollToBottom() {
       messageArea.scrollTop = messageArea.scrollHeight;
     }
-  
+
     // Envoi d'un message user
     sendMessageBtn.addEventListener("click", () => {
       console.log("🖱️ Bouton Envoyer cliqué !");
@@ -169,7 +207,7 @@ window.initChat = () => {
       if (!message) return; // Ne pas envoyer de message vide
 
       console.log("📤 Envoi du message :", message);
-  
+
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ message })); // Envoi du message sous forme JSON
         messageInput.value = "";
@@ -177,7 +215,7 @@ window.initChat = () => {
         addSystemMessage("WebSocket non connecté.");
       }
     });
-  
+
     // Bouton "Réduire"
     chatToggle.addEventListener("click", function () {
         const isCollapsed = chatContainer.classList.contains("collapsed");
@@ -199,10 +237,10 @@ window.initChat = () => {
 
     userListToggle.addEventListener("click", function () {
       const isCollapsed = userListContainer.classList.contains("collapsed");
-      
+
       if (isCollapsed) {
         userListContainer.classList.remove("collapsed");
-        userListToggle.innerText = "Réduire";
+        userListToggle.innerText = "Réduire"; // Or textContent TO TRY !! (maybe is not taking css rules into account so not really relevant here) + inner : can add balises, styles (gras), etc.
         chatContainer.classList.remove("collapsed");
         chatToggle.innerText = "Réduire";
       }
@@ -248,12 +286,16 @@ window.initChat = () => {
         blocked = [];
       }
 
+      const friendsList = document.getElementById("friends-connected");
+      const userList = document.getElementById("others-connected");
+
       userList.innerHTML = ""; // On réinitialise la liste
-  
+      friendsList.innerHTML = "";
+
       users.forEach((user) => {
           const userItem = document.createElement("li");
           userItem.className = "list-group-item d-flex justify-content-between align-items-center";
-  
+
            // Crée un lien cliquable vers le profil
           const usernameLink = document.createElement("a"); // lien vers le user profile
           usernameLink.href = `/account/${user.username}`;
@@ -270,7 +312,7 @@ window.initChat = () => {
 
           // Check si user est bloqué
           const isBlocked = blockedUsers.has(user.username);
-  
+
           // Create bouton de blocage/déblocage
           const blockButton = document.createElement("button");
           blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
@@ -278,24 +320,28 @@ window.initChat = () => {
           blockButton.classList.add("custom-padding");
           blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
           blockButton.addEventListener("click", () => toggleBlockUser(user.username));
-  
+
           userItem.appendChild(blockButton);
-          userList.appendChild(userItem); // Exp.
+
+          if (myFriends.has(user.username))
+            friendsList.appendChild(userItem);
+          else
+            userList.appendChild(userItem); // Exp.
       });
-  
+
       updatePrivateRecipientList(users);
     }
-    
+
 
     function updatePrivateRecipientList(users) {
       privateRecipient.innerHTML = '<option value="" disabled selected>Choisir un destinataire</option>';
-      
+
       if (users.length === 0) {
           privateRecipient.setAttribute("disabled", "true");
           return;
       }
       privateRecipient.removeAttribute("disabled");
-  
+
       users.forEach((user) => {
           const option = document.createElement("option");
           option.value = user.username;
@@ -306,21 +352,21 @@ window.initChat = () => {
 
     function toggleBlockUser(username) {
       console.log(`🔒 Tentative de blocage/déblocage de ${username}...`);
-  
+
       // Trouver le bon bouton
       const userButton = document.querySelector(`button[data-username="${username}"]`);
       if (!userButton) return; // Si le bouton n'existe pas, on arrête
-  
+
       // Déterminer l'action à envoyer au serveur
       const isBlocked = blockedUsers.has(username);
       const action = isBlocked ? "unblock_user" : "block_user";
-  
+
       ws.send(JSON.stringify({
           action: action,
           username_to_unblock: isBlocked ? username : undefined,
           username_to_block: isBlocked ? undefined : username
       }));
-  
+
       // Mettre à jour la liste des utilisateurs bloqués
       if (isBlocked) {
           blockedUsers.delete(username);
@@ -339,19 +385,19 @@ window.initChat = () => {
     function saveChatHistory() {
       const messageList = document.getElementById("message-list");
       if (!messageList) return;
-  
+
       const messages = [];
       messageList.childNodes.forEach(node => {
           messages.push(node.outerHTML);
       });
-  
+
       localStorage.setItem("chatHistory", JSON.stringify(messages));
     }
-  
+
     function loadChatHistory() {
       const messageList = document.getElementById("message-list");
       if (!messageList) return;
-  
+
       const savedMessages = localStorage.getItem("chatHistory");
       if (savedMessages) {
           const messages = JSON.parse(savedMessages);
@@ -363,7 +409,7 @@ window.initChat = () => {
 
     console.log("🚀 Tentative de connexion WebSocket...");
     connectWebSocket();
-  
+
   };
 
   window.hideChat = () => {
@@ -379,7 +425,7 @@ window.initChat = () => {
       chatWrapper.style.display = "none";
       chatWrapper.innerHTML = ""; // Effacer le contenu
     }
-    
+
     if (!window.chatInitialized) // Check also if user has been deconnected
       localStorage.removeItem("chatHistory");
 
@@ -387,4 +433,3 @@ window.initChat = () => {
     window.chatInitialized = false;
 };
 
-  

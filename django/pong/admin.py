@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Tournament, Match
+from .models import CustomUser, Tournament, TournamentMatch, SimpleMatch
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -20,6 +20,8 @@ class CustomUserAdmin(UserAdmin):
                 'access_token',
                 'refresh_token',
                 'token_expires_at',
+                'match_played',
+                'wins',
             ),
         }),
     )
@@ -67,8 +69,14 @@ class TournamentAdmin(admin.ModelAdmin):
     filter_horizontal = ('players',)
 
 
-@admin.register(Match)
-class MatchAdmin(admin.ModelAdmin):
+@admin.register(TournamentMatch)
+class TournamentMatchAdmin(admin.ModelAdmin):
     list_display = ('id', 'tournament', 'player1', 'player2', 'winner', 'round_number', 'created_at')
     search_fields = ('tournament__name', 'player1__username', 'player2__username', 'winner__username')
     list_filter = ('round_number', 'created_at',)
+
+@admin.register(SimpleMatch)
+class SimpleMatchAdmin(admin.ModelAdmin):
+    list_display = ('id', 'player1', 'player2', 'winner', 'created_at')
+    search_fields = ('player1__username', 'player2__username', 'winner__username')
+    list_filter = ('created_at',)

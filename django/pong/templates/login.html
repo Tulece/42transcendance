@@ -7,30 +7,30 @@
             <input type="hidden" name="next" value="{{ next_url|default:"/" }}">
             <div class="mb-3">
                 <label for="username" class="form-label">Nom d'utilisateur</label> <!-- form-label: add un style uniforme pour les labels des champs-->
-                <input 
-                    type="text" 
-                    name="username" 
+                <input
+                    type="text"
+                    name="username"
                     id="username"
-                    class="form-control" 
-                    placeholder="Entrez votre nom d'utilisateur" 
+                    class="form-control"
+                    placeholder="Entrez votre nom d'utilisateur"
                     required
                 > <!-- form-control: add un style avec bordure, fond clair & padding-->
             </div>
             <div class="mb-3">
                 <label for="password" class="form-label">Mot de passe</label>
-                <input 
-                    type="password" 
-                    name="password" 
+                <input
+                    type="password"
+                    name="password"
                     id="password"
-                    class="form-control" 
-                    placeholder="Entrez votre mot de passe" 
+                    class="form-control"
+                    placeholder="Entrez votre mot de passe"
                     required
                 >
             </div>
             <div id="otp-container" class="mb-3" style="display: none;">
                 <label for="otp_code" class="form-label">Code de vérification</label>
-                <input 
-                    type="text" 
+                <input
+                    type="text"
                     id="otp_code"
                     name="otp_code"
                     class="form-control"
@@ -43,7 +43,7 @@
             </div>
             <button type="submit" class="btn btn-success w-100">Se connecter</button> <!-- w-100: le btn occupe toute la largeur -->
         </form>
-        
+
         <div class="mt-3">
             <hr class="my-3">
             <p class="text-center mb-3">Ou connectez-vous avec</p>
@@ -52,7 +52,7 @@
                 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/42_Logo.svg/1024px-42_Logo.svg.png" alt="42 Logo" style="height: 24px; margin-right: 10px;">
             </a>
         </div>
-        
+
         <p id="login-error" class="mt-3 text-center text-danger" style="display: none;"></p>
     </div>
 </div>
@@ -61,5 +61,5 @@
     #login-form-container {
         background-color: rgba(135, 206, 235, 0.2); /* Bleu ciel avec 20% d'opacité */
         height: 100vh; /* Prend toute la hauteur de la fenêtre */
-    }    
+    }
 </style>

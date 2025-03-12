@@ -1,7 +1,10 @@
 import uuid
-from ..models import Tournament, Match, CustomUser
+from ..models import Tournament, TournamentMatch, CustomUser
 from .lobby import Lobby
 import random
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
 
 class TournamentLobby:
     def __init__(self):
@@ -31,7 +34,7 @@ class TournamentLobby:
             player1 = players.pop(0)
             player2 = players.pop(0) if players else None
 
-            match = Match.objects.create(
+            match = TournamentMatch.objects.create(
                 tournament=tournament,
                 player1=player1,
                 player2=player2,
@@ -61,11 +64,10 @@ class TournamentLobby:
         return None
 
     def report_match_result(self, match_id, winner_id):
-        """Enregistre le résultat d'un match et prépare le tour suivant si nécessaire."""
-        match = Match.objects.get(id=match_id)
-        # Si le match a déjà un vainqueur, on ne refait pas l'étape
+        match = TournamentMatch.objects.get(id=match_id)
+        # Si le match a déjà un vainqueur, on ne refait rien
         if match.winner:
-            return  # ou lever une exception
+            return
 
         winner = CustomUser.objects.get(id=winner_id)
         match.winner = winner
@@ -76,13 +78,40 @@ class TournamentLobby:
         current_round = match.round_number
         current_round_matches = tournament.matches.filter(round_number=current_round)
 
-        # Vérifie si tous les matches de ce round ont un winner
+        # Si tous les matchs du round courant ont un vainqueur
         if all(m.winner for m in current_round_matches):
             next_matches = self._prepare_next_round(tournament, current_round + 1)
 
-            if not next_matches:  # S'il n'y a plus de match, fin du tournoi
+            if next_matches:
+                # Annonce du début d'un nouveau round
+                channel_layer = get_channel_layer()
+                message = f"Attention : Nouveau round {current_round + 1} commence. Merci de respecter les règles."
+                for player in tournament.players.all():
+                    async_to_sync(channel_layer.group_send)(
+                        f"user_{player.id}",
+                        {
+                            "type": "system",
+                            "message": message
+                        }
+                    )
+            else:
+                # Aucun round suivant : le tournoi est terminé
                 tournament.is_active = False
                 tournament.save()
+                # Récupérer le match final (celui avec le plus grand round_number)
+                final_match = tournament.matches.order_by("-round_number").first()
+                if final_match and final_match.winner:
+                    channel_layer = get_channel_layer()
+                    message = f"Le tournoi est terminé ! Le gagnant final est {final_match.winner.username}."
+                    for player in tournament.players.all():
+                        async_to_sync(channel_layer.group_send)(
+                            f"user_{player.id}",
+                            {
+                                "type": "system",
+                                "message": message
+                            }
+                        )
+
 
     def _prepare_next_round(self, tournament, next_round_number):
         """
@@ -106,7 +135,7 @@ class TournamentLobby:
             bye_player_id = random.choice(winners)
             winners.remove(bye_player_id)
             bye_player = CustomUser.objects.get(id=bye_player_id)
-            match = Match.objects.create(
+            match = TournamentMatch.objects.create(
                 tournament=tournament,
                 player1=bye_player,
                 player2=None,
@@ -123,7 +152,7 @@ class TournamentLobby:
             player2_id = winners.pop(0)
             player1 = CustomUser.objects.get(id=player1_id)
             player2 = CustomUser.objects.get(id=player2_id)
-            match = Match.objects.create(
+            match = TournamentMatch.objects.create(
                 tournament=tournament,
                 player1=player1,
                 player2=player2,

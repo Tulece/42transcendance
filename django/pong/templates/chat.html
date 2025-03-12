@@ -10,8 +10,13 @@
       <h6 class="mb-0">Utilisateurs connectés</h6>
       <button id="user-list-toggle" class="btn btn-sm btn-light">Réduire</button>
     </div>
-    <div class="card-body p-3">
-      <ul id="user-list" class="list-group"></ul> <!-- <ul> permet de créer une list unordered (insèrer dynamiquement les <li>)-->
+    <div class="card-body p-3 overflow-y: auto;">
+
+      <h6 class="mb-2">Amis connectés</h6>
+      <ul id="friends-connected" class="list-group mb-3"></ul>
+
+      <h6 class="mb-2">Autres connectés</h6>
+      <ul id="others-connected" class="list-group"></ul> <!-- <ul> permet de créer une list unordered (insèrer dynamiquement les <li>)-->
     </div> <!-- <li> dans le script représente chq élément de la liste + own info -->
   </div>
 
@@ -56,11 +61,16 @@
   transform: translateY(0);
 }
 
+#user-list-container .card-body {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
 #chat-container {
   width: 450px;
   height: 450px;
   overflow: hidden;
-  transition: transform 0.3s ease-in-out; /* Animation when change its state */
+  transition: transform 0.3s ease-in-out;
   transform: translateY(0); /* État "ouvert" */
 }
 
@@ -82,7 +92,6 @@
   display: none;
 }
 
-/* To avoid que l'un prenne plus de 70% de la fenêtre (TO CHECK) */
 #user-list-container, #chat-container {
   max-width: 70vw;
   max-height: 80vh;
