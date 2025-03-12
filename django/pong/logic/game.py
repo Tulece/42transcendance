@@ -276,7 +276,12 @@ class Game:
     def set_player_connected(self, player_id):
         if player_id in self.players:
             self.players[player_id]['connected'] = True
-            print(f"[Game {self.game_id}] {player_id} connecté.", flush=True)
+            print(f"[Game {self.game_id}] {player_id} CONNECTÉ !", flush=True)
+        else:
+            print(f"[Game {self.game_id}] Erreur : {player_id} non trouvé", flush=True)
+        # if player_id in self.players:
+        #     self.players[player_id]['connected'] = True
+        #     print(f"[Game {self.game_id}] {player_id} connecté.", flush=True)
 
     def reset_pos(self):
         # Réinitialise uniquement la position et la vitesse, sans toucher aux points de vie.

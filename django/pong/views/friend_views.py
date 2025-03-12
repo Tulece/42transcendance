@@ -70,10 +70,6 @@ def delete_friend(request, username):
     current_user.friends.remove(friend_to_remove)
     # friend_to_remove.friends.remove(current_user)
     print(f"[DEBUG] ✅ {current_user.username} a bien supprimé {friend_to_remove.username} de ses amis.")
-    # current_user.save()
-    # friend_to_remove.save()
-    # current_user.refresh_from_db()
-    # friend_to_remove.refresh_from_db()
 
     FriendRequest.objects.filter(sender=current_user, receiver=friend_to_remove).delete()
     FriendRequest.objects.filter(sender=friend_to_remove, receiver=current_user).delete()

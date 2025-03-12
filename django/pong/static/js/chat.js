@@ -132,7 +132,11 @@ window.initChat = async () => {
         addSystemMessage(data.message);
       } else if (data.type === "user_list") {
         updateUserList(data.users, data.blocked_users || []);
-      } 
+      } else if (data.type === "game_invitation") {
+        showGameInvitation(data);
+      } else if (data.type === "invitation_expired") {
+        removeInvitation(data.invite_id);
+      }
     }
   
     // Add un message utilisateur
@@ -162,6 +166,8 @@ window.initChat = async () => {
   
     // Add un message privé
     function addPrivateMessageToChat(username, message) {
+      if (message.length === 0)
+        return;
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", "private");
       messageDiv.innerHTML = `<span class="username">${username} (privé) :</span> ${message}`;
@@ -175,7 +181,7 @@ window.initChat = async () => {
     function addSystemMessage(message) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", "system");
-      messageDiv.innerText = message;
+      messageDiv.innerHTML = message;
       messageList.appendChild(messageDiv);
 
       saveChatHistory();
@@ -282,6 +288,27 @@ window.initChat = async () => {
       }
     });
 
+    const inviteToGameBtn = document.getElementById("invite-to-game-btn");
+    inviteToGameBtn.addEventListener("click", () => {
+      const recipient = privateRecipient.value; // le <select>
+
+      if (!recipient) {
+        addSystemMessage("Veuillez sélectionner un destinataire pour l'invitation.");
+        return;
+      }
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            action: "invite_to_game",
+            target_username: recipient
+          })
+        );
+      } else {
+        addSystemMessage("WebSocket non connecté.");
+      }
+    });
+
     // Check chq user de la liste et crée un élément html pour le display
     function updateUserList(users, blocked) {
       console.log("👥 Mise à jour de la liste des utilisateurs :", users);
@@ -323,7 +350,8 @@ window.initChat = async () => {
           const blockButton = document.createElement("button");
           blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
           blockButton.textContent = isBlocked ? "Débloquer" : "Bloquer";
-          blockButton.classList.add("custom-padding");
+          blockButton.style.maxWidth = "180px";
+          blockButton.classList.add("custom-padding", "w-100"); // w-100 : take all the width
           blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
           blockButton.addEventListener("click", () => toggleBlockUser(user.username));
   
@@ -359,11 +387,11 @@ window.initChat = async () => {
     function toggleBlockUser(username) {
       console.log(`🔒 Tentative de blocage/déblocage de ${username}...`);
   
-      // Trouver le bon bouton
+      // Trouver le bon btn
       const userButton = document.querySelector(`button[data-username="${username}"]`);
-      if (!userButton) return; // Si le bouton n'existe pas, on arrête
+      if (!userButton) return;
   
-      // Déterminer l'action à envoyer au serveur
+      // Déterminer l'action à send au serveur
       const isBlocked = blockedUsers.has(username);
       const action = isBlocked ? "unblock_user" : "block_user";
   
@@ -373,7 +401,7 @@ window.initChat = async () => {
           username_to_block: isBlocked ? undefined : username
       }));
   
-      // Mettre à jour la liste des utilisateurs bloqués
+      // MAJ la liste des users bloqués
       if (isBlocked) {
           blockedUsers.delete(username);
           userButton.textContent = "Bloquer";
@@ -412,6 +440,42 @@ window.initChat = async () => {
           });
       }
     }
+
+    function showGameInvitation(inviteData) {
+      
+        const now = Date.now() / 1000;
+        if (inviteData.expires_at < now) {
+          console.warn(`Invitation de ${inviteData.from} expirée, non affichée.`);
+          return;
+        }
+
+      const invitationDiv = document.createElement("div");
+      invitationDiv.classList.add("message", "system");// Style system message
+      invitationDiv.id = "invite_" + inviteData.invite_id;
+
+      const textNode = document.createTextNode(`${inviteData.from} vous invite à jouer à Pong ! `);
+      invitationDiv.appendChild(textNode);
+
+
+      const link = document.createElement("a");
+      link.href = `/game?game_id=${inviteData.game_id}&mode=private&invite_id=${inviteData.invite_id}&role=player2`;
+      link.innerText = "Vers le jeu Pong";
+      link.target = "_blank";
+
+      invitationDiv.appendChild(document.createElement("br")); //Saut de ligne
+      invitationDiv.appendChild(link);
+
+      const messageList = document.getElementById("message-list");
+      if (messageList)
+        messageList.appendChild(invitationDiv);
+    }
+
+    function removeInvitation(inviteId) {
+      const invitation = document.getElementById("invite_" + inviteId);
+      if (invitation) {
+        invitation.remove();
+      }
+    }    
 
     console.log("🚀 Tentative de connexion WebSocket...");
     connectWebSocket();
