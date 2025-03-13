@@ -329,41 +329,45 @@ window.initChat = async () => {
       friendsList.innerHTML = "";
 
       users.forEach((user) => {
-          const userItem = document.createElement("li");
-          userItem.className = "list-group-item d-flex justify-content-between align-items-center";
+        
+        if (user.username === window.currentUsername)
+          return;
 
-           // Crée un lien cliquable vers le profil
-          const usernameLink = document.createElement("a"); // lien vers le user profile
-          usernameLink.href = `/account/${user.username}`;
-          usernameLink.textContent = user.username;
-          usernameLink.classList.add("chat-username");
-          usernameLink.style.cursor = "pointer";
-          usernameLink.style.fontWeight = "bold";
-          usernameLink.addEventListener("click", (event) => {
-            event.preventDefault(); // Empêche le rechargement de la page
-            window.navigateTo(`/account/${user.username}`);
-          });
+        const userItem = document.createElement("li");
+        userItem.className = "list-group-item d-flex justify-content-between align-items-center";
 
-          userItem.appendChild(usernameLink); // Insert element in the <ul>
+          // Crée un lien cliquable vers le profil
+        const usernameLink = document.createElement("a"); // lien vers le user profile
+        usernameLink.href = `/account/${user.username}`;
+        usernameLink.textContent = user.username;
+        usernameLink.classList.add("chat-username");
+        usernameLink.style.cursor = "pointer";
+        usernameLink.style.fontWeight = "bold";
+        usernameLink.addEventListener("click", (event) => {
+          event.preventDefault(); // Empêche le rechargement de la page
+          window.navigateTo(`/account/${user.username}`);
+        });
 
-          // Check si user est bloqué
-          const isBlocked = blockedUsers.has(user.username);
+        userItem.appendChild(usernameLink); // Insert element in the <ul>
 
-          // Create bouton de blocage/déblocage
-          const blockButton = document.createElement("button");
-          blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
-          blockButton.textContent = isBlocked ? "Débloquer" : "Bloquer";
-          blockButton.style.maxWidth = "180px";
-          blockButton.classList.add("custom-padding", "w-100"); // w-100 : take all the width
-          blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
-          blockButton.addEventListener("click", () => toggleBlockUser(user.username));
+        // Check si user est bloqué
+        const isBlocked = blockedUsers.has(user.username);
 
-          userItem.appendChild(blockButton);
+        // Create bouton de blocage/déblocage
+        const blockButton = document.createElement("button");
+        blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
+        blockButton.textContent = isBlocked ? "Débloquer" : "Bloquer";
+        blockButton.style.maxWidth = "180px";
+        blockButton.classList.add("custom-padding", "w-100"); // w-100 : take all the width
+        blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
+        blockButton.addEventListener("click", () => toggleBlockUser(user.username));
 
-          if (myFriends.has(user.username))
-            friendsList.appendChild(userItem);
-          else
-            userList.appendChild(userItem); // Exp.
+        userItem.appendChild(blockButton);
+
+        if (myFriends.has(user.username))
+          friendsList.appendChild(userItem);
+        else
+          userList.appendChild(userItem); // Exp.
       });
 
       updatePrivateRecipientList(users);
@@ -378,12 +382,16 @@ window.initChat = async () => {
           return;
       }
       privateRecipient.removeAttribute("disabled");
+      console.log("users.username: ", users.username);
+      console.log("window.currentUsername: ", window.currentUsername);
 
       users.forEach((user) => {
-          const option = document.createElement("option");
-          option.value = user.username;
-          option.textContent = user.username;
-          privateRecipient.appendChild(option);
+        if (user.username === window.currentUsername)
+          return;
+        const option = document.createElement("option");
+        option.value = user.username;
+        option.textContent = user.username;
+        privateRecipient.appendChild(option);
       });
     }
 
