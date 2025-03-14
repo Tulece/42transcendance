@@ -1,5 +1,5 @@
 import uuid
-from ..models import Tournament, TournamentMatch, CustomUser
+from ..models import Tournament, TournamentMatch, CustomUser, TournamentParticipation
 from .lobby import Lobby
 import random
 from channels.layers import get_channel_layer
@@ -21,7 +21,12 @@ class TournamentLobby:
             raise ValueError("Il faut au minimum 2 joueurs connectés pour créer un tournoi.")
 
         tournament = Tournament.objects.create(name=name)
-        tournament.players.set(players)
+
+        # Crée la participation pour chaque joueur (le créateur pourra par exemple se voir attribuer un alias par défaut ou être invité à le choisir)
+        for player in players:
+            # Par défaut, on peut laisser tournament_alias vide ou lui assigner une valeur par défaut
+            TournamentParticipation.objects.create(tournament=tournament, player=player, tournament_alias=None)
+
         tournament.save()
 
         self.active_tournaments[tournament.id] = {
@@ -29,6 +34,7 @@ class TournamentLobby:
             "matches": self._generate_matches(tournament)
         }
         return tournament
+
 
 
     def _generate_matches(self, tournament):

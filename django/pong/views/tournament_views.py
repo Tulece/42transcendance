@@ -3,7 +3,7 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
-from ..models import Tournament, TournamentMatch, CustomUser
+from ..models import Tournament, TournamentMatch, CustomUser, TournamentParticipation
 from ..logic.tournament_lobby import TournamentLobby
 from django.views.decorators.csrf import csrf_exempt
 from pong.logic.lobby import Lobby
@@ -11,6 +11,7 @@ from asgiref.sync import sync_to_async
 import json
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from django.contrib.auth.decorators import login_required
 
 
 lobby = TournamentLobby() # Instance globale pour la gestion des tournois
@@ -92,7 +93,15 @@ def get_tournament_detail_view(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     # Si le tournoi est terminé, redirige vers la page d'accueil
     if not tournament.is_active:
-        return redirect("/")  # Assurez-vous que l'URL nommée "home" est définie
+        return redirect("/")
+
+    # Vérifier que l'utilisateur connecté a bien défini son alias pour ce tournoi
+    if request.user.is_authenticated:
+        participation = TournamentParticipation.objects.filter(tournament=tournament, player=request.user).first()
+        if participation and not participation.tournament_alias:
+            # Redirige vers la page de sélection d'alias
+            return redirect("choose_tournament_alias", tournament_id=tournament.id)
+
     matches = tournament.matches.order_by("round_number", "created_at")
     context = {"tournament": tournament, "matches": matches}
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -103,6 +112,7 @@ def get_tournament_detail_view(request, tournament_id):
             "tournament": tournament,
             "matches": matches
         })
+
 
 
 @csrf_exempt
@@ -198,7 +208,43 @@ def report_match_result_view(request, match_id):
         "tournament_active": tournament.is_active
     })
 
+@login_required
+def choose_tournament_alias_view(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    participation = get_object_or_404(TournamentParticipation, tournament=tournament, player=request.user)
 
+    if request.method == "POST":
+        alias = request.POST.get("tournament_alias", "").strip()
+        if not alias:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"success": False, "error": "L'alias ne peut pas être vide."})
+            else:
+                return render(request, "tournaments/choose_alias.html", {
+                    "tournament": tournament,
+                    "error": "L'alias ne peut pas être vide."
+                })
+        # Vérification simple de doublon dans ce tournoi
+        if TournamentParticipation.objects.filter(tournament=tournament, tournament_alias=alias).exists():
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"success": False, "error": "Cet alias est déjà pris dans ce tournoi."})
+            else:
+                return render(request, "tournaments/choose_alias.html", {
+                    "tournament": tournament,
+                    "error": "Cet alias est déjà pris dans ce tournoi."
+                })
+        participation.tournament_alias = alias
+        participation.save()
+        # Si la requête est AJAX, on renvoie le JSON avec l'URL de redirection
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            redirect_url = reverse("tournament_detail_json", args=[tournament.id])
+            return JsonResponse({
+                "success": True,
+                "message": "Alias enregistré.",
+                "redirect_url": redirect_url
+            })
+        else:
+            # Sinon, on redirige directement vers la page du tournoi
+            return redirect("tournament_detail_json", tournament_id=tournament.id)
 
-
+    return render(request, "tournaments/choose_alias.html", {"tournament": tournament})
 

@@ -41,7 +41,7 @@ class CustomUser(AbstractUser):
 class Tournament(models.Model):
     name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
-    players = models.ManyToManyField(CustomUser, related_name="tournaments")
+    players = models.ManyToManyField(CustomUser, through='TournamentParticipation', related_name="tournaments")
     is_active = models.BooleanField(default=True)
 
 class BaseMatch(models.Model):
@@ -83,3 +83,20 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f"{self.sender.username} → {self.receiver.username} ({self.status})"
+
+from django.db import models
+from .models import Tournament, CustomUser  # ou le chemin correct
+
+class TournamentParticipation(models.Model):
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name="participations")
+    player = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="tournament_participations")
+    tournament_alias = models.CharField(max_length=50, null=True, blank=True)
+
+    class Meta:
+        unique_together = [
+            ('tournament', 'player'),
+            ('tournament', 'tournament_alias'),  # pour forcer l'unicité de l'alias dans le tournoi
+        ]
+
+    def get_display_name(self):
+        return self.tournament_alias or self.player.username

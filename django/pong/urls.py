@@ -45,6 +45,7 @@ from .views.tournament_views import (
     start_match_game_view,
     list_tournaments_view,
     report_match_result_view,
+    choose_tournament_alias_view,
 )
 
 INVITATIONS = {} # CHECK SI ON MET PAS ATTRIBUT DE CLASSE !!!
@@ -74,6 +75,7 @@ urlpatterns = [
     path('tournaments/match/<int:match_id>/start_game/', start_match_game_view, name='start_match_game'),
     path('tournaments/list/', list_tournaments_view, name='list_tournaments'),
     path('tournaments/match/<int:match_id>/report_result/', report_match_result_view, name='report_match_result'),
+    path('tournaments/<int:tournament_id>/choose_alias/', choose_tournament_alias_view, name='choose_tournament_alias'),
     path('api/friends/send/<str:username>/', send_friend_request, name="send_friend_request"),
     path('api/friends/accept/<int:request_id>/', accept_friend_request, name="accept_friend_request"),
     path('api/friends/decline/<int:request_id>/', decline_friend_request, name="decline_friend_request"),

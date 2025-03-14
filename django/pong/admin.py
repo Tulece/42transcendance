@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Tournament, TournamentMatch, SimpleMatch
+from .models import CustomUser, Tournament, TournamentMatch, SimpleMatch, TournamentParticipation
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -60,14 +60,17 @@ class CustomUserAdmin(UserAdmin):
     # Gestion des relations ManyToManyField
     filter_horizontal = ('blocked_users',)
 
+class TournamentParticipationInline(admin.TabularInline):
+    model = TournamentParticipation
+    extra = 1
 
 @admin.register(Tournament)
 class TournamentAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'created_at', 'is_active')
     search_fields = ('name',)
     list_filter = ('is_active', 'created_at',)
-    filter_horizontal = ('players',)
-
+    # Utilisation de l'inline pour gérer la relation via le modèle intermédiaire
+    inlines = [TournamentParticipationInline]
 
 @admin.register(TournamentMatch)
 class TournamentMatchAdmin(admin.ModelAdmin):
