@@ -26,7 +26,7 @@ from .views.main_views import register_view
 from .logic.game import *
 from django.conf import settings
 from django.conf.urls.static import static
-from pong.views.main_views import home_view, game_view, update_a2f, account_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view, get_player_matches, update_avatar_view, change_password_view, get_player_matches
+from pong.views.main_views import home_view, game_view, update_a2f, account_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view, get_player_matches, update_avatar_view, change_password_view, get_player_matches, change_username_view
 from pong.views import oauth42_views
 from pong.views.oauth42_views import auth_42_callback, auth_42_login
 from pong.views.friend_views import (
@@ -87,6 +87,7 @@ urlpatterns = [
     path('auth/42/', auth_42_login, name='auth_42_login'),    path('api/matches/<str:username>/', get_player_matches, name='get_player_matches'),
     path('update-avatar/', update_avatar_view, name='update_avatar'),
     path('change-password/', change_password_view, name='change_password'),
+    path('change-username/', change_username_view, name='change_username'),
 
 ]
 
