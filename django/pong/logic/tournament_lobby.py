@@ -11,18 +11,25 @@ class TournamentLobby:
         self.active_tournaments = {}
         self.match_ready = {}  # Dictionnaire : { match_id: { "player1": True, "player2": True } }
 
-    def create_tournament(self, name, players):
-        """Crée un nouveau tournoi et génère les matchs du premier tour."""
+    def create_tournament(self, name, player_ids):
+        if len(player_ids) < 2:
+            raise ValueError("Il faut au minimum deux joueurs pour créer un tournoi.")
+
+        players = CustomUser.objects.filter(id__in=player_ids, online_status=True)
+
+        if players.count() < 2:
+            raise ValueError("Il faut au minimum 2 joueurs connectés pour créer un tournoi.")
+
         tournament = Tournament.objects.create(name=name)
         tournament.players.set(players)
         tournament.save()
 
-        # On stocke le tournoi dans un dict local, au cas où tu veux un usage in-memory
         self.active_tournaments[tournament.id] = {
             "tournament": tournament,
             "matches": self._generate_matches(tournament)
         }
         return tournament
+
 
     def _generate_matches(self, tournament):
         """Génère les matchs pour le premier tour."""

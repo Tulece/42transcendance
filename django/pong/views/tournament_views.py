@@ -1,7 +1,7 @@
 # tournament_views.py
 
 from django.shortcuts import get_object_or_404, render, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from ..models import Tournament, TournamentMatch, CustomUser
 from ..logic.tournament_lobby import TournamentLobby
@@ -17,39 +17,73 @@ lobby = TournamentLobby() # Instance globale pour la gestion des tournois
 
 @csrf_exempt
 def create_tournament_view(request):
-    users = CustomUser.objects.all()
-    if request.method == "GET":
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            # Requête AJAX, renvoyer uniquement le fragment
+    if not request.user.is_authenticated:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return HttpResponseForbidden()
+        else:
+            return redirect('/')
+
+    if request.method == 'GET':
+        users = CustomUser.objects.filter(online_status=True)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return render(request, "tournaments/create_tournament.html", {"users": users})
         else:
-            # Requête classique, renvoyer la page complète via base.html
             return render(request, "base.html", {
                 "initial_fragment": "tournaments/create_tournament.html",
                 "users": users
             })
 
-    name = request.POST.get("name")
-    player_ids = request.POST.getlist("players")
-    players = CustomUser.objects.filter(id__in=player_ids)
-    tournament = lobby.create_tournament(name, players)
-    channel_layer = get_channel_layer()
-    for player in players:
+    elif request.method == 'POST':
+        name = request.POST.get("name")
+        player_ids = request.POST.getlist("players")
+
+        if len(player_ids) < 2:
+            error_message = "Un tournoi doit comporter au minimum 2 joueurs."
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"success": False, "error": error_message}, status=400)
+            return render(request, "tournaments/create_tournament.html", {"error": error_message, "users": CustomUser.objects.filter(online_status=True)})
+
+        players = CustomUser.objects.filter(id__in=player_ids, online_status=True)
+        if players.count() < 2:
+            error_message = "Vous devez sélectionner au moins 2 joueurs connectés."
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"success": False, "error": error_message}, status=400)
+            return render(request, "tournaments/create_tournament.html", {"users": CustomUser.objects.filter(online_status=True), "error": error_message})
+
+        tournament = lobby.create_tournament(name=name, player_ids=[player.id for player in players])
+
+        channel_layer = get_channel_layer()
+
+        for player in players:
+            async_to_sync(channel_layer.group_send)(
+                f'user_{player.id}',
+                {
+                    "type": "system",
+                    "message": f"Attention : Vous avez été ajouté au tournoi '{tournament.name}'. Merci de respecter les règles."
+                }
+            )
+
         async_to_sync(channel_layer.group_send)(
-            f"user_{player.id}",
+            'tournaments',
             {
-                "type": "system",  # déclenche la méthode system dans le consumer
-                "message": f"Attention : Vous avez été ajouté au tournoi '{tournament.name}'. Merci de respecter les règles."
+                "type": "tournament_update",
+                "message": {
+                    "action": "new_tournament",
+                    "tournament_id": tournament.id,
+                    "tournament_name": tournament.name
+                }
             }
         )
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({
-            "success": True,
-            "tournament_id": tournament.id,
-            "message": "Tournoi créé avec succès."
-        }, status=201)
-    else:
-        return redirect("list_tournaments")
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": True,
+                "tournament_id": tournament.id,
+                "message": f"Tournoi '{tournament.name}' créé avec succès."
+            }, status=201)
+
+        return redirect("/tournaments/list/")
+
 
 
 @require_GET
