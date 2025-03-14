@@ -300,54 +300,60 @@ function loadProfileInfo(profileUsername) {
         }
 
         const friendList = document.getElementById("friend-list");
-        if (data.friend_list && data.friend_list.length > 0) {
-            friendList.innerHTML = "";
+        if (friendList) {
+            if (data.friend_list && data.friend_list.length > 0) {
+                friendList.innerHTML = "";
 
-            data.friend_list.forEach(friend => {
-                const li = document.createElement("li"); // Element in list (li)
-                li.classList.add("list-group-item");
+                data.friend_list.forEach(friend => {
+                    const li = document.createElement("li"); // Element in list (li)
+                    li.classList.add("list-group-item");
 
-                const avatar = document.createElement("img");
-                avatar.src = friend.avatar_url;
-                avatar.classList.add("rounded-circle", "me-2");
-                avatar.style.height = "30px";
-                avatar.style.width = "30px";
+                    const avatar = document.createElement("img");
+                    avatar.src = friend.avatar_url;
+                    avatar.classList.add("rounded-circle", "me-2");
+                    avatar.style.height = "30px";
+                    avatar.style.width = "30px";
 
-                const circle = document.createElement("span");
-                circle.style.display = "inline-block";
-                circle.style.width = "10px";
-                circle.style.height = "10px";
-                circle.style.borderRadius = "50%";
-                circle.style.marginRight = "8px";
-                circle.style.backgroundColor = friend.online_status ? "green" : "red";
+                    const circle = document.createElement("span");
+                    circle.style.display = "inline-block";
+                    circle.style.width = "10px";
+                    circle.style.height = "10px";
+                    circle.style.borderRadius = "50%";
+                    circle.style.marginRight = "8px";
+                    circle.style.marginLeft = "2px";
+                    circle.style.backgroundColor = friend.online_status ? "green" : "red";
 
-                console.log("BUTTON PASSED");
-                const deleteBtn = document.createElement("button");
-                deleteBtn.classList.add("btn", "btn-danger", "btn-sm", "delete-friend-btn");
-                deleteBtn.textContent = "❌";
-                deleteBtn.dataset.username = friend.username; // TO CHECK
+                    const friendLink = document.createElement("a");
+                    friendLink.textContent = friend.username;
+                    friendLink.href = `/account/${friend.username}`;
+                    friendLink.addEventListener("click", (e) => {
+                        e.preventDefault(); // To block a reload
+                        window.navigateTo(friendLink.href);
+                    });
 
-                const friendLink = document.createElement("a");
-                friendLink.textContent = friend.username;
-                friendLink.href = `/account/${friend.username}`;
-                friendLink.addEventListener("click", (e) => {
-                    e.preventDefault(); // To block a reload
-                    window.navigateTo(friendLink.href);
+                    const friendInfoDiv = document.createElement("div");
+                    friendInfoDiv.appendChild(avatar);
+                    friendInfoDiv.appendChild(friendLink);
+                    friendInfoDiv.appendChild(circle);
+
+                    if (profileUsername === window.currentUsername) {
+                        console.log("BUTTON PASSED");
+                        const deleteBtn = document.createElement("button");
+                        deleteBtn.classList.add("btn", "btn-danger", "btn-sm", "delete-friend-btn");
+                        deleteBtn.textContent = "❌";
+                        deleteBtn.dataset.username = friend.username; // TO CHECK
+                        friendInfoDiv.appendChild(deleteBtn);
+                    }
+
+                    li.appendChild(friendInfoDiv);
+                    friendList.appendChild(li);
                 });
-
-                const friendInfoDiv = document.createElement("div");
-                friendInfoDiv.appendChild(avatar);
-                friendInfoDiv.appendChild(friendLink);
-                friendInfoDiv.appendChild(circle);
-                friendInfoDiv.appendChild(deleteBtn);
-
-                li.appendChild(friendInfoDiv);
-                friendList.appendChild(li);
-            });
-            attachDeleteFriendEventListeners();
-        }
-        else {
-            friendList.innerHTML = "<p class='text-muted'>Vous n'avez pas encore d'amis.</p>";
+                if (profileUsername === window.currentUsername)
+                    attachDeleteFriendEventListeners();
+            }
+            else {
+                friendList.innerHTML = "<p class='text-muted'>Vous n'avez pas encore d'amis.</p>";
+            }
         }
     })
     .catch(err => {
@@ -443,3 +449,122 @@ function getCookie(name) {
     return cookieValue;
 }
 window.getCookie = getCookie;
+
+// Fonction pour uploader l'avatar
+function uploadAvatar(file) {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('avatar', file);
+    fetch('/update-avatar/', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    })
+    .then(response => response.ok ? response.json() : Promise.reject('Upload failed'))
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to update avatar: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred during upload');
+    });
+}
+window.uploadAvatar = uploadAvatar;
+
+// Ouvre la modal pour modifier le nom d'utilisateur
+function openUsernameModal() {
+    const usernameModal = new bootstrap.Modal(document.getElementById('usernameModal'));
+    document.getElementById('username-form').reset();
+    document.getElementById('username-error').style.display = 'none';
+    const viewedUsername = document.querySelector('[data-viewed-username]');
+    if (viewedUsername) {
+        document.getElementById('new-username').value = viewedUsername.getAttribute('data-viewed-username');
+    }
+    usernameModal.show();
+}
+window.openUsernameModal = openUsernameModal;
+
+// Valide et soumet le changement de nom d'utilisateur
+function changeUsername() {
+    const newUsername = document.getElementById('new-username').value.trim();
+    if (!newUsername) {
+        document.getElementById('username-error').textContent = 'Le nom d\'utilisateur ne peut pas être vide.';
+        document.getElementById('username-error').style.display = 'block';
+        return;
+    }
+    document.getElementById('username-error').style.display = 'none';
+    fetch('/change-username/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ new_username: newUsername })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Nom d\'utilisateur changé avec succès!');
+            window.location.reload();
+        } else {
+            document.getElementById('username-error').textContent = data.error || 'Échec du changement de nom d\'utilisateur.';
+            document.getElementById('username-error').style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Une erreur est survenue lors du changement de nom d\'utilisateur.');
+    });
+}
+window.changeUsername = changeUsername;
+
+// Ouvre la modal de changement de mot de passe
+function openPasswordModal() {
+    const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+    document.getElementById('password-form').reset();
+    document.getElementById('password-mismatch').style.display = 'none';
+    passwordModal.show();
+}
+window.openPasswordModal = openPasswordModal;
+
+// Valide et soumet le changement de mot de passe
+function changePassword() {
+    const currentPassword = document.getElementById('current-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        alert('Veuillez remplir tous les champs.');
+        return;
+    }
+    if (newPassword !== confirmPassword) {
+        document.getElementById('password-mismatch').style.display = 'block';
+        return;
+    }
+    document.getElementById('password-mismatch').style.display = 'none';
+    const formData = new FormData();
+    formData.append('current_password', currentPassword);
+    formData.append('new_password', newPassword);
+    fetch('/change-password/', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Mot de passe changé avec succès!');
+            bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+        } else {
+            alert(data.error || 'Échec du changement de mot de passe.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Une erreur est survenue lors du changement de mot de passe.');
+    });
+}
+window.changePassword = changePassword;

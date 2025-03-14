@@ -26,7 +26,7 @@ from .views.main_views import register_view
 from .logic.game import *
 from django.conf import settings
 from django.conf.urls.static import static
-from pong.views.main_views import home_view, game_view, update_a2f, account_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view, get_player_matches, update_avatar_view, change_password_view
+from pong.views.main_views import home_view, game_view, update_a2f, account_view, chat_view, get_user_info, login_view, CookieTokenRefreshView, logout_view, get_player_matches, update_avatar_view, change_password_view, get_player_matches, change_username_view
 from pong.views import oauth42_views
 from pong.views.oauth42_views import auth_42_callback, auth_42_login
 from pong.views.friend_views import (
@@ -37,6 +37,7 @@ from pong.views.friend_views import (
     get_friendship_status,
     received_friend_requests,
     delete_friend,
+    delete_friend,
 )
 from .views.tournament_views import (
     create_tournament_view,
@@ -44,9 +45,10 @@ from .views.tournament_views import (
     start_match_game_view,
     list_tournaments_view,
     report_match_result_view,
+    choose_tournament_alias_view,
 )
 
-
+INVITATIONS = {} # CHECK SI ON MET PAS ATTRIBUT DE CLASSE !!!
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -73,6 +75,7 @@ urlpatterns = [
     path('tournaments/match/<int:match_id>/start_game/', start_match_game_view, name='start_match_game'),
     path('tournaments/list/', list_tournaments_view, name='list_tournaments'),
     path('tournaments/match/<int:match_id>/report_result/', report_match_result_view, name='report_match_result'),
+    path('tournaments/<int:tournament_id>/choose_alias/', choose_tournament_alias_view, name='choose_tournament_alias'),
     path('api/friends/send/<str:username>/', send_friend_request, name="send_friend_request"),
     path('api/friends/accept/<int:request_id>/', accept_friend_request, name="accept_friend_request"),
     path('api/friends/decline/<int:request_id>/', decline_friend_request, name="decline_friend_request"),
@@ -84,6 +87,7 @@ urlpatterns = [
     path('auth/42/', auth_42_login, name='auth_42_login'),    path('api/matches/<str:username>/', get_player_matches, name='get_player_matches'),
     path('update-avatar/', update_avatar_view, name='update_avatar'),
     path('change-password/', change_password_view, name='change_password'),
+    path('change-username/', change_username_view, name='change_username'),
 
 ]
 

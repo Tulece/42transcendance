@@ -1,0 +1,13 @@
+<!-- templates/tournaments/choose_alias.html -->
+{% load static %}
+<div class="container">
+  <h2>Choisissez votre alias pour le tournoi "{{ tournament.name }}"</h2>
+  <form id="chooseAliasForm" action="{% url 'choose_tournament_alias' tournament.id %}" method="POST">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="tournament_alias">Alias :</label>
+      <input type="text" id="tournament_alias" name="tournament_alias" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-primary mt-2">Enregistrer</button>
+  </form>
+</div>

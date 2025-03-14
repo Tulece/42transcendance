@@ -92,7 +92,7 @@
                 if (window.initChat) {
                     window.initChat();
                 }
-            });         
+            });
         } else if (url.includes("/login")) {
             loadScriptOnce("/static/js/login.js", () => {
                 console.log("Script de connexion chargé.");
@@ -122,7 +122,7 @@
     // Charger la page initiale lors du chargement du DOM
     document.addEventListener("DOMContentLoaded", async function () {
         await updateUserInfo(); // Check authentification + chat
-        
+
         if (location.pathname === "/" || location.pathname === "") {
             navigateTo("/", false);
         } else {
@@ -164,11 +164,19 @@ function updateHeaderUserInfo(userInfo) {
     const userDisplay = document.getElementById("user-display");
     const loginLink = document.getElementById("login-link");
     const logoutBtn = document.getElementById("logout-btn");
+    let registerItem = document.getElementById("register-link");
+
+    const navbar = document.querySelector(".navbar-nav"); // Récupère la liste des liens de navigation
 
     if (userInfo) {
+        // Utilisateur connecté
         userDisplay.textContent = `Bonjour, ${userInfo.username}`;
-        loginLink.style.display = "none"; // Cache le lien "Connexion"
-        logoutBtn.style.display = "inline"; // Affiche le bouton "Déconnexion"
+        loginLink.style.display = "none"; // Cache "Connexion"
+        logoutBtn.style.display = "inline"; // Affiche "Déconnexion"
+
+        if (registerItem) {
+            registerItem.style.display = "none";  // Cache "S'inscrire" au lieu de le supprimer
+        }
 
         logoutBtn.onclick = async () => {
             try {
@@ -184,6 +192,7 @@ function updateHeaderUserInfo(userInfo) {
                 if (response.ok) {
                     console.log("Déconnexion réussie.");
                     updateHeaderUserInfo(null);
+                    await updateUserInfo();
                 } else {
                     console.error("Erreur lors de la déconnexion :", response.status);
                 }
@@ -192,11 +201,29 @@ function updateHeaderUserInfo(userInfo) {
             }
         };
     } else {
+        // Utilisateur déconnecté
         userDisplay.textContent = "Non connecté";
         loginLink.style.display = "inline";
         logoutBtn.style.display = "none";
+
+        if (!registerItem) {
+            // Recrée "S'inscrire" dynamiquement en le plaçant au bon endroit
+            registerItem = document.createElement("li");
+            registerItem.className = "nav-item";
+            registerItem.id = "register-link";
+            registerItem.innerHTML = `<a href="/register" class="nav-link spa-link">S'inscrire</a>`;
+
+            // Trouver "Mon compte" pour insérer "S'inscrire" juste avant
+            const accountItem = document.querySelector("a[href='/account']")?.parentElement;
+            if (navbar && accountItem) {
+                navbar.insertBefore(registerItem, accountItem);
+            }
+        } else {
+            registerItem.style.display = "block"; // Réaffiche "S'inscrire"
+        }
     }
 }
+
 
 async function updateUserInfo() {
     try {
@@ -219,8 +246,8 @@ async function updateUserInfo() {
             if (window.initChat && !window.chatInitialized) {
                 console.log("Initialisation du chat ...");
                 window.initChat();
-            } 
-        } 
+            }
+        }
         // else if (response.status === 403) {
         //     console.info("Utilisateur non connecté.");
         //     updateHeaderUserInfo(null);

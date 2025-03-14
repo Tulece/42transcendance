@@ -132,6 +132,10 @@ window.initChat = async () => {
         addSystemMessage(data.message);
       } else if (data.type === "user_list") {
         updateUserList(data.users, data.blocked_users || []);
+      } else if (data.type === "game_invitation") {
+        showGameInvitation(data);
+      } else if (data.type === "invitation_expired") {
+        removeInvitation(data.invite_id);
       }
     }
 
@@ -162,6 +166,8 @@ window.initChat = async () => {
 
     // Add un message privé
     function addPrivateMessageToChat(username, message) {
+      if (message.length === 0)
+        return;
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", "private");
       messageDiv.innerHTML = `<span class="username">${username} (privé) :</span> ${message}`;
@@ -178,7 +184,7 @@ window.initChat = async () => {
       if (message.toLowerCase().includes("tournoi")) {
 		messageDiv.style.color = "red";
 	  }
-      messageDiv.innerText = message;
+      messageDiv.innerHTML = message;
       messageList.appendChild(messageDiv);
 
       saveChatHistory();
@@ -222,33 +228,42 @@ window.initChat = async () => {
 
         if (isCollapsed) {
             // Réouvrir le chat
+            chatWrapper.style.pointerEvents = "auto";
             chatContainer.classList.remove("collapsed");
             chatToggle.innerText = "Réduire";
             userListContainer.classList.remove("collapsed");
             userListToggle.innerText = "Réduire";
-        } else {
-            // Réduire le chat
-            chatContainer.classList.add("collapsed");
-            chatToggle.innerText = "Ouvrir";
-            userListContainer.classList.add("collapsed");
-            userListToggle.innerText = "Ouvrir";
-        }
+            }
+            else {
+              chatWrapper.style.pointerEvents = "none";
+              userListContainer.classList.add("collapsed");
+              userListToggle.innerText = "Ouvrir";
+              userListToggle,this.style.pointerEvents = "auto";
+              chatContainer.classList.add("collapsed");
+              chatToggle.innerText = "Ouvrir";
+              chatToggle.style.pointerEvents = "auto";
+            }
     });
 
     userListToggle.addEventListener("click", function () {
       const isCollapsed = userListContainer.classList.contains("collapsed");
 
       if (isCollapsed) {
+        chatWrapper.style.pointerEvents = "auto";
         userListContainer.classList.remove("collapsed");
         userListToggle.innerText = "Réduire"; // Or textContent TO TRY !! (maybe is not taking css rules into account so not really relevant here) + inner : can add balises, styles (gras), etc.
+        //Here, change the z_index of chat wrapper so it doesn't bother other elements
         chatContainer.classList.remove("collapsed");
         chatToggle.innerText = "Réduire";
       }
       else {
+        chatWrapper.style.pointerEvents = "none";
         userListContainer.classList.add("collapsed");
         userListToggle.innerText = "Ouvrir";
+        userListToggle,this.style.pointerEvents = "auto";
         chatContainer.classList.add("collapsed");
         chatToggle.innerText = "Ouvrir";
+        chatToggle.style.pointerEvents = "auto";
       }
 
     });
@@ -276,6 +291,27 @@ window.initChat = async () => {
       }
     });
 
+    const inviteToGameBtn = document.getElementById("invite-to-game-btn");
+    inviteToGameBtn.addEventListener("click", () => {
+      const recipient = privateRecipient.value; // le <select>
+
+      if (!recipient) {
+        addSystemMessage("Veuillez sélectionner un destinataire pour l'invitation.");
+        return;
+      }
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            action: "invite_to_game",
+            target_username: recipient
+          })
+        );
+      } else {
+        addSystemMessage("WebSocket non connecté.");
+      }
+    });
+
     // Check chq user de la liste et crée un élément html pour le display
     function updateUserList(users, blocked) {
       console.log("👥 Mise à jour de la liste des utilisateurs :", users);
@@ -293,40 +329,45 @@ window.initChat = async () => {
       friendsList.innerHTML = "";
 
       users.forEach((user) => {
-          const userItem = document.createElement("li");
-          userItem.className = "list-group-item d-flex justify-content-between align-items-center";
+        
+        if (user.username === window.currentUsername)
+          return;
 
-           // Crée un lien cliquable vers le profil
-          const usernameLink = document.createElement("a"); // lien vers le user profile
-          usernameLink.href = `/account/${user.username}`;
-          usernameLink.textContent = user.username;
-          usernameLink.classList.add("chat-username");
-          usernameLink.style.cursor = "pointer";
-          usernameLink.style.fontWeight = "bold";
-          usernameLink.addEventListener("click", (event) => {
-            event.preventDefault(); // Empêche le rechargement de la page
-            window.navigateTo(`/account/${user.username}`);
-          });
+        const userItem = document.createElement("li");
+        userItem.className = "list-group-item d-flex justify-content-between align-items-center";
 
-          userItem.appendChild(usernameLink); // Insert element in the <ul>
+          // Crée un lien cliquable vers le profil
+        const usernameLink = document.createElement("a"); // lien vers le user profile
+        usernameLink.href = `/account/${user.username}`;
+        usernameLink.textContent = user.username;
+        usernameLink.classList.add("chat-username");
+        usernameLink.style.cursor = "pointer";
+        usernameLink.style.fontWeight = "bold";
+        usernameLink.addEventListener("click", (event) => {
+          event.preventDefault(); // Empêche le rechargement de la page
+          window.navigateTo(`/account/${user.username}`);
+        });
 
-          // Check si user est bloqué
-          const isBlocked = blockedUsers.has(user.username);
+        userItem.appendChild(usernameLink); // Insert element in the <ul>
 
-          // Create bouton de blocage/déblocage
-          const blockButton = document.createElement("button");
-          blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
-          blockButton.textContent = isBlocked ? "Débloquer" : "Bloquer";
-          blockButton.classList.add("custom-padding");
-          blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
-          blockButton.addEventListener("click", () => toggleBlockUser(user.username));
+        // Check si user est bloqué
+        const isBlocked = blockedUsers.has(user.username);
 
-          userItem.appendChild(blockButton);
+        // Create bouton de blocage/déblocage
+        const blockButton = document.createElement("button");
+        blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
+        blockButton.textContent = isBlocked ? "Débloquer" : "Bloquer";
+        blockButton.style.maxWidth = "180px";
+        blockButton.classList.add("custom-padding", "w-100"); // w-100 : take all the width
+        blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
+        blockButton.addEventListener("click", () => toggleBlockUser(user.username));
 
-          if (myFriends.has(user.username))
-            friendsList.appendChild(userItem);
-          else
-            userList.appendChild(userItem); // Exp.
+        userItem.appendChild(blockButton);
+
+        if (myFriends.has(user.username))
+          friendsList.appendChild(userItem);
+        else
+          userList.appendChild(userItem); // Exp.
       });
 
       updatePrivateRecipientList(users);
@@ -341,12 +382,16 @@ window.initChat = async () => {
           return;
       }
       privateRecipient.removeAttribute("disabled");
+      console.log("users.username: ", users.username);
+      console.log("window.currentUsername: ", window.currentUsername);
 
       users.forEach((user) => {
-          const option = document.createElement("option");
-          option.value = user.username;
-          option.textContent = user.username;
-          privateRecipient.appendChild(option);
+        if (user.username === window.currentUsername)
+          return;
+        const option = document.createElement("option");
+        option.value = user.username;
+        option.textContent = user.username;
+        privateRecipient.appendChild(option);
       });
     }
 
@@ -404,6 +449,42 @@ window.initChat = async () => {
           messages.forEach(msg => {
               messageList.innerHTML += msg;
           });
+      }
+    }
+
+    function showGameInvitation(inviteData) {
+
+        const now = Date.now() / 1000;
+        if (inviteData.expires_at < now) {
+          console.warn(`Invitation de ${inviteData.from} expirée, non affichée.`);
+          return;
+        }
+
+      const invitationDiv = document.createElement("div");
+      invitationDiv.classList.add("message", "system");// Style system message
+      invitationDiv.id = "invite_" + inviteData.invite_id;
+
+      const textNode = document.createTextNode(`${inviteData.from} vous invite à jouer à Pong ! `);
+      invitationDiv.appendChild(textNode);
+
+
+      const link = document.createElement("a");
+      link.href = `/game?game_id=${inviteData.game_id}&mode=private&invite_id=${inviteData.invite_id}&role=player2`;
+      link.innerText = "Vers le jeu Pong";
+      link.target = "_blank";
+
+      invitationDiv.appendChild(document.createElement("br")); //Saut de ligne
+      invitationDiv.appendChild(link);
+
+      const messageList = document.getElementById("message-list");
+      if (messageList)
+        messageList.appendChild(invitationDiv);
+    }
+
+    function removeInvitation(inviteId) {
+      const invitation = document.getElementById("invite_" + inviteId);
+      if (invitation) {
+        invitation.remove();
       }
     }
 

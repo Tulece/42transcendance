@@ -296,13 +296,14 @@ def register_view(request):
         avatar_name = None
         if avatar:
             fs = FileSystemStorage(location='media/avatars/')
-            avatar_name = fs.save(avatar.name, avatar)
+            avatar_name = fs.save(f"{username}.jpg", avatar)
 
         # Création de l'utilisateur
         user = User.objects.create(
             username=username,
             email=email,
-            password=make_password(password)
+            password=make_password(password),
+            avatar_url = '/media/avatars/' + avatar_name if avatar_name else '/media/avatars/default.jpg'
         )
 
         # Génération des tokens JWT (optionnel si on veut auto-connecter l’utilisateur après l’inscription)
@@ -364,7 +365,7 @@ def account_view(request, username=None):
                 {
                     "username": friend.username,
                     "online_status": friend.online_status,
-                    "avatar_url": friend.avatar.url if friend.avatar else "/media/avatars/default.jpg"
+                    "avatar_url": friend.avatar_url,
                 }
                 for friend in viewed_user.friends.all()
             ]
@@ -402,7 +403,7 @@ def get_user_info(request):
     user = request.user
     return Response({
         "username": user.username,
-        "avatar_url": f"/media/avatars/{user.username}.jpg" if user.username else None
+        "avatar_url": user.avatar_url
     })
 
 class CookieTokenRefreshView(TokenRefreshView):
@@ -475,122 +476,63 @@ def get_player_matches(request, username):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_avatar_view(request):
-    """
-    API endpoint to handle avatar updates for authenticated users.
-    Accepts only POST requests with an image file.
-    """
+    """API pour mettre à jour l'avatar de l'utilisateur"""
     if 'avatar' not in request.FILES:
-        return JsonResponse({
-            "success": False,
-            "error": "No image file provided"
-        }, status=400)
-
+        return JsonResponse({"success": False, "error": "No image file provided"}, status=400)
     avatar_file = request.FILES['avatar']
-    
-    # Validate file type
     allowed_types = ['image/jpeg', 'image/png', 'image/gif']
     if avatar_file.content_type not in allowed_types:
-        return JsonResponse({
-            "success": False,
-            "error": "Invalid file type. Only JPEG, PNG, and GIF are allowed."
-        }, status=400)
-    
-    # Validate file size (max 5MB)
+        return JsonResponse({"success": False, "error": "Invalid file type. Only JPEG, PNG, and GIF are allowed."}, status=400)
     if avatar_file.size > 5 * 1024 * 1024:
-        return JsonResponse({
-            "success": False,
-            "error": "File too large. Maximum size is 5MB."
-        }, status=400)
-
+        return JsonResponse({"success": False, "error": "File too large. Maximum size is 5MB."}, status=400)
     try:
         user = request.user
-        
-        # Determine file extension
-        file_ext = os.path.splitext(avatar_file.name)[1].lower()
-        if not file_ext:
-            file_ext = '.jpg'  # Default extension
-        
-        # Create the filename
+        file_ext = os.path.splitext(avatar_file.name)[1].lower() or '.jpg'
         avatar_filename = f"{user.username}{file_ext}"
-        
-        # Save the avatar to the user's avatar field
-        # This will automatically use the upload_to path from the model
         if user.avatar:
-            # Delete old avatar file if it exists
             user.avatar.delete(save=False)
-        
-        # Read the file content
         avatar_content = ContentFile(avatar_file.read())
-        
-        # Save the new avatar
         user.avatar.save(avatar_filename, avatar_content, save=True)
-        
-        return JsonResponse({
-            "success": True,
-            "message": "Avatar updated successfully",
-            "avatar_url": user.avatar.url
-        })
-    
+        return JsonResponse({"success": True, "message": "Avatar updated successfully", "avatar_url": user.avatar.url})
     except Exception as e:
-        return JsonResponse({
-            "success": False,
-            "error": f"Failed to update avatar: {str(e)}"
-        }, status=500)
+        return JsonResponse({"success": False, "error": f"Failed to update avatar: {str(e)}"}, status=500)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_password_view(request):
-    """
-    API endpoint to change a user's password.
-    Requires authentication and validates the current password before setting a new one.
-    """
+    """API pour changer le mot de passe de l'utilisateur"""
     user = request.user
-    
-    # Check if the user is a 42 user (they don't have a password to change)
     if user.is_42_user:
-        return JsonResponse({
-            "success": False,
-            "error": "42 users cannot change their password."
-        }, status=403)
-    
-    # Get passwords from request
+        return JsonResponse({"success": False, "error": "42 users cannot change their password."}, status=403)
     current_password = request.POST.get('current_password')
     new_password = request.POST.get('new_password')
-    
-    # Validate that both passwords were provided
     if not current_password or not new_password:
-        return JsonResponse({
-            "success": False,
-            "error": "Both current and new passwords are required."
-        }, status=400)
-    
-    # Validate new password length
+        return JsonResponse({"success": False, "error": "Both current and new passwords are required."}, status=400)
     if len(new_password) < 8:
-        return JsonResponse({
-            "success": False,
-            "error": "New password must be at least 8 characters long."
-        }, status=400)
-    
-    # Verify current password
+        return JsonResponse({"success": False, "error": "New password must be at least 8 characters long."}, status=400)
     if not authenticate(username=user.username, password=current_password):
-        return JsonResponse({
-            "success": False,
-            "error": "Current password is incorrect."
-        }, status=401)
-    
+        return JsonResponse({"success": False, "error": "Current password is incorrect."}, status=401)
     try:
-        # Set the new password and save the user
         user.password = make_password(new_password)
         user.save()
-        
-        return JsonResponse({
-            "success": True,
-            "message": "Password changed successfully."
-        })
-        
+        return JsonResponse({"success": True, "message": "Password changed successfully."})
     except Exception as e:
-        return JsonResponse({
-            "success": False,
-            "error": f"Failed to change password: {str(e)}"
-        }, status=500)
+        return JsonResponse({"success": False, "error": f"Failed to change password: {str(e)}"}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_username_view(request):
+    """API pour changer le nom d'utilisateur"""
+    user = request.user
+    new_username = request.data.get('new_username')
+    if not new_username:
+        return JsonResponse({"success": False, "error": "New username is required."}, status=400)
+    if User.objects.filter(username=new_username).exclude(id=user.id).exists():
+        return JsonResponse({"success": False, "error": "This username is already taken."}, status=400)
+    try:
+        user.username = new_username
+        user.save()
+        return JsonResponse({"success": True, "message": "Username changed successfully.", "username": new_username})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": f"Failed to change username: {str(e)}"}, status=500)
 

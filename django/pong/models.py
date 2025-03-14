@@ -1,9 +1,12 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class CustomUser(AbstractUser):
     display_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
-    avatar = models.ImageField(upload_to='avatars/', default='avatars/default.jpg')
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    avatar_url = models.CharField(default='/media/avatars/default.jpg')
     online_status = models.BooleanField(default=False)
 
     # Un user peut bloquer d'autres users
@@ -17,6 +20,7 @@ class CustomUser(AbstractUser):
     friends = models.ManyToManyField(
         'self',
         symmetrical=True, # A ami avec B donc B ami avec A
+        #related_name='friends_list',
         #related_name='friends_list',
         blank=True
     )
@@ -33,6 +37,15 @@ class CustomUser(AbstractUser):
     refresh_token = models.CharField(max_length=255, null=True, blank=True)
     token_expires_at = models.DateTimeField(null=True, blank=True)
 
+@receiver(post_save, sender=CustomUser)
+def update_avatar_url(sender, instance, created, **kwargs):
+    """Update the avatar_url field when the avatar field is changed."""
+    if instance.avatar:
+        if instance.avatar_url != instance.avatar.url:
+            instance.avatar_url = instance.avatar.url
+            # Use update to avoid triggering this signal again
+            CustomUser.objects.filter(pk=instance.pk).update(avatar_url=instance.avatar.url)
+
     def __str__(self):
         return self.username
 
@@ -40,7 +53,7 @@ class CustomUser(AbstractUser):
 class Tournament(models.Model):
     name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
-    players = models.ManyToManyField(CustomUser, related_name="tournaments")
+    players = models.ManyToManyField(CustomUser, through='TournamentParticipation', related_name="tournaments")
     is_active = models.BooleanField(default=True)
 
 class BaseMatch(models.Model):
@@ -83,19 +96,19 @@ class FriendRequest(models.Model):
     def __str__(self):
         return f"{self.sender.username} → {self.receiver.username} ({self.status})"
 
-class FriendRequest(models.Model):
-    sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="sent_requests")
-    receiver = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="received_requests")
-    status = models.CharField(
-        max_length=20,
-        choices=[("pending", "En attente"), ("accepted", "Acceptée"), ("declined", "Refusée")],
-        default="pending"
-    ) # Stocker un status sur la demande
-    created_at = models.DateTimeField(auto_now_add=True)
+from django.db import models
+from .models import Tournament, CustomUser  # ou le chemin correct
+
+class TournamentParticipation(models.Model):
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name="participations")
+    player = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="tournament_participations")
+    tournament_alias = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
-        unique_together = ('sender', 'receiver')  # Empêche de send pls demandes au même user
+        unique_together = [
+            ('tournament', 'player'),
+            ('tournament', 'tournament_alias'),  # pour forcer l'unicité de l'alias dans le tournoi
+        ]
 
-    def __str__(self):
-        return f"{self.sender.username} → {self.receiver.username} ({self.status})"
-
+    def get_display_name(self):
+        return self.tournament_alias or self.player.username

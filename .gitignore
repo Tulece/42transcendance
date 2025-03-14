@@ -1,0 +1,42 @@
+# Ignorer les fichiers compilés Python
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorer les dossiers __pycache__
+__pycache__/
+
+# Ignorer les environnements virtuels
+venv/
+.env/
+.venv/
+env/
+ENV/
+env.bak/
+.venv.bak/
+
+# Ignorer les fichiers de configuration IDE
+.idea/
+.vscode/
+
+# Ignorer les fichiers générés par des outils
+*.log
+*.bak
+*.swp
+*.tmp
+*.DS_Store
+Thumbs.db
+
+# Ignorer les fichiers spécifiques à certains systèmes
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Ignorer les migrations Django
+*/migrations/
+*/migrations/*.py
+!*/migrations/__init__.py
+
+# Ignorer les avatars
+/media/avatars/

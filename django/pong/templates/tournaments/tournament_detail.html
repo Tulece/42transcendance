@@ -1,4 +1,5 @@
 {% load static %}
+{% load tournament_tags %}
 
 <div id="tournamentContainer" data-tournament-id="{{ tournament.id }}">
   <h2>{{ tournament.name }}</h2>
@@ -6,32 +7,45 @@
     {% for match in matches %}
       <li class="list-group-item">
         Round {{ match.round_number }} :
-        {{ match.player1.username }} vs
+        {% tournament_display_name tournament match.player1 as player1_display %}
         {% if match.player2 %}
-          {{ match.player2.username }}
+          {% tournament_display_name tournament match.player2 as player2_display %}
+          {{ player1_display }} vs {{ player2_display }}
         {% else %}
-          Bye
+          {{ player1_display }} vs Bye
         {% endif %}
 
         {% if tournament.is_active %}
           {% if not match.winner %}
-            {% if user.id == match.player1.id or user.id == match.player2.id %}
+            {% if user.id == match.player1.id %}
               <button class="btn btn-success mt-2"
-                data-match-id="{{ match.id }}"
-                data-tournament-id="{{ tournament.id }}"
-                data-player1="{{ match.player1.id }}"
-                data-player2="{% if match.player2 %}{{ match.player2.id }}{% endif %}"
-                onclick="startMatch(this.dataset.matchId, this.dataset.tournamentId, this)">
+                      data-match-id="{{ match.id }}"
+                      data-tournament-id="{{ tournament.id }}"
+                      data-player1="{{ match.player1.id }}"
+                      data-player2="{% if match.player2 %}{{ match.player2.id }}{% endif %}"
+                      onclick="startMatch(this.dataset.matchId, this.dataset.tournamentId, this)">
                 Lancer la partie
               </button>
+            {% elif match.player2 %}
+              {% if user.id == match.player2.id %}
+                <button class="btn btn-success mt-2"
+                        data-match-id="{{ match.id }}"
+                        data-tournament-id="{{ tournament.id }}"
+                        data-player1="{{ match.player1.id }}"
+                        data-player2="{{ match.player2.id }}"
+                        onclick="startMatch(this.dataset.matchId, this.dataset.tournamentId, this)">
+                  Lancer la partie
+                </button>
+              {% endif %}
             {% endif %}
           {% else %}
-            (Gagnant : {{ match.winner.username }})
+            {% tournament_display_name tournament match.winner as winner_display %}
+            (Gagnant : {{ winner_display }})
           {% endif %}
         {% else %}
-          {# Le tournoi est terminé, on n'affiche que les résultats #}
           {% if match.winner %}
-            (Gagnant : {{ match.winner.username }})
+            {% tournament_display_name tournament match.winner as winner_display %}
+            (Gagnant : {{ winner_display }})
           {% else %}
             (Match non joué)
           {% endif %}

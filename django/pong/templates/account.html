@@ -1,4 +1,4 @@
-<!-- account.html-->
+<!-- account.html - Version fusionnée -->
 {% load static %}
 <div class="container mt-4">
     <div class="card shadow-lg p-4">
@@ -8,19 +8,25 @@
             <h2 class="text-center mb-3">Profil de {{ viewed_user.username }}</h2>
         {% endif %}
 
-        {% if viewed_user.avatar %}
         <div class="text-center mb-3">
             {% if viewed_user.id == user.id %}
-                <img src="{{ viewed_user.avatar.url }}" alt="Avatar" class="rounded-circle border border-secondary avatar-clickable" width="120" height="120" id="profile-avatar" onclick="document.getElementById('avatar-upload').click();">
+                <img src="{{ viewed_user.avatar_url }}" alt="Avatar" class="rounded-circle border border-secondary avatar-clickable" width="120" height="120" id="profile-avatar" onclick="document.getElementById('avatar-upload').click();">
                 <input type="file" id="avatar-upload" name="avatar" style="display: none;" accept="image/*" onchange="uploadAvatar(this.files[0])">
             {% else %}
-                <img src="{{ viewed_user.avatar.url }}" alt="Avatar" class="rounded-circle border border-secondary" width="120" height="120">
+                <img src="{{ viewed_user.avatar_url }}" alt="Avatar" class="rounded-circle border border-secondary" width="120" height="120">
             {% endif %}
         </div>
-        {% endif %}
 
         <p>
-            <strong>Nom d'utilisateur :</strong> {{ viewed_user.username }}
+            <strong>Nom d'utilisateur :</strong>
+            {% if viewed_user.id == user.id %}
+                <span data-viewed-username="{{ viewed_user.username }}">{{ viewed_user.username }}</span>
+                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="openUsernameModal()">
+                    <i class="bi bi-pencil-square"></i> Edit
+                </button>
+            {% else %}
+                {{ viewed_user.username }}
+            {% endif %}
             <span id="online-status" class="status-indicator" style="display: none;"></span>
         </p>
 
@@ -40,10 +46,9 @@
                 {% if user.is_a2f_enabled %}Activé{% else %}Désactivé{% endif %}
             </span>
         </div>
+        <button id="save-btn" class="btn btn-primary w-100 mt-3" onclick="saveChanges()">Enregistrer</button>
         {% endif %}
 
-        <button id="save-btn" class="btn btn-primary w-100 mt-3" onclick="saveChanges()">Enregistrer</button>
-        
         {% if viewed_user.id == user.id and not user.is_42_user %}
         <button id="change-password-btn" class="btn btn-secondary w-100 mt-2" onclick="openPasswordModal()">Change Password</button>
         {% endif %}
@@ -56,21 +61,18 @@
         {% else %}
         <div id="received-friend-requests">
             <h3>Demandes d'amis reçues</h3>
-            <div id="friend-requests-list">
-            </div>
+            <div id="friend-requests-list"></div>
         </div>
         {% endif %}
 
         {% if viewed_user.id == user.id or is_friend %}
-          <div class="mt-3" id="friend-list-section">
+        <div class="mt-3" id="friend-list-section">
             <h4>Liste d'amis de {{ viewed_user.username }}</h4>
             <ul id="friend-list" class="list-group"></ul>
-          </div>
+        </div>
         {% endif %}
     </div>
     <br>
-    {% comment %} <p><strong>Played Matches :</strong> {{ user.match_played }}</p>
-    <p><strong>Won Matches :</strong> {{ user.wins }}</p> {% endcomment %}
     <div id="matches-list"></div>
 </div>
 
@@ -82,132 +84,19 @@
         border-radius: 50%;
         margin-left: 5px;
     }
-    
     .avatar-clickable {
         cursor: pointer;
         transition: opacity 0.3s;
     }
-    
     .avatar-clickable:hover {
         opacity: 0.8;
     }
-
 </style>
 
-<!-- <script src="{% static 'js/account.js' %}"></script> -->
+<!-- Inclusion du script account.js -->
+<script src="{% static 'js/account.js' %}"></script>
 
-<script>
-    function uploadAvatar(file) {
-        if (!file) {
-            return;
-        }
-        
-        const formData = new FormData();
-        formData.append('avatar', file);
-        
-        fetch('/update-avatar/', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            }
-            throw new Error('Upload failed');
-        })
-        .then(data => {
-            if (data.success) {
-                // Refresh the page to show the new avatar
-                window.location.reload();
-            } else {
-                alert('Failed to update avatar: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred during upload');
-        });
-    }
-    
-    // Function to get CSRF token from cookies
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-    
-    // Function to open the password change modal
-    function openPasswordModal() {
-        const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
-        // Clear previous form data
-        document.getElementById('password-form').reset();
-        document.getElementById('password-mismatch').style.display = 'none';
-        passwordModal.show();
-    }
-    
-    // Function to validate and submit the password change
-    function changePassword() {
-        const currentPassword = document.getElementById('current-password').value;
-        const newPassword = document.getElementById('new-password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
-        
-        // Basic validation
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            alert('Veuillez remplir tous les champs.');
-            return;
-        }
-        
-        if (newPassword !== confirmPassword) {
-            document.getElementById('password-mismatch').style.display = 'block';
-            return;
-        }
-        
-        // Reset validation message
-        document.getElementById('password-mismatch').style.display = 'none';
-        
-        // Create form data
-        const formData = new FormData();
-        formData.append('current_password', currentPassword);
-        formData.append('new_password', newPassword);
-        
-        // Send request to backend
-        fetch('/change-password/', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Mot de passe changé avec succès!');
-                // Close the modal
-                bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
-            } else {
-                alert(data.error || 'Échec du changement de mot de passe.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Une erreur est survenue lors du changement de mot de passe.');
-        });
-    }
-</script>
-
-<!-- Password Change Modal -->
+<!-- Modal de changement de mot de passe -->
 <div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -218,7 +107,7 @@
       <div class="modal-body">
         <form id="password-form">
           <div class="mb-3">
-            <label for="current-password" class="form-label">Mot de passe acctuel</label>
+            <label for="current-password" class="form-label">Mot de passe actuel</label>
             <input type="password" class="form-control" id="current-password" required>
           </div>
           <div class="mb-3">
@@ -226,7 +115,7 @@
             <input type="password" class="form-control" id="new-password" required>
           </div>
           <div class="mb-3">
-            <label for="confirm-password" class="form-label">Nouveau mot de passe</label>
+            <label for="confirm-password" class="form-label">Confirmer le nouveau mot de passe</label>
             <input type="password" class="form-control" id="confirm-password" required>
           </div>
           <div class="alert alert-danger" id="password-mismatch" style="display: none;">
@@ -235,8 +124,33 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
         <button type="button" class="btn btn-primary" onclick="changePassword()">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal d'édition du nom d'utilisateur -->
+<div class="modal fade" id="usernameModal" tabindex="-1" aria-labelledby="usernameModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="usernameModalLabel">Modifier le nom d'utilisateur</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="username-form">
+          <div class="mb-3">
+            <label for="new-username" class="form-label">Nouveau nom d'utilisateur</label>
+            <input type="text" class="form-control" id="new-username" required>
+          </div>
+          <div class="alert alert-danger" id="username-error" style="display: none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="changeUsername()">Enregistrer</button>
       </div>
     </div>
   </div>
