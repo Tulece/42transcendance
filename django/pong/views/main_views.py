@@ -455,6 +455,7 @@ def get_player_matches(request, username):
     global_stats.append({
         'total_matches': user.match_played,
         'total_wins': user.wins,
+        'total_loses': user.loses,
     })
     for match in matches:
         match_data = {

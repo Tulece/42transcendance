@@ -5,7 +5,7 @@ from django.dispatch import receiver
 
 class CustomUser(AbstractUser):
     display_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    #avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     avatar_url = models.CharField(default='/media/avatars/default.jpg')
     online_status = models.BooleanField(default=False)
 
@@ -37,17 +37,17 @@ class CustomUser(AbstractUser):
     refresh_token = models.CharField(max_length=255, null=True, blank=True)
     token_expires_at = models.DateTimeField(null=True, blank=True)
 
-@receiver(post_save, sender=CustomUser)
-def update_avatar_url(sender, instance, created, **kwargs):
-    """Update the avatar_url field when the avatar field is changed."""
-    if instance.avatar:
-        if instance.avatar_url != instance.avatar.url:
-            instance.avatar_url = instance.avatar.url
-            # Use update to avoid triggering this signal again
-            CustomUser.objects.filter(pk=instance.pk).update(avatar_url=instance.avatar.url)
+# @receiver(post_save, sender=CustomUser)
+# def update_avatar_url(sender, instance, created, **kwargs):
+#     """Update the avatar_url field when the avatar field is changed."""
+#     if instance.avatar:
+#         if instance.avatar_url != instance.avatar.url:
+#             instance.avatar_url = instance.avatar.url
+#             # Use update to avoid triggering this signal again
+#             CustomUser.objects.filter(pk=instance.pk).update(avatar_url=instance.avatar.url)
 
-    def __str__(self):
-        return self.username
+#     def __str__(self):
+#         return self.username
 
 
 class Tournament(models.Model):

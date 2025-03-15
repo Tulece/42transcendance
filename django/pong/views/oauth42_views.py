@@ -16,6 +16,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.files.storage import FileSystemStorage
+
 
 from pong.models import CustomUser
 
@@ -146,12 +148,16 @@ def auth_42_callback(request):
             # Set the avatar if we successfully downloaded it
             if avatar_url and 'avatar_content' in locals():
                 try:
-                    # Save the avatar to the user's avatar field
-                    # No need to include 'avatars/' as that's handled by the upload_to parameter of the ImageField
-                    user.avatar.save(avatar_filename, avatar_content, save=True)
+                    fs = FileSystemStorage(location='media/avatars/')
+                    avatar_filename = fs.save(f"{username}.jpg", avatar_content)
+                    user.avatar_url = "/media/avatars/" + avatar_filename
+                    user.save()
                     logger.info(f"Successfully saved avatar for user {username}")
                 except Exception as e:
                     logger.error(f"Failed to save avatar to user record for {username}: {str(e)}")
+            else:
+                user.avatar_url = "/media/avatars/default.jpg"
+                user.save()
     except Exception as e:
         error_msg = f"Failed to create or update user: {str(e)}"
         logger.error(error_msg)

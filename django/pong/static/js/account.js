@@ -52,7 +52,8 @@ function loadPlayerMatches(profileUsername) {
             statsItem.className = "card shadow-sm p-3 mb-4";
             statsItem.innerHTML = `<h4 class=\"text-center\">Statistiques du joueur</h4>
                                    <p><strong>Total de matchs joués :</strong> ${stats.total_matches}</p>
-                                   <p><strong>Total de victoires :</strong> ${stats.total_wins}</p>`;
+                                   <p><strong>Nombre de victoires :</strong> ${stats.total_wins}</p>
+                                   <p><strong>Nombre de défaites :</strong> ${stats.total_loses}</p>`;
             matchesContainer.appendChild(statsItem);
         }
 
