@@ -464,8 +464,14 @@ function uploadAvatar(file) {
     .then(response => response.ok ? response.json() : Promise.reject('Upload failed'))
     .then(data => {
         if (data.success) {
-            window.location.reload();
-        } else {
+			// 1) Mettre à jour la balise <img> pour pointer vers le nouvel avatar
+			const profileAvatar = document.getElementById('profile-avatar');
+			if (profileAvatar) {
+				profileAvatar.src = data.avatar_url + '?' + new Date().getTime();
+				// Le petit '?timestamp' aide à forcer le rafraîchissement si cache agressif
+			}
+			alert("Avatar mis à jour !");
+		} else {
             alert('Failed to update avatar: ' + data.error);
         }
     })
@@ -509,9 +515,20 @@ function changeUsername() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Nom d\'utilisateur changé avec succès!');
-            window.location.reload();
-        } else {
+			// Mettre à jour l'affichage du nom d'utilisateur dans la page
+			// ex: on a <span data-viewed-username="...">
+			const viewedUsernameEl = document.querySelector('[data-viewed-username]');
+			if (viewedUsernameEl) {
+				viewedUsernameEl.textContent = data.username; // nouveau username
+				viewedUsernameEl.setAttribute('data-viewed-username', data.username);
+			}
+			alert('Nom d’utilisateur mis à jour !');
+			// Fermer la modal
+			const usernameModalEl = document.getElementById('usernameModal');
+			if (usernameModalEl) {
+				bootstrap.Modal.getInstance(usernameModalEl).hide();
+			}
+		} else {
             document.getElementById('username-error').textContent = data.error || 'Échec du changement de nom d\'utilisateur.';
             document.getElementById('username-error').style.display = 'block';
         }
