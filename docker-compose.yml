@@ -20,13 +20,11 @@ services:
            done;
            python manage.py migrate &&
            daphne -b 0.0.0.0 -p 8000 pong.asgi:application"
-
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-
     env_file:
       - .env
     environment:
@@ -35,10 +33,26 @@ services:
     volumes:
       - ./django:/app
       - ./media:/app/media
-    ports:
-      - "8000:8000"
+    # On ne mappe plus 8000 directement sur l'hôte, car Nginx fera le proxy
+    # ports:
+    #   - "8000:8000"
     depends_on:
       - db
 
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    depends_on:
+      - web
+    volumes:
+      # On monte la conf Nginx
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      # (Facultatif) on peut monter un dossier pour les certs
+      - ./certs:/etc/nginx/certs
+    ports:
+      - "80:80"
+      - "443:443"
+
 volumes:
   db_data:
+

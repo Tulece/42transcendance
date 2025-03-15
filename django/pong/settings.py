@@ -31,8 +31,7 @@ SECRET_KEY = 'django-insecure-cl7b%(d&25z_gcb6e+_gq4q$lh^w40wmjfbcci@%-&t8ju7nd%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-
+ALLOWED_HOSTS = ['transcendence.dev', '146.19.168.104']
 
 # Application definition
 
@@ -172,9 +171,9 @@ CHANNEL_LAYERS = {
     },
 }
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
+CSRF_TRUSTED_ORIGINS = ["https://transcendence.dev"]
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 
 # Configuration de l'email pour l'A2F
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
