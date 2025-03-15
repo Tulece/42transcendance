@@ -96,10 +96,17 @@ window.initChat = async () => {
       window.chatWebSocket = ws; // Stock to close later
 
       ws.onopen = () => {
-        console.log("WebSocket connecté.");
-        addSystemMessage("Vous êtes connecté au chat !");
+		console.log("WebSocket connecté.");
+		addSystemMessage("Vous êtes connecté au chat !");
 
-      };
+		if (window.currentProfileUsername && window.currentProfileUsername === window.currentUsername) {
+		  // S'assurer que loadProfileInfo est bien accessible (depuis account.js)
+		  if (typeof window.loadProfileInfo === "function") {
+			console.log("[chat.js] Re-fetch du profil pour mettre à jour l'indicateur en ligne...");
+			window.loadProfileInfo(window.currentProfileUsername);
+		  }
+		}
+	  };
 
       ws.onmessage = (event) => {
         console.log("📩 Message reçu :", event.data);
@@ -300,7 +307,7 @@ window.initChat = async () => {
       friendsList.innerHTML = "";
 
       users.forEach((user) => {
-        
+
         if (user.username === window.currentUsername)
           return;
 
