@@ -55,7 +55,14 @@ document.addEventListener("DOMContentLoaded", () => {
 	  });
 	});
 
-	// Initialisation du canal WebSocket pour le tournoi
+	// (ADDED) Vérifier si on est sur la page "list_tournaments"
+	// en regardant si on a #tournament-list-container
+	const listContainer = document.getElementById("tournament-list-container");
+	if (listContainer) {
+	  initGlobalTournamentsWS(); // (ADDED) On connecte le WebSocket global des tournois
+	}
+
+	// Initialisation du canal WebSocket pour le détail d'un tournoi
 	const tournamentContainer = document.getElementById("tournamentContainer");
 	if (tournamentContainer && tournamentContainer.dataset.tournamentId) {
 	  const tournamentId = tournamentContainer.dataset.tournamentId;
@@ -63,7 +70,59 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
   });
 
-  // Initialise le WebSocket pour recevoir les mises à jour du tournoi
+  // (ADDED) Connecte la page "Liste des tournois" au WS global
+  function initGlobalTournamentsWS() {
+	const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+	const ws = new WebSocket(`${protocol}://${window.location.host}/ws/tournamentsGlobal/`);
+
+	ws.onopen = () => {
+	  console.log("[TournamentsGlobalWS] Connecté");
+	};
+
+	ws.onmessage = (event) => {
+	  const data = JSON.parse(event.data);
+	  console.log("[TournamentsGlobalWS] Reçu:", data);
+	  if (data.action === "new_tournament") {
+		console.log("Nouveau tournoi détecté:", data.tournament_name);
+		// On rafraîchit la liste via AJAX
+		refreshTournamentList();
+	  }
+	};
+
+	ws.onclose = () => {
+	  console.log("[TournamentsGlobalWS] Fermé");
+	};
+
+	ws.onerror = (err) => {
+	  console.error("[TournamentsGlobalWS] Erreur:", err);
+	};
+  }
+
+  // (ADDED) Rafraîchit la liste via un fetch AJAX
+  async function refreshTournamentList() {
+	try {
+	  const resp = await fetch("/tournaments/list/", {
+		method: "GET",
+		headers: { "X-Requested-With": "XMLHttpRequest" },
+		credentials: "include"
+	  });
+	  if (!resp.ok) {
+		throw new Error(`Erreur fetch: ${resp.status}`);
+	  }
+	  const htmlSnippet = await resp.text();
+
+	  // On remplace tout le bloc #tournament-list-container
+	  const container = document.getElementById("tournament-list-container");
+	  if (container) {
+		container.innerHTML = htmlSnippet;
+	  }
+	} catch (err) {
+	  console.error("Erreur refreshTournamentList:", err);
+	}
+  }
+
+
+  // Initialise le WebSocket pour recevoir les mises à jour du tournoi (détail)
   function initTournamentSocket(tournamentId) {
 	const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 	const tournamentSocket = new WebSocket(
@@ -131,7 +190,9 @@ document.addEventListener("DOMContentLoaded", () => {
 	tournamentData.matches.forEach((match) => {
 	  const li = document.createElement("li");
 	  li.classList.add("list-group-item");
-	  let content = `Round ${match.round_number} : ${match.player1} vs ${match.player2 ? match.player2 : "Bye"}`;
+	  let content = `Round ${match.round_number} : ${match.player1} vs ${
+		match.player2 ? match.player2 : "Bye"
+	  }`;
 	  if (match.game_id) {
 		if (match.winner) {
 		  content += ` — Gagnant : ${match.winner}`;
@@ -166,13 +227,11 @@ document.addEventListener("DOMContentLoaded", () => {
 	  const data = await resp.json();
 	  if (resp.ok && data.success) {
 		if (data.game_id) {
-		  // Redirige vers la game en mode tournoi en incluant match_id, tournament_id, player1_id et player2_id
 		  navigateTo(`/game/?game_id=${data.game_id}&mode=tournament&role=${data.role}&match_id=${matchId}&tournament_id=${tournamentId}&player1_id=${data.player1_id}&player2_id=${data.player2_id}`);
 		} else if (data.message) {
 		  alert(data.message);
 		}
 	  } else {
-		// Si le serveur indique que le match est déjà terminé
 		if (data.error && data.error.toLowerCase().includes("match terminé")) {
 		  const btn = document.querySelector(`button.start-match-btn[data-match-id="${matchId}"]`);
 		  if (btn) {
