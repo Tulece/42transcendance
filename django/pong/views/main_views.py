@@ -477,26 +477,50 @@ def get_player_matches(request, username):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_avatar_view(request):
-    """API pour mettre à jour l'avatar de l'utilisateur"""
+    """API pour mettre à jour l'avatar de l'utilisateur, en écrasant l'ancien fichier."""
     if 'avatar' not in request.FILES:
         return JsonResponse({"success": False, "error": "No image file provided"}, status=400)
+
     avatar_file = request.FILES['avatar']
     allowed_types = ['image/jpeg', 'image/png', 'image/gif']
     if avatar_file.content_type not in allowed_types:
         return JsonResponse({"success": False, "error": "Invalid file type. Only JPEG, PNG, and GIF are allowed."}, status=400)
+
     if avatar_file.size > 5 * 1024 * 1024:
         return JsonResponse({"success": False, "error": "File too large. Maximum size is 5MB."}, status=400)
+
     try:
         user = request.user
+
+        # Construire le nom de fichier (ex: "anporced.jpg")
         file_ext = os.path.splitext(avatar_file.name)[1].lower() or '.jpg'
         avatar_filename = f"{user.username}{file_ext}"
-        if user.avatar:
-            user.avatar.delete(save=False)
-        avatar_content = ContentFile(avatar_file.read())
-        user.avatar.save(avatar_filename, avatar_content, save=True)
-        return JsonResponse({"success": True, "message": "Avatar updated successfully", "avatar_url": user.avatar.url})
+
+        fs = FileSystemStorage(location='media/avatars/')
+
+        # Supprimer l'ancien fichier si besoin (pour éviter que fs.save() renomme)
+        if fs.exists(avatar_filename):
+            fs.delete(avatar_filename)
+
+        # Sauvegarder le nouveau fichier sous le même nom
+        fs.save(avatar_filename, avatar_file)
+
+        # Mettre à jour l'URL stockée en base
+        user.avatar_url = f"/media/avatars/{avatar_filename}"
+        user.save()
+
+        return JsonResponse({
+            "success": True,
+            "message": "Avatar updated successfully",
+            "avatar_url": user.avatar_url
+        }, status=200)
+
     except Exception as e:
-        return JsonResponse({"success": False, "error": f"Failed to update avatar: {str(e)}"}, status=500)
+        return JsonResponse({
+            "success": False,
+            "error": f"Failed to update avatar: {str(e)}"
+        }, status=500)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
