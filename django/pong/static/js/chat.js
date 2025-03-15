@@ -224,48 +224,19 @@ window.initChat = async () => {
 
     // Bouton "Réduire"
     chatToggle.addEventListener("click", function () {
-        const isCollapsed = chatContainer.classList.contains("collapsed");
+        const isCollapsed = chatWrapper.classList.contains("collapsed");
 
         if (isCollapsed) {
             // Réouvrir le chat
             chatWrapper.style.pointerEvents = "auto";
-            chatContainer.classList.remove("collapsed");
+            chatWrapper.classList.remove("collapsed");
             chatToggle.innerText = "Réduire";
-            userListContainer.classList.remove("collapsed");
-            userListToggle.innerText = "Réduire";
-            }
-            else {
+            } else {
               chatWrapper.style.pointerEvents = "none";
-              userListContainer.classList.add("collapsed");
-              userListToggle.innerText = "Ouvrir";
-              userListToggle,this.style.pointerEvents = "auto";
-              chatContainer.classList.add("collapsed");
+              chatWrapper.classList.add("collapsed");
               chatToggle.innerText = "Ouvrir";
               chatToggle.style.pointerEvents = "auto";
             }
-    });
-
-    userListToggle.addEventListener("click", function () {
-      const isCollapsed = userListContainer.classList.contains("collapsed");
-
-      if (isCollapsed) {
-        chatWrapper.style.pointerEvents = "auto";
-        userListContainer.classList.remove("collapsed");
-        userListToggle.innerText = "Réduire"; // Or textContent TO TRY !! (maybe is not taking css rules into account so not really relevant here) + inner : can add balises, styles (gras), etc.
-        //Here, change the z_index of chat wrapper so it doesn't bother other elements
-        chatContainer.classList.remove("collapsed");
-        chatToggle.innerText = "Réduire";
-      }
-      else {
-        chatWrapper.style.pointerEvents = "none";
-        userListContainer.classList.add("collapsed");
-        userListToggle.innerText = "Ouvrir";
-        userListToggle,this.style.pointerEvents = "auto";
-        chatContainer.classList.add("collapsed");
-        chatToggle.innerText = "Ouvrir";
-        chatToggle.style.pointerEvents = "auto";
-      }
-
     });
 
     sendPrivateBtn.addEventListener("click", () => {
@@ -333,7 +304,7 @@ window.initChat = async () => {
         if (user.username === window.currentUsername)
           return;
 
-        const userItem = document.createElement("li");
+        const userItem = document.createElement("li"); // List element : représente each user connecté
         userItem.className = "list-group-item d-flex justify-content-between align-items-center";
 
           // Crée un lien cliquable vers le profil
@@ -358,7 +329,7 @@ window.initChat = async () => {
         blockButton.className = isBlocked ? "btn btn-sm btn-secondary" : "btn btn-sm btn-danger";
         blockButton.textContent = isBlocked ? "Débloquer" : "Bloquer";
         blockButton.style.maxWidth = "180px";
-        blockButton.classList.add("custom-padding", "w-100"); // w-100 : take all the width
+        // blockButton.classList.add("custom-padding", "w-100"); // w-100 : take all the width
         blockButton.setAttribute("data-username", user.username); // Ajout de l'attribut pour le retrouver
         blockButton.addEventListener("click", () => toggleBlockUser(user.username));
 
