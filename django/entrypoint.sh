@@ -36,4 +36,4 @@ until python manage.py check; do
 done
 
 # Lancer le serveur
-exec daphne -b 0.0.0.0 -p 8000 pong.asgi:application
+exec daphne --proxy-headers -b 0.0.0.0 -p 8000 pong.asgi:application

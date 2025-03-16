@@ -92,7 +92,7 @@ window.initChat = async () => {
         console.warn("🔄 WebSocket déjà connecté, on ne réouvre pas !");
         return;
       }
-      ws = new WebSocket(`ws://${window.location.host}/ws/chat/`);
+      ws = new WebSocket(`wss://${window.location.host}/ws/chat/`);
       window.chatWebSocket = ws; // Stock to close later
 
       ws.onopen = () => {

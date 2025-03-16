@@ -174,6 +174,8 @@ CHANNEL_LAYERS = {
 CSRF_TRUSTED_ORIGINS = ["https://transcendence.dev"]
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Configuration de l'email pour l'A2F
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

@@ -58,7 +58,7 @@ window.initPong = function () {
 
   function connectToLobby() {
       host = window.location.hostname;
-      lobbySocket = new WebSocket(`ws://${host}:8000/ws/matchmaking/`);
+      lobbySocket = new WebSocket(`wss://${host}:8000/ws/matchmaking/`);
 
       lobbySocket.onopen = () => {
           console.log("Connexion au lobby établie.");
@@ -84,7 +84,7 @@ window.initPong = function () {
   }
 
   function connectToGame(gameId, role) {
-      gameSocket = new WebSocket(`ws://${host}:8000/ws/game/${gameId}/?player_id=${role}`);
+      gameSocket = new WebSocket(`wss://${host}:8000/ws/game/${gameId}/?player_id=${role}`);
 
       gameSocket.onopen = () => {
           console.log(`Connecté à la partie : ${gameId}, rôle : ${role}`);
@@ -231,7 +231,7 @@ window.initPong = function () {
       if (e.key === "Escape") sendAction("pause_game");
     }
   }
-  
+
   function onKeyUp(e) {
     console.log("event up")
     if (key_pressed[e.key]) {
@@ -240,11 +240,11 @@ window.initPong = function () {
       if (e.key === "ArrowDown") sendAction("stop_move_down");
     }
   }
-  
+
   function localOnKeyDown(e) {
       if (!key_pressed[e.key] && game_running) {
           key_pressed[e.key] = true;
-  
+
           if (e.code === "KeyW") sendAction("move_up", "player1");
           if (e.code === "KeyS") sendAction("move_down", "player1");
           if (e.key === "ArrowUp") sendAction("move_up", "player2");
@@ -252,18 +252,18 @@ window.initPong = function () {
           if (e.key === "Escape") sendAction("pause_game");
       }
   }
-  
+
   function localOnKeyUp(e) {
       if (key_pressed[e.key]) {
           delete key_pressed[e.key];
-  
+
           if (e.code === "KeyW") sendAction("stop_move_up", "player1");
           if (e.code === "KeyS") sendAction("stop_move_down", "player1");
           if (e.key === "ArrowUp") sendAction("stop_move_up", "player2");
           if (e.key === "ArrowDown") sendAction("stop_move_down", "player2");
       }
   }
-  
+
   function sendAction(action, player = undefined) {
       if (gameSocket && gameSocket.readyState === WebSocket.OPEN) {
           gameSocket.send(JSON.stringify({ action, player }));
@@ -271,14 +271,14 @@ window.initPong = function () {
           console.error("WebSocket pour le jeu non ouvert !");
       }
   }
-  
+
   function updateCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawBall();
     drawPlayer();
     drawOpponent();
   }
-  
+
   function drawPlayer() {
     let color = role === "player1" ? "blue" : "red";
     ctx.font = "20px Arial";
@@ -290,7 +290,7 @@ window.initPong = function () {
     ctx.fillStyle = color;
     ctx.fillRect(player1.x, player1.y, 10, 70);
   }
-  
+
   function drawOpponent() {
     let color = role === "player2" ? "blue" : "red";
     ctx.font = "20px Arial";
@@ -302,14 +302,14 @@ window.initPong = function () {
     ctx.fillStyle = color;
     ctx.fillRect(player2.x, player2.y, 10, 70);
   }
-  
+
   function drawBall() {
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fillStyle = "white";
     ctx.fill();
   }
-  
+
   function drawHeart(x, y, size) {
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -319,7 +319,7 @@ window.initPong = function () {
     ctx.fillStyle = "red";
     ctx.fill();
   }
-  
+
 
   function displayWaitingMessage(message, dots) {
     if (!window.ctx || !window.canvas) {
