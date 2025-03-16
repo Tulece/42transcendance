@@ -18,19 +18,6 @@
     });
 
     async function navigateTo(url, pushState = true) {
-        console.log("[navigateTo]", url, " From : ", location.pathname);
-
-        if (location.pathname === url.split("?")[0] && pushState) {
-            console.log("[navigateTo] Déjà sur l'URL:", url);
-            return;
-        }
-
-        handlePageUnload(location.pathname);
-
-        if (pushState) {
-            history.pushState(null, "", url);
-        }
-
         try {
             const response = await fetch(url, {
                 headers: { "X-Requested-With": "XMLHttpRequest" },
@@ -39,15 +26,16 @@
 
             if (response.status === 403) {
                 alert("Vous devez être connecté pour accéder à cette page !");
-                // Optionnel : rediriger vers la page d'accueil ou effectuer une autre action
-                // navigateTo("/");
                 return;
             }
-
 
             if (!response.ok) {
                 console.error("Erreur fetch URL:", url, "status =", response.status);
                 return;
+            }
+
+            if (pushState) {
+                history.pushState(null, "", url);
             }
 
             const htmlSnippet = await response.text();
