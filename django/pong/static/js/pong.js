@@ -58,7 +58,7 @@ window.initPong = function () {
 
   function connectToLobby() {
       host = window.location.hostname;
-      lobbySocket = new WebSocket(`wss://${host}:8000/ws/matchmaking/`);
+      lobbySocket = new WebSocket(`wss://${host}/ws/matchmaking/`);
 
       lobbySocket.onopen = () => {
           console.log("Connexion au lobby établie.");
