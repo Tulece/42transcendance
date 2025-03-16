@@ -84,8 +84,7 @@ window.initPong = function () {
   }
 
   function connectToGame(gameId, role) {
-      gameSocket = new WebSocket(`wss://${host}:8000/ws/game/${gameId}/?player_id=${role}`);
-
+      gameSocket = new WebSocket(`wss://${host}/ws/game/${gameId}/?player_id=${role}&mode=solo`);
       gameSocket.onopen = () => {
           console.log(`Connecté à la partie : ${gameId}, rôle : ${role}`);
           game_running = true;
