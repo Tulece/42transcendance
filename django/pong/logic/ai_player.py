@@ -8,7 +8,7 @@ class AIPlayer:
     instance_count = 0  # Compteur d'instances (Used to id each playing IA);
 
     def __init__(self, host, game_id):
-        self.ws = f"wss://{host}:8000/ws/game/{game_id}/?player_id=player2&mode=solo"
+        self.ws = f"wss://{host}/ws/game/{game_id}/?player_id=player2&mode=solo"
         AIPlayer.instance_count += 1
         self.ball_position = {'x': 0, 'y': 0, 'dx': 0, 'dy': 0}
         self.paddle_position = {'x': 0, 'y': 0, 'speed': PLAYER_SPEED}
