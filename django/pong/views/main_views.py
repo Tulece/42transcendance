@@ -331,17 +331,29 @@ def register_view(request):
     context = {"initial_fragment": "register.html"}
     return render(request, "base.html", context)
 
+from django.http import HttpResponseForbidden
+from django.shortcuts import redirect, render
+
+# Exemple adapté pour sécuriser game_view
 def game_view(request):
-    """Gère la vue pour le jeu Pong - nécessite authentification."""
-    if not request.user.is_authenticated:
-        # Si la requête est AJAX, renvoyer 403 ; sinon rediriger vers home
+    mode = request.GET.get('mode', 'solo')
+
+    # Vérifier que l'utilisateur est authentifié pour certains modes
+    if mode in ['multi', 'local'] and not request.user.is_authenticated:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return HttpResponseForbidden()
         else:
-            return redirect('/')  # redirige vers la page d'accueil
+            return redirect('/')
+
+    # Afficher la page de jeu si l'utilisateur est autorisé
+    context = {'mode': mode}
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render(request, 'pong.html')  # Fragment AJAX
-    return render(request, 'base.html', {"initial_fragment": "pong.html"})
+        return render(request, "pong.html", context)
+    else:
+        return render(request, "base.html", {
+            "initial_fragment": "pong.html",
+            "mode": mode
+        })
 
 def account_view(request, username=None):
     """Access to account"""
