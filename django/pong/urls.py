@@ -84,7 +84,9 @@ urlpatterns = [
     path('api/friends/status/<str:username>/', get_friendship_status, name="get_friendship_status"),
     path('api/friends/received/', received_friend_requests, name='received_friend_requests'),
     # OAuth42 routes
-    path('auth/42/callback', auth_42_login, name='auth_42_login'),    path('api/matches/<str:username>/', get_player_matches, name='get_player_matches'),
+    path('auth/42/', auth_42_login, name='auth_42_login'),
+    path('auth/42/callback', auth_42_callback, name='auth_42_callback'),
+    path('api/matches/<str:username>/', get_player_matches, name='get_player_matches'),
     path('update-avatar/', update_avatar_view, name='update_avatar'),
     path('change-password/', change_password_view, name='change_password'),
     path('change-username/', change_username_view, name='change_username'),
