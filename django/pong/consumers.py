@@ -79,11 +79,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4003)
             return
 
-        # (CHANGED) Stocker l'ID pour l'update online/offline
-        self.user_id = self.user.id  # nouveau champ
-
-        # Mettre is_online = True (via l'ID)
-        await self.set_user_online_state(self.user_id, True)  # (CHANGED)
+        self.user_id = self.user.id
+        await self.set_user_online_state(self.user_id, True)
 
         self.username = self.user.username or "Anonyme"
 
@@ -101,18 +98,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "blocked_users": blocked_users
         }))
 
-        # Définir les groupes
-        self.room_group_name = "chat_room"  #Global grp
+        # Vérifier et définir les groupes
+        self.room_group_name = "chat_room"
 
-        if not self.user or not self.user.id:
-            print("Erreur: ID utilisateur non défini.")
-            await self.close(code=4003)
-            return
         self.personal_group = f"user_{self.user.id}"
 
-        # Joindre les groupes
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}")
+
         await self.channel_layer.group_add(self.personal_group, self.channel_name)
 
         # Diffuser la liste actualisée
@@ -129,21 +122,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         if self.user and self.user.is_authenticated:
-            # (CHANGED) On utilise l’ID pour set_user_online_state
             await self.set_user_online_state(self.user_id, False)
 
-        if self.room_group_name:
+        if hasattr(self, "room_group_name") and self.room_group_name:
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+            # Diffuser la liste actualisée aux utilisateurs
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "broadcast_user_list"}
+            )
+
         if hasattr(self, "personal_group"):
             await self.channel_layer.group_discard(self.personal_group, self.channel_name)
 
-        # Diffuser la liste actualisée aux users
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {"type": "broadcast_user_list"}
-        )
-
-        print(f"Déconnexion de l'utilisateur {self.username} - code: {close_code}")
+        print(f"Déconnexion de l'utilisateur {getattr(self, 'username', 'Inconnu')} - code: {close_code}")
 
     async def receive(self, text_data):
         try:
