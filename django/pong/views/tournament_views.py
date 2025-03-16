@@ -160,15 +160,23 @@ async def start_match_game_view(request, match_id):
 
 @csrf_exempt
 def list_tournaments_view(request):
-  tournaments = Tournament.objects.filter(is_active=True)
-  context = {"tournaments": tournaments}
-  if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-    return render(request, "tournaments/list_tournaments.html", context)
-  else:
-    return render(request, "base.html", {
-      "initial_fragment": "tournaments/list_tournaments.html",
-      "tournaments": tournaments
-    })
+    if not request.user.is_authenticated:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return HttpResponseForbidden()
+        else:
+            return redirect('/')
+
+    tournaments = Tournament.objects.filter(is_active=True)
+    context = {"tournaments": tournaments}
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, "tournaments/list_tournaments.html", context)
+    else:
+        return render(request, "base.html", {
+            "initial_fragment": "tournaments/list_tournaments.html",
+            "tournaments": tournaments
+        })
+
 
 @require_POST
 @csrf_exempt
