@@ -331,21 +331,15 @@ def register_view(request):
     context = {"initial_fragment": "register.html"}
     return render(request, "base.html", context)
 
-from django.http import HttpResponseForbidden
-from django.shortcuts import redirect, render
-
-# Exemple adapté pour sécuriser game_view
 def game_view(request):
-    mode = request.GET.get('mode', 'solo')
-
-    # Vérifier que l'utilisateur est authentifié pour certains modes
-    if mode in ['multi', 'local'] and not request.user.is_authenticated:
+    if not request.user.is_authenticated:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return HttpResponseForbidden()
         else:
             return redirect('/')
 
-    # Afficher la page de jeu si l'utilisateur est autorisé
+    mode = request.GET.get('mode', 'solo')
+
     context = {'mode': mode}
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, "pong.html", context)
