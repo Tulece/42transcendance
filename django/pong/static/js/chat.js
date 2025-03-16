@@ -1,5 +1,6 @@
 
 let myFriends = new Set(); // To stock friends
+let unreadMessageCount = 0;
 async function fetchMyFriends() {
 
   if (!window.currentUsername) return;
@@ -21,8 +22,7 @@ async function fetchMyFriends() {
     const data = await res.json();
 
     if (data.friend_list) {
-      // data.friend_list = tableau d'objets: [{username: "...", online_status: bool}, ...]
-      // On ne veut que la partie username
+      // data.friend_list = tableau d'objets
       myFriends = new Set(data.friend_list.map(friend => friend.username));
       console.log("Liste de mes amis :", myFriends);
     }
@@ -50,11 +50,8 @@ window.initChat = async () => {
     const messageInput = document.getElementById("message-input");
     const sendMessageBtn = document.getElementById("send-message-btn");
     const chatToggle = document.getElementById("chat-toggle");
-    const chatContainer = document.getElementById("chat-container");
     const privateRecipient = document.getElementById("private-recipient");
     const sendPrivateBtn = document.getElementById("send-private-btn");
-    const userListContainer = document.getElementById("user-list-container");
-    const userListToggle = document.getElementById("user-list-toggle");
 
     let ws = null;
     let blockedUsers = new Set(); // Stocker users bloqués
@@ -162,6 +159,11 @@ window.initChat = async () => {
 
       saveChatHistory();
       scrollToBottom();
+
+      if (chatWrapper.classList.contains("collapsed")) {
+        unreadMessageCount++;
+        updateNotificationBadge();
+      }
     }
 
     // Add un message privé
@@ -231,11 +233,14 @@ window.initChat = async () => {
             chatWrapper.style.pointerEvents = "auto";
             chatWrapper.classList.remove("collapsed");
             chatToggle.innerText = "Réduire";
-            } else {
-              chatWrapper.style.pointerEvents = "none";
-              chatWrapper.classList.add("collapsed");
-              chatToggle.innerText = "Ouvrir";
-              chatToggle.style.pointerEvents = "auto";
+
+            unreadMessageCount = 0;
+            updateNotificationBadge();
+          } else {
+            chatWrapper.style.pointerEvents = "none";
+            chatWrapper.classList.add("collapsed");
+            chatToggle.style.pointerEvents = "auto";
+            updateNotificationBadge();
             }
     });
 
@@ -456,6 +461,16 @@ window.initChat = async () => {
       const invitation = document.getElementById("invite_" + inviteId);
       if (invitation) {
         invitation.remove();
+      }
+    }
+
+    function updateNotificationBadge() {
+      const chatToggle = document.getElementById("chat-toggle");
+
+      if (unreadMessageCount > 0) {
+        chatToggle.innerHTML = `Ouvrir <span class="badge bg-danger">${unreadMessageCount}</span>`;
+      } else {
+        chatToggle.innerHTML = "Ouvrir";
       }
     }
 
