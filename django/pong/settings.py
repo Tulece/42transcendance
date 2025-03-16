@@ -208,7 +208,7 @@ if not OAUTH42_CLIENT_ID or not OAUTH42_CLIENT_SECRET:
 OAUTH42 = {
     'CLIENT_ID': OAUTH42_CLIENT_ID,
     'CLIENT_SECRET': OAUTH42_CLIENT_SECRET,
-    'REDIRECT_URI': os.getenv('OAUTH42_REDIRECT_URI', 'http://localhost:8000'),
+    'REDIRECT_URI': os.getenv('OAUTH42_REDIRECT_URI', 'https://transcendence.dev/auth/42/callback'),
     'AUTH_URL': 'https://api.intra.42.fr/oauth/authorize',
     'TOKEN_URL': 'https://api.intra.42.fr/oauth/token',
     'API_URL': 'https://api.intra.42.fr/v2',
