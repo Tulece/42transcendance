@@ -26,7 +26,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         while True:
             expired_keys = []
             now = time.time()
-            #Iterer sur les invitations en cours
+            #invitations en cours
             for key, inv in list(INVITATIONS.items()):
                 if inv["expires_at"] < now:
                     expired_keys.append(key)
@@ -58,10 +58,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await asyncio.sleep(1)
 
     async def invitation_expired(self, event):
-        """
-        Méthode interne Channels appelée quand on reçoit
-        un group_send(type="invitation_expired") dans le user_xxx group.
-        """
         invite_id = event["invite_id"]
         # On relaie au frontend
         await self.send(json.dumps({
@@ -127,7 +123,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
 
-
         if self.user.is_authenticated:
             await self.set_user_online_state(self.user, False)
 
@@ -141,7 +136,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {"type": "broadcast_user_list"}
         )
-
 
         print(f"Déconnexion de l'utilisateur {self.username} - code: {close_code}")
 
@@ -172,28 +166,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             elif action == "invite_to_game":
                 target_username = data.get("target_username")
 
-                # Check if invitation already sent & running
-                if any(inv["to"] == target_username for inv in INVITATIONS.values()):
-                    await self.send(json.dumps({
-                        "type": "error",
-                        "message": f"{target_username} a déjà une invitation en attente."
-                    }))
-                    return
-
-
-                # if self.user_already_in_game(self.user): # Function > Maybe à déclarer ailleurs ?? TO CHECK
+                # # Check if invitation already sent & running
+                # if any(inv["to"] == target_username for inv in INVITATIONS.values()):
                 #     await self.send(json.dumps({
                 #         "type": "error",
-                #         "message": "Vous êtes déjà dans une partie !"
+                #         "message": f"{target_username} a déjà une invitation en attente."
                 #     }))
                 #     return
+
+
                 try:
                     target_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)
                 except CustomUser.DoesNotExist:
                     print(f"Erreur : Utilisateur {target_username} introuvable.", flush=True)
                     return
-                # if self.user_already_in_game(target_user):
-                #     return
                 
                 lobby_instance = Lobby.get_instance()
                 existing_game_id = lobby_instance.get_game_id_by_player(target_username)
@@ -213,7 +199,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     return
 
                 invite_id = str(uuid.uuid4()) # Stocker l'invit'
-                expiration = time.time() + 500
+                expiration = time.time() + 30
                 INVITATIONS[invite_id] = { # To stock these info in a dict.
                     "from": self.user.username,
                     "from_id": self.user.id,
@@ -251,7 +237,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         f"Invitation à jouer envoyée à {target_username}. "
                         f'<a href="/game?game_id={game_id}&mode=private&invite_id={invite_id}&role=player1" '
                         f'target="_blank" style="color:blue;">[lancer le jeu]</a>'
-                    )
+                    ),
+                    "invite_id": invite_id
                 }))
 
             message = data.get("message", "")

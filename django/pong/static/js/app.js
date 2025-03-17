@@ -184,6 +184,7 @@ function updateHeaderUserInfo(userInfo) {
                 if (response.ok) {
                     console.log("Déconnexion réussie.");
                     updateHeaderUserInfo(null);
+                    if (window.hideChat) window.hideChat();
                 } else {
                     console.error("Erreur lors de la déconnexion :", response.status);
                 }

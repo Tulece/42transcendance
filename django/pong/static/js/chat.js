@@ -49,6 +49,12 @@ window.initChat = async () => {
     const messageList = document.getElementById("message-list");
     const messageInput = document.getElementById("message-input");
     const sendMessageBtn = document.getElementById("send-message-btn");
+    messageInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault(); //Pas saut de ligne
+          sendMessageBtn.click();
+      }
+    });
     const chatToggle = document.getElementById("chat-toggle");
     const privateRecipient = document.getElementById("private-recipient");
     const sendPrivateBtn = document.getElementById("send-private-btn");
@@ -94,8 +100,10 @@ window.initChat = async () => {
 
       ws.onopen = () => {
         console.log("WebSocket connecté.");
-        addSystemMessage("Vous êtes connecté au chat !");
-
+        if (!sessionStorage.getItem("chatConnectedMessageShown")) {
+          addSystemMessage("Vous êtes connecté au chat !");
+          sessionStorage.setItem("chatConnectedMessageShown", "true");
+        }
       };
 
       ws.onmessage = (event) => {
@@ -112,6 +120,7 @@ window.initChat = async () => {
       ws.onclose = () => {
         console.log("WebSocket déconnecté.");
         addSystemMessage("Connexion au chat perdue.");
+        // sessionStorage.removeItem("chatConnectedMessageShown");
       };
     }
 
@@ -120,13 +129,13 @@ window.initChat = async () => {
       if (data.type === "chat_message") {
         addMessageToChat(data.username, data.message);
       } else if (data.type === "private_message") {
-        addPrivateMessageToChat(data.username, data.message);
+          addPrivateMessageToChat(data.username, data.message, data.target_username);
       } else if (data.type === "error") {
         console.warn("Erreur reçue - Non affichée sur la page chat :", data.message);
       } else if ( data.type === "error_private") {
         addErrorMessage(data.message);
       } else if (data.type === "system") {
-        addSystemMessage(data.message);
+        addSystemMessage(data.message, data.invite_id);
       } else if (data.type === "user_list") {
         updateUserList(data.users, data.blocked_users || []);
       } else if (data.type === "game_invitation") {
@@ -167,7 +176,7 @@ window.initChat = async () => {
     }
 
     // Add un message privé
-    function addPrivateMessageToChat(username, message) {
+    function addPrivateMessageToChat(username, message, targetUsername) {
       if (message.length === 0)
         return;
       const messageDiv = document.createElement("div");
@@ -177,15 +186,25 @@ window.initChat = async () => {
 
       saveChatHistory();
       scrollToBottom();
+
+      if (chatWrapper.classList.contains("collapsed")) {
+        unreadMessageCount++;
+        updateNotificationBadge();
+      }
     }
 
     // Add un message système
-    function addSystemMessage(message) {
+    function addSystemMessage(message, inviteId) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", "system");
+
+      if (inviteId) {
+        messageDiv.setAttribute("data-invite-id", inviteId); // Ajout du data attribute
+      }
+
       if (message.toLowerCase().includes("tournoi")) {
-		messageDiv.style.color = "red";
-	  }
+        messageDiv.style.color = "red";
+	    }
       messageDiv.innerHTML = message;
       messageList.appendChild(messageDiv);
 
@@ -275,6 +294,7 @@ window.initChat = async () => {
         addSystemMessage("Veuillez sélectionner un destinataire pour l'invitation.");
         return;
       }
+      
 
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(
@@ -443,7 +463,6 @@ window.initChat = async () => {
       const textNode = document.createTextNode(`${inviteData.from} vous invite à jouer à Pong ! `);
       invitationDiv.appendChild(textNode);
 
-
       const link = document.createElement("a");
       link.href = `/game?game_id=${inviteData.game_id}&mode=private&invite_id=${inviteData.invite_id}&role=player2`;
       link.innerText = "Vers le jeu Pong";
@@ -455,12 +474,23 @@ window.initChat = async () => {
       const messageList = document.getElementById("message-list");
       if (messageList)
         messageList.appendChild(invitationDiv);
+
+      if (chatWrapper.classList.contains("collapsed")) {
+        unreadMessageCount++;
+        updateNotificationBadge();
+      }
+
     }
 
     function removeInvitation(inviteId) {
       const invitation = document.getElementById("invite_" + inviteId);
       if (invitation) {
         invitation.remove();
+      }
+
+      const senderMessage = document.querySelector(`[data-invite-id="${inviteId}"]`);
+      if (senderMessage) {
+        senderMessage.remove();
       }
     }
 
@@ -493,8 +523,10 @@ window.initChat = async () => {
       chatWrapper.innerHTML = ""; // Effacer le contenu
     }
 
-    if (!window.chatInitialized) // Check also if user has been deconnected
+    if (!window.chatInitialized) { // Check also if user has been deconnected
       localStorage.removeItem("chatHistory");
+      sessionStorage.removeItem("chatConnectedMessageShown");
+    }
 
     // Réinitialiser la variable pour autoriser une future réouverture
     window.chatInitialized = false;
