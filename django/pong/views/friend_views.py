@@ -40,8 +40,28 @@ def accept_friend_request(request, request_id):
         friend_request.status = 'accepted'
         friend_request.save()
         sender = friend_request.sender
-        # sender.friends.add(current_user)
         current_user.friends.add(sender)
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"user_{sender.id}",
+            {
+                "type": "user_list",
+                "username": current_user.username,
+                "action": "added"
+            }
+        )
+        async_to_sync(channel_layer.group_send)(
+            f"user_{current_user.id}",
+            {
+                "type": "user_list",
+                "username": sender.username,
+                "action": "added"
+            }
+        )
+        async_to_sync(channel_layer.group_send)(
+            "chat_room",
+            {"type": "broadcast_user_list"}
+        )
 
         return Response({"message": "Demande acceptée."}, status=status.HTTP_200_OK)
     return Response({"message": "Aucune demande à accepter trouvée."}, status=status.HTTP_400_BAD_REQUEST)
@@ -68,11 +88,32 @@ def delete_friend(request, username):
         return Response({"message": "Cet utilisateur n'est pas dans votre liste d'amis."}, status=status.HTTP_400_BAD_REQUEST)
     
     current_user.friends.remove(friend_to_remove)
-    # friend_to_remove.friends.remove(current_user)
-    print(f"[DEBUG] ✅ {current_user.username} a bien supprimé {friend_to_remove.username} de ses amis.")
 
     FriendRequest.objects.filter(sender=current_user, receiver=friend_to_remove).delete()
     FriendRequest.objects.filter(sender=friend_to_remove, receiver=current_user).delete()
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"user_{friend_to_remove.id}",
+        {
+            "type": "user_list",
+            "username": current_user.username,
+            "action": "removed"
+        }
+    )
+    async_to_sync(channel_layer.group_send)(
+        f"user_{current_user.id}",
+        {
+            "type": "user_list",
+            "username": friend_to_remove.username,
+            "action": "removed"
+        }
+    )
+
+    async_to_sync(channel_layer.group_send)(
+        "chat_room",
+        {"type": "broadcast_user_list"}
+    )
 
     return Response({"message": "Ami supprimé."}, status=status.HTTP_200_OK)
 
