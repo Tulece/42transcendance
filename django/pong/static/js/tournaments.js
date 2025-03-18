@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
 			method: "POST",
 			body: formData,
 			credentials: "include",
+			headers: {
+                "X-Requested-With": "XMLHttpRequest"  // <-- Ajout de cet en-tête
+                      }
 		  });
 		  const data = await response.json();
 		  if (response.ok && data.success) {
@@ -19,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			navigateTo("/tournaments/list/");
 		  } else {
 			console.error("Erreur:", data.error);
-			alert("Erreur lors de la création du tournoi.");
+			alert(data.error || "Erreur lors de la création du tournoi.");
 		  }
 		} catch (error) {
 		  console.error("Network error:", error);

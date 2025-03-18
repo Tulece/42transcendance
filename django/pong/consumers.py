@@ -75,7 +75,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4003)
             return
 
-        self.user_id = self.user.id
+        self.user_id = self.user.username
         await self.set_user_online_state(self.user_id, True)
 
         self.username = self.user.username or "Anonyme"
@@ -298,7 +298,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def set_user_online_state(self, user_id, state: bool):
         try:
-            user_obj = CustomUser.objects.get(pk=user_id)  # get par l'ID
+            user_obj = CustomUser.objects.get(username=user_id)  # get par l'ID
             user_obj.online_status = state
             user_obj.save()
         except CustomUser.DoesNotExist:
