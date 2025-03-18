@@ -19,6 +19,7 @@
 
     async function navigateTo(url, pushState = true) {
         try {
+            handlePageUnload(location.pathname);
             const response = await fetch(url, {
                 headers: { "X-Requested-With": "XMLHttpRequest" },
                 credentials: "include",

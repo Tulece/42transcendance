@@ -13,7 +13,7 @@
                 <img src="{{ viewed_user.avatar_url }}" alt="Avatar" class="rounded-circle border border-secondary avatar-clickable" width="120" height="120" id="profile-avatar" onclick="document.getElementById('avatar-upload').click();" style="object-fit: cover; object-position: center;">
                 <input type="file" id="avatar-upload" name="avatar" style="display: none;" accept="image/*" onchange="uploadAvatar(this.files[0])">
             {% else %}
-                <img src="{{ viewed_user.avatar_url }}" alt="Avatar" class="rounded-circle border border-secondary" width="120" height="120">
+                <img src="{{ viewed_user.avatar_url }}" alt="Avatar" class="rounded-circle border border-secondary" width="120" height="120" style="object-fit: cover; object-position: center;">
             {% endif %}
         </div>
 

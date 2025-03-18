@@ -11,7 +11,6 @@ class CustomUserAdmin(UserAdmin):
         ('Informations personnalisées', {
             'fields': (
                 'display_name',
-                'avatar',
                 'online_status',
                 'blocked_users',
                 'is_a2f_enabled',

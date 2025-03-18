@@ -127,15 +127,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if hasattr(self, "room_group_name") and self.room_group_name:
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
-            # Diffuser la liste actualisée aux utilisateurs
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {"type": "broadcast_user_list"}
-            )
-
         if hasattr(self, "personal_group"):
             await self.channel_layer.group_discard(self.personal_group, self.channel_name)
-
+        # Diffuser la liste actualisée aux utilisateurs
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {"type": "broadcast_user_list"}
+        )
         print(f"Déconnexion de l'utilisateur {getattr(self, 'username', 'Inconnu')} - code: {close_code}")
 
     async def receive(self, text_data):
