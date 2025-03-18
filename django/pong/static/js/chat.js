@@ -22,7 +22,7 @@ async function fetchMyFriends() {
     const data = await res.json();
 
     if (data.friend_list) {
-      // data.friend_list = tableau d'objets
+      // tableau d'objets
       myFriends = new Set(data.friend_list.map(friend => friend.username));
       console.log("Liste de mes amis :", myFriends);
     }
@@ -137,6 +137,11 @@ window.initChat = async () => {
       } else if (data.type === "system") {
         addSystemMessage(data.message, data.invite_id);
       } else if (data.type === "user_list") {
+        if (data.action === "removed") {
+          myFriends.delete(data.username);
+        } else if (data.action === "added") {
+            myFriends.add(data.username)
+        }
         updateUserList(data.users, data.blocked_users || []);
       } else if (data.type === "game_invitation") {
         showGameInvitation(data);

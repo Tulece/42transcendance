@@ -140,7 +140,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         print(f"Déconnexion de l'utilisateur {self.username} - code: {close_code}")
 
     async def receive(self, text_data):
-
+        print(f"🧐 Message WebSocket reçu : {text_data}")  # DEBUG
 
         try:
             if not text_data:
@@ -162,6 +162,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             elif action == "accept_invitation":
                 invite_id = data.get("invite_id")
                 await self.accept_invitation(invite_id)
+                return
+            elif action == "removed" or action == "added":
+                await self.user_list(data)
                 return
             elif action == "invite_to_game":
                 target_username = data.get("target_username")
@@ -426,10 +429,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message": event["message"]
         }))
 
-    # async def user_already_in_game(self, user): # Check is user is exp. or dest.
-    #     fresh = CustomUser.objects.get(pk=user.pk)
-    #     return fresh.in_game
-    
+    async def user_list(self, event):
+        action = event.get("action")
+        username = event.get("username")
+
+        await self.send(json.dumps({
+            "type": "user_list",
+            "action": action,
+            "username": username
+        }))
 
 
 
