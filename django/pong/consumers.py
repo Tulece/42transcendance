@@ -231,7 +231,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "message": (
                         f"Invitation à jouer envoyée à {target_username}. "
                         f'<a href="/game?game_id={game_id}&mode=private&invite_id={invite_id}&role=player1" '
-                        f'target="_blank" style="color:blue;">[lancer le jeu]</a>'
+                        f'target="_blank" style="color:blue;" class="spa-link">[lancer le jeu]</a>'
                     ),
                     "invite_id": invite_id
                 }))

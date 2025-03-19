@@ -481,6 +481,7 @@ window.initChat = async () => {
       link.href = `/game?game_id=${inviteData.game_id}&mode=private&invite_id=${inviteData.invite_id}&role=player2`;
       link.innerText = "Vers le jeu Pong";
       link.target = "_blank";
+      link.classList.add("spa-link");
 
       invitationDiv.appendChild(document.createElement("br")); //Saut de ligne
       invitationDiv.appendChild(link);

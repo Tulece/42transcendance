@@ -12,33 +12,9 @@ window.initPong = function () {
   let role = "";
   let matchId = null;
 
-const ball = { x: 0, y: 0, radius: 5 };
-const player1 = { x: 0, y: 0, hp: 5 };
-const player2 = { x: 0, y: 0, hp: 5 };
-
-window.initPong = function () {
-  console.log("Initialisation du jeu Pong...");
-  setupCanvas();
-  const params = new URLSearchParams(window.location.search);
-  const mode = params.get("mode");
-  const gameId = params.get("game_id");
-  const roleParam = params.get("role");
-  if (mode === "tournament") {
-    role = params.get("role");
-    matchId = params.get("match_id"); // récupérer le match_id
-    if (gameId && role) {
-      connectToGame(gameId, role);
-    } else {
-      console.error("Game ID ou rôle manquant en mode tournoi.");
-    }
-  } else if (mode === 'private' && gameId) {
-      role = params.get("role");
-      connectToGame(gameId, roleParam);
-      return;
-  } else {
-    connectToLobby();
-  }
-};
+  const ball = { x: 0, y: 0, radius: 5 };
+  const player1 = { x: 0, y: 0, hp: 5 };
+  const player2 = { x: 0, y: 0, hp: 5 };
 
   function setupCanvas() {
     canvas = document.getElementById("pong");
@@ -53,7 +29,6 @@ window.initPong = function () {
     window.ctx = ctx;
     window.canvas = canvas;
   }
-
 
 
   function connectToLobby() {
@@ -210,17 +185,25 @@ window.initPong = function () {
   setupCanvas();
   const params = new URLSearchParams(window.location.search);
   const mode = params.get("mode");
+  const gameId = params.get("game_id");
+  const roleParam = params.get("role");
   if (mode === "tournament") {
-      const gameId = params.get("game_id");
+    console.log("tournament mode detected");
+    role = params.get("role");
+    matchId = params.get("match_id"); // récupérer le match_id
+    if (gameId && role) {
+      connectToGame(gameId, role);
+    } else {
+      console.error("Game ID ou rôle manquant en mode tournoi.");
+    }
+  } else if (mode === 'private' && gameId) {
+      console.log("private mode detected");
       role = params.get("role");
-      matchId = params.get("match_id");
-      if (gameId && role) connectToGame(gameId, role);
-      else console.error("Game ID ou rôle manquant en mode tournoi.");
+      connectToGame(gameId, roleParam);
   } else {
-      connectToLobby();
+    console.log("no mode detected");
+    connectToLobby();
   }
-
-
 
   function onKeyDown(e) {
     if (!key_pressed[e.key] && game_running) {
@@ -338,5 +321,6 @@ window.initPong = function () {
         window.ctx.fillText(".", x_pos + textWidth + (i * 10), window.canvas.height / 2);
     }
   }
+
 };
 
