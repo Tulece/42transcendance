@@ -168,16 +168,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 return
             elif action == "invite_to_game":
                 target_username = data.get("target_username")
-
-                # # Check if invitation already sent & running
-                # if any(inv["to"] == target_username for inv in INVITATIONS.values()):
-                #     await self.send(json.dumps({
-                #         "type": "error",
-                #         "message": f"{target_username} a déjà une invitation en attente."
-                #     }))
-                #     return
-
-
+                
                 try:
                     target_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)
                 except CustomUser.DoesNotExist:
