@@ -75,7 +75,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4003)
             return
 
-        self.user_id = self.user.username
+        self.user_id = self.user.id
         await self.set_user_online_state(self.user_id, True)
 
         self.username = self.user.username or "Anonyme"
@@ -119,7 +119,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
 
         if self.user.is_authenticated:
-            await self.set_user_online_state(self.user, False)
+            await self.set_user_online_state(self.user_id, False)
 
         if hasattr(self, "room_group_name") and self.room_group_name:
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
@@ -298,7 +298,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def set_user_online_state(self, user_id, state: bool):
         try:
-            user_obj = CustomUser.objects.get(username=user_id)  # get par l'ID
+            user_obj = CustomUser.objects.get(id=user_id)  # get par l'ID
             user_obj.online_status = state
             user_obj.save()
         except CustomUser.DoesNotExist:
