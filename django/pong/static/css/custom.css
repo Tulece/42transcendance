@@ -104,6 +104,11 @@
     position: relative;
 }
 
+#fh5co-hero .fh5co-overlay {
+    background: none !important;
+    opacity: 0 !important;
+}
+
 /* 📌 Texte principal */
 .fh5co-intro h2 {
     color: #323232 !important;
@@ -132,6 +137,16 @@
     padding: 60px 0;
 }
 
+.fh5co-text {
+    background-color: #DDD0C8 !important; /* Fond adapté */
+    color: #323232 !important; /* Texte lisible */
+    padding: 15px;
+    border-radius: 0 0 10px 10px;
+    text-align: center;
+}
+
+
+
 .fh5co-lead {
     color: #323232 !important;
     font-weight: bold;
@@ -143,28 +158,41 @@
 
 /* 📌 Cartes des membres de l'équipe */
 .fh5co-project-item {
-    position: relative;
-    display: block;
-    overflow: hidden;
-    border-radius: 10px;
-    transition: transform 0.3s ease-in-out;
+    display: flex; 
+    flex-direction: column; /* Force le texte sous l'image */
+    align-items: center; 
+    height: auto; /* Ajuste la hauteur dynamiquement */
 }
 
 .fh5co-project-item:hover {
     transform: scale(1.05);
 }
 
+.fh5co-project-item img {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    display: block;
+}
+
 .fh5co-text {
-    background-color: #DDD0C8;
+    background-color: #DDD0C8 !important;
     color: #323232 !important;
     padding: 15px;
     border-radius: 0 0 10px 10px;
+    text-align: center;
+    width: 100%;
 }
 
-.fh5co-text h2 {
-    font-size: 18px;
-    font-weight: bold;
+.fh5co-project-item .fh5co-text p {
+    color: #000 !important;
+}
+.fh5co-project-item .fh5co-text h2 {
     color: #323232 !important;
+}
+.fh5co-project-item .fh5co-text h2 a {
+    text-decoration: none !important;
+    color: inherit !important;
 }
 
 
@@ -172,16 +200,15 @@
 
 /* 📌 Conteneur principal du chat */
 #chat-wrapper {
-    background-color: #DDD0C8!important; /* Fond gris clair */
-    border: 1px solid #323232 !important; /* Bordure sombre */
+    background-color: #323232!important;
+    border: 1px solid #323232 !important;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s ease-in-out;
 }
 
 /* 📌 Titre du chat */
 #chat-wrapper .card-header {
-    background-color: #323232 !important; /* Fond noir */
-    color: #FFFFFF !important; /* Texte blanc */
+    background-color: #DDD0C8 !important;
 }
 
 /* 📌 Bouton réduire */
@@ -197,7 +224,7 @@
 
 /* 📌 Liste des utilisateurs connectés */
 #user-list-container {
-    background-color: #E0E0E0 !important; /* Gris plus clair */
+    background-color: #DDD0C8!important; /* Gris plus clair */
     border-right: 1px solid #323232 !important;
 }
 
@@ -209,7 +236,7 @@
 
 /* 📌 Messages individuels */
 .message {
-    background-color: #E9ECEF !important;
+    background-color: #DDD0C8 !important;
     color: #323232 !important;
     border-radius: 8px;
     padding: 6px 10px;
@@ -223,20 +250,20 @@
 }
 
 /* 📌 Input du chat */
-#message-input {
+/* #message-input {
     background-color: #FFFFFF !important;
     border: 1px solid #323232 !important;
     color: #323232 !important;
-}
+} */
 
-#message-input:focus {
+/* #message-input:focus {
     border-color: #2272FF !important; /* Bleu vif */
-    box-shadow: 0 0 5px rgba(34, 114, 255, 0.5);
-}
+    /*box-shadow: 0 0 5px rgba(34, 114, 255, 0.5);
+} */
 
 /* 📌 Boutons du chat */
 #send-message-btn {
-    background-color: #323232 !important; /* Bleu vif */
+    background-color: #323232 !important;
     color: #DDD0C8 !important;
 }
 
@@ -254,15 +281,23 @@
 }
 
 #invite-to-game-btn {
-    background-color: brown !important; /* Jaune Bootstrap */
+    background-color: maroon !important;
     color: #DDD0C8 !important;
 }
+
+#send-message-btn:focus, 
+#send-private-btn:focus, 
+#invite-to-game-btn:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
 
 #invite-to-game-btn:hover {
     font-style: bold;
 }
 
-/* 📌 Responsive pour différentes tailles d’écran */
+/* Responsive */
 @media (max-width: 1200px) {
     #chat-wrapper {
         width: 500px;
