@@ -3,7 +3,6 @@
 	'use strict';
 
 
-
 	// iPad and iPod detection	
 	var isiPad = function(){
 		return (navigator.platform.indexOf("iPad") != -1);
@@ -98,45 +97,13 @@
 
 	// Offcanvas
 	var offcanvasMenu = function() {
-		$('body').prepend('<div id="fh5co-offcanvas" />');
-		$('#fh5co-offcanvas').prepend('<ul id="fh5co-side-links">');
-		$('body').prepend('<a href="#" class="js-fh5co-nav-toggle fh5co-nav-toggle"><i></i></a>');
-
-		$('.left-menu li, .right-menu li').each(function(){
-
-			var $this = $(this);
-
-			$('#fh5co-offcanvas ul').append($this.clone());
-
-		});
+		console.log("offcanvas");
 	};
 
 	// Burger Menu
 	var burgerMenu = function() {
 
-		$('body').on('click', '.js-fh5co-nav-toggle', function(event){
-			var $this = $(this);
-
-			$('body').toggleClass('fh5co-overflow offcanvas-visible');
-			$this.toggleClass('active');
-			event.preventDefault();
-
-		});
-
-		$(window).resize(function() {
-			if ( $('body').hasClass('offcanvas-visible') ) {
-		   	$('body').removeClass('offcanvas-visible');
-		   	$('.js-fh5co-nav-toggle').removeClass('active');
-		   }
-		});
-
-		$(window).scroll(function(){
-			if ( $('body').hasClass('offcanvas-visible') ) {
-		   	$('body').removeClass('offcanvas-visible');
-		   	$('.js-fh5co-nav-toggle').removeClass('active');
-		   }
-		});
-
+		console.log("burgerMenu");
 	};
 
 
@@ -150,6 +117,7 @@
 		  useCSS: false /* Chrome fix*/
 		});
 	}
+	
 
 
 	var goToTop = function() {
