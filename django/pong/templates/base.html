@@ -18,13 +18,6 @@
   
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
   
-  <!-- 2️⃣ Charger Magnific Popup et Flexslider juste après jQuery -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/jquery.magnific-popup.min.js" defer></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        console.log("MagnificPopup loaded?", typeof $.fn.magnificPopup);
-    });
-  </script>
   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
@@ -39,17 +32,17 @@
     });
 </script>
 <!-- Styles du template -->
-<link rel="stylesheet" href="{% static 'css/animate.css' %}">
 <link rel="stylesheet" href="{% static 'css/icomoon.css' %}">
-<link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}">
+<link rel="stylesheet" href="{% static 'css/animate.css' %}">
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
 <link rel="stylesheet" href="{% static 'css/custom.css' %}">
 </head>
 <!-- Scripts du template -->
 <script src="{% static 'javascript/main.js' %}"></script>
-<script src="{% static 'javascript/jquery.cookie.js' %}"></script>
 <script src="{% static 'javascript/jquery.waypoints.min.js' %}"></script>
-<script src="{% static 'javascript/magnific-popup-options.js' %}"></script>
+<script src="{% static 'javascript/jquery.easing.1.3.js' %}"></script>
+<script src="{% static 'javascript/jquery.flexslider-min.js' %}"></script>
+
 
 <body>
   {% include 'header.html' %}
