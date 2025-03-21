@@ -21,9 +21,9 @@
 }
 
 #logout-btn {
-    background-color: #D32F2F !important;
+    background-color: maroon !important;
     color: #FFFFFF !important;
-    border-color: #D32F2F;
+    border-color: maroon;
 }
 
 #logout-btn:hover {
@@ -53,8 +53,8 @@
 
 /* 📌 Fond du footer */
 #fh5co-footer {
-    background-color: #DDD0C8  !important; /* Bleu foncé */
-    color: #E0E1DD !important; /* Gris clair */
+    background-color: #DDD0C8  !important;
+    color: #E0E1DD !important;
     padding: 40px 0;
 }
 
@@ -65,8 +65,11 @@
 }
 
 /* 📌 Liens du footer */
-.fh5co-footer-widget ul.fh5co-links li a {
+.fh5co-footer-widget p.fh5co-links a,
+.fh5co-footer-widget p.fh5co-links {
     color: #323232 !important;
+    font-style: bold;
+    text-decoration: none !important;
     transition: color 0.3s ease-in-out;
 }
 
@@ -196,25 +199,47 @@
 }
 
 
-
-
 /* 📌 Conteneur principal du chat */
 #chat-wrapper {
-    background-color: #323232!important;
-    border: 1px solid #323232 !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background-color: transparent !important;
+    box-shadow: none !important;
+    padding: 0;
     transition: transform 0.3s ease-in-out;
 }
 
+#chat-wrapper .card {
+    border: 1px solid #B0B0B0 !important; /* Bordure grise légère */
+    border-radius: 8px !important; /* Coins arrondis pour un look plus propre */
+    background-color: #DDD0C8 !important; /* Remet la couleur de fond uniquement sur le chat */
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Légère ombre pour délimiter */
+}
+
+
 /* 📌 Titre du chat */
 #chat-wrapper .card-header {
+    background-color: #582900 !important;
+}
+
+.card-header h5 {
+    color: white;
+    text-transform: uppercase;
+}
+
+#chat-wrapper .card-body {
     background-color: #DDD0C8 !important;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+#chat-wrapper .card-footer {
+    background-color: #DDD0C8 !important;
+    border-top: 1px solid #B0B0B0 !important;
 }
 
 /* 📌 Bouton réduire */
 #chat-toggle {
-    background-color: #323232 !important; /* Gris Bootstrap */
-    color: #DDD0C8 !important;
+    background-color: maroon !important;
+    color: white !important;
     border: none;
 }
 
@@ -224,8 +249,25 @@
 
 /* 📌 Liste des utilisateurs connectés */
 #user-list-container {
-    background-color: #DDD0C8!important; /* Gris plus clair */
-    border-right: 1px solid #323232 !important;
+    background-color: #DDD0C8!important;
+    border-right: 1px solid #B0B0B0 !important;
+    overflow:hidden;
+    position: relative;
+}
+
+.list-group-item {
+    background-color: #DDD0C8 !important;
+    border: 0px solid #B0B0B0 !important;
+    padding: 5px;
+}
+
+.btn-danger {
+    background-color: maroon !important;
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #9A1B1B;
 }
 
 /* 📌 Message Area */
@@ -236,7 +278,6 @@
 
 /* 📌 Messages individuels */
 .message {
-    background-color: #DDD0C8 !important;
     color: #323232 !important;
     border-radius: 8px;
     padding: 6px 10px;
@@ -249,22 +290,22 @@
     color: #856404 !important; /* Marron foncé */
 }
 
-/* 📌 Input du chat */
-/* #message-input {
-    background-color: #FFFFFF !important;
-    border: 1px solid #323232 !important;
-    color: #323232 !important;
-} */
+.message.username {
+    font-weight: bold;
+}
 
-/* #message-input:focus {
-    border-color: #2272FF !important; /* Bleu vif */
-    /*box-shadow: 0 0 5px rgba(34, 114, 255, 0.5);
-} */
+/* 📌 Input du chat */
+#message-input {
+    background-color: #FFFFFF !important;
+    border: 1px solid #B0B0B0 !important;
+    color: #323232 !important;
+}
 
 /* 📌 Boutons du chat */
 #send-message-btn {
     background-color: #323232 !important;
     color: #DDD0C8 !important;
+    border: none;
 }
 
 #send-message-btn:hover {
@@ -282,7 +323,8 @@
 
 #invite-to-game-btn {
     background-color: maroon !important;
-    color: #DDD0C8 !important;
+    color: white !important;
+    border: none;
 }
 
 #send-message-btn:focus, 
@@ -324,4 +366,51 @@
         width: 350px;
         height: 250px;
     }
+}
+
+#save-btn {
+    background-color: maroon !important;
+    color: white !important;
+    border: none;
+}
+
+#save-btn:hover {
+    background-color: #6F3C1A !important;
+}
+
+#change-password-btn {
+    background-color: #6F3C1A !important;
+    color: white !important;
+    border: none;
+}
+
+#change-password-btn:hover {
+    background-color: maroon !important;
+}
+
+
+button[type="submit"] {
+    background-color: maroon;
+    color: white !important;
+    border: none;
+}
+
+button[type="submit"]:hover {
+    background-color: #6F3C1A;
+}
+
+
+#login-form-container {
+    background-color: ;
+}
+
+.btn-42 {
+    background-color: maroon !important;
+    color: white !important;
+    border: none;
+    transition: background 0.3s ease-in-out;
+}
+
+.btn-42:hover {
+    background-color: #DDD0C8  !important;
 }

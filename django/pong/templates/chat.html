@@ -5,7 +5,7 @@
 
   <div class="card h-100 shadow-lg d-flex flex-column">
     <div class="card-header d-flex justify-content-between align-items-center bg-dark text-white">
-      <h5 class="mb-0">Live Chat & Utilisateurs</h5>
+      <h5 class="mb-0">Live Chat</h5>
       <button id="chat-toggle" class="btn btn-sm btn-light">Réduire</button>
     </div>
 
@@ -19,7 +19,7 @@
           <ul id="friends-connected" class="list-group mb-3"></ul>
 
           <h6 class="mb-2">Autres connectés</h6>
-          <ul id="others-connected" class="list-group"></ul>
+          <ul id="others-connected" class="list-group mb-3"></ul>
         </div>
       </div>
 
@@ -51,35 +51,14 @@
 
 <style>
 
-/* Styles "par défaut" (Desktop first) > Check si conflict with Boostrap ?*/
-#user-list-container {
-  /* width: 240px;
-  height: 450px; */
-  overflow:hidden;
-  position: relative;
-  /* z-index: 1050; */
-  /* transition: transform 0.3s ease-in-out; Animation when change its state */
-  /* transform: translateY(0); */
-}
-
-#user-list-container .card-body {
-  max-height: 350px;
-  overflow-y: auto;
-}
-
 #chat-container {
-  /* width: 450px;
-  height: 450px; */
   overflow: hidden;
-  /* transition: transform 0.3s ease-in-out; */
-  /* transform: translateY(0); État "ouvert" */
 }
 
 #chat-wrapper {
   width: 700px;
   height: 450px;
   position: fixed; bottom:0; right:0;
-  z-index: 999; /* Check if useful or not (devient prio sur l'affichage) */
   transition: transform 0.3s ease-in-out;
   transform: translateY(0);
 }
@@ -87,59 +66,6 @@
 #chat-wrapper.collapsed {
   transform: translateY(calc(100% - 60px));
 }
-
-#user-list-container, #chat-container {
-  max-width: 70vw;
-  max-height: 80vh;
-}
-
-/* @media (max-width: 1200px) {
-  #chat-wrapper {
-    width: 500px;
-    height: 400px;
-  }
-}
-
-@media (max-width: 992px) {
-  #chat-wrapper {
-    width: 450px;
-    height: 350px;
-  }
-}
-
-@media (max-width: 768px) {
-  #chat-wrapper {
-    width: 400px;
-    height: 300px;
-  }
-}
-
-@media (max-width: 576px) {
-  #chat-wrapper {
-    width: 350px;
-    height: 250px;
-  }
-} */
-
-
-/* #message-area {
-  background-color: #f8f9fa;
-  border-top: 1px solid #ddd;
-}
-.message {
-  margin-bottom: 5px;
-  padding: 4px;
-  border-radius: 5px;
-  font-size: 14px;
-} */
-.message .username {
-  font-weight: bold;
-}
-/* .message.system {
-  color: #999;
-  font-style: italic;
-} */
-
 
 .error-message {
   color: red;

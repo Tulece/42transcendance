@@ -42,10 +42,10 @@
         </div>
         {% endif %}
 
-        <button id="save-btn" class="btn btn-primary w-100 mt-3" onclick="saveChanges()">Enregistrer</button>
+        <button id="save-btn" class="btn w-100 mt-3" snclick="saveChanges()">Enregistrer</button>
         
         {% if viewed_user.id == user.id and not user.is_42_user %}
-        <button id="change-password-btn" class="btn btn-secondary w-100 mt-2" onclick="openPasswordModal()">Change Password</button>
+        <button id="change-password-btn" class="btn w-100 mt-2" onclick="openPasswordModal()">Change Password</button>
         {% endif %}
 
         {% if viewed_user.id != user.id %}
