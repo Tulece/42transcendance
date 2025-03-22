@@ -1,4 +1,4 @@
-/* Police d'icônes */
+/* Police d'icônes RS */
 @font-face {
   font-family: 'icomoon';
   src: url("../fonts/icomoon/icomoon.eot?srf3rx");
@@ -10,7 +10,7 @@
   font-style: normal;
 }
 
-/* ====== Base Styles ====== */
+
 body {
   font-family: "Roboto", Arial, sans-serif;
   font-size: 16px;
@@ -26,7 +26,7 @@ body.fh5co-overflow {
   overflow-x: auto;
 }
 
-/* ====== Link Styles ====== */
+/* link styles */
 a {
   color: maroon;
   -webkit-transition: 0.5s;
@@ -43,6 +43,7 @@ p, figure {
   margin-bottom: 1.5em;
 }
 
+/* Modification de la couleur when select */
 ::-webkit-selection {
   color: #818892;
   background: #f9f6f0;
@@ -72,7 +73,7 @@ p, figure {
   border-color: maroon;
 }
 
-/* ====== Hero Section ====== */
+/* section home */
 #fh5co-hero {
   background-color: transparent;
   background-size: cover;
@@ -97,7 +98,7 @@ p, figure {
   z-index: 9;
 }
 
-/* ====== Footer Styles ====== */
+/* section footer*/
 #fh5co-footer {
   background-color: #DDD0C8 !important;
   color: #E0E1DD !important;
@@ -174,6 +175,7 @@ p, figure {
 }
 
 
+/* Style section "our team" */
 #fh5co-projects .fh5co-lead {
   font-size: 50px;
   font-weight: 300;
