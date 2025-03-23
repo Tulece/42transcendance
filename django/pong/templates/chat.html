@@ -10,7 +10,7 @@
     </div>
 
     <div class="card-body d-flex p-0" style="overflow: hidden;">
-      <!-- Liste des utilisateurs -->
+      <!-- Liste des users -->
       <div id="user-list-container" class="border-end" style="width: 270px; overflow-y: auto;">
         <div class="p-2">
           <h5 class="mb-3">Utilisateurs connectés</h5>
@@ -39,7 +39,11 @@
                   <option value="" disabled selected>Choisir un destinataire</option>
               </select>
               <button id="send-private-btn" class="btn btn-secondary">Envoyer privé</button>
-              <button id="invite-to-game-btn" class="btn btn-warning">Inviter au Pong</button>
+              <button id="invite-to-game-btn" class="btn btn-warning"
+                      data-bs-toggle="modal"
+                      data-bs-target="#inviteModal">
+                Inviter au Pong
+              </button>
           </div>
         </div>
       </div>
@@ -93,3 +97,22 @@
 }
 
 </style>
+
+<!-- Modale de confirmation -->
+<div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="inviteModalLabel">Confirmer l'invitation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Es-tu sûr(e) de vouloir inviter <span id="invitedPlayer">un joueur</span> à jouer ?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-success" id="confirmInvite">Confirmer</button>
+      </div>
+    </div>
+  </div>
+</div>
