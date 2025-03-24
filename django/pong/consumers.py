@@ -68,7 +68,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 
     async def connect(self):
-        self.user = self.scope.get("user", None)
+        self.user = await database_sync_to_async(CustomUser.objects.get)(id=self.scope['user'].id)
 
         if not self.user or not self.user.is_authenticated:
             print("Utilisateur non authentifié. Fermeture de la connexion.")
@@ -100,7 +100,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.personal_group = f"user_{self.user.id}"
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}")
+        print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}", flush = True)
 
         await self.channel_layer.group_add(self.personal_group, self.channel_name)
 
@@ -141,7 +141,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             data = json.loads(text_data)
             action = data.get("action")
-            print(f"🔍 Reçu action={action}, username_to_block={data.get('username_to_block')}, username_to_unblock={data.get('username_to_unblock')}")
+            print(f"🔍 Reçu action={action}, username_to_block={data.get('username_to_block')}, username_to_unblock={data.get('username_to_unblock')}, invite_target={data.get('target_username')}")
 
             if action == "block_user":
                 username_to_block = data.get("username_to_block")
@@ -159,7 +159,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.user_list(data)
                 return
             elif action == "invite_to_game":
-                target_username = data.get("target_username")
+                target_username = data.get('target_username')
 
                 # # Check if invitation already sent & running
                 # if any(inv["to"] == target_username for inv in INVITATIONS.values()):
@@ -168,22 +168,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 #         "message": f"{target_username} a déjà une invitation en attente."
                 #     }))
                 #     return
-
+                print("Action invite_to_game detected", flush = True)
 
                 try:
                     target_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)
                 except CustomUser.DoesNotExist:
                     print(f"Erreur : Utilisateur {target_username} introuvable.", flush=True)
                     return
-                
                 lobby_instance = Lobby.get_instance()
-                existing_game_id = lobby_instance.get_game_id_by_player(target_username)
-
-                if existing_game_id:
-                    game_id = existing_game_id
-                else:
-                    game_id = await lobby_instance.API_start_game_async(self.scope["user"].username, target_username)
-
+                # existing_game_id = lobby_instance.get_game_id_by_player(target_username)
+                # if existing_game_id:
+                #     game_id = existing_game_id
+                # else:
+                game_id = await lobby_instance.API_start_game_async(self.user.username, target_username)
                 # Vérifier si la partie existe bien dans le lobby
                 if game_id not in lobby_instance.active_games:
                     print(f"Erreur : La partie {game_id} n'a pas été ajoutée au lobby.")
@@ -192,7 +189,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "message": "Erreur lors de la création de la partie."
                     }))
                     return
-
                 invite_id = str(uuid.uuid4()) # Stocker l'invit'
                 expiration = time.time() + 30
                 INVITATIONS[invite_id] = { # To stock these info in a dict.
@@ -203,7 +199,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "game_id": game_id,
                     "expires_at": expiration
                 }
-
                 # Notif' le dest. (send to the group dest)
                 target_group = f"user_{target_user.id}"
                 await self.channel_layer.group_send(
@@ -223,7 +218,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
-                print(f"✅ Envoi de l'invitation à {target_username} avec game_id={game_id}")
+                print(f"✅ Envoi de l'invitation à {target_username} avec game_id={game_id}", flush=True)
 
                 # Validation envoi
                 await self.send(json.dumps({
@@ -254,7 +249,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
         except Exception as e:
-            print(f"Erreur lors du traitement du message : {e}")
+            print(f"Erreur lors du traitement du message : {e}", flush=True)
             await self.send(json.dumps({
                 "type": "error",
                 "message": "Erreur lors du traitement du message."
@@ -430,7 +425,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         self.lobby = Lobby.get_instance()
         self.player_id = str(uuid.uuid4())
         self.game_id = None
-        self.user = self.scope.get("user", None)
+        self.user = await database_sync_to_async(CustomUser.objects.get)(id=self.scope['user'].id)
 
         await self.accept()
         print(f"Joueur {self.player_id} connecté au lobby.", flush=True)
@@ -454,17 +449,20 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             await player1.send(json.dumps({
                 "type": "game_found",
                 "game_id": game_id,
-                "role": "player1"
+                "role": "player1",
+                "mode": "solo"
             }))
         elif mode == 'local':
             game_id, player = await self.lobby.create_local_game(self)
             await player.send(json.dumps({
                 "type": "game_found",
                 "game_id": game_id,
-                "role": "local"
+                "role": "local",
+                "mode": "local"
             }))
         else:
-            user = self.scope["user"]
+            user = await database_sync_to_async(CustomUser.objects.get)(id=self.scope['user'].id)
+
             ratio = user.wins / user.match_played if user.match_played > 0 else 0.5
             self.lobby.add_player_to_queue(self, ratio)
             print(f"Joueur {self.player_id} en attente d'une partie (Ratio : {ratio}).", flush=True)
@@ -518,6 +516,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         player = getattr(self, "player_id", "unknown")
         print(f"[PongConsumer] Joueur {player} déconnecté de la partie {self.game_id}.", flush=True)
         if self.game:
+            Lobby.get_instance().remove_game(self.game_id)
             if hasattr(self, "player_id"):
                 self.game.handle_player_disconnect(self.player_id)
             else:
@@ -542,11 +541,10 @@ class PongConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps(event["message"]))
 
     async def update_stats(self, go_message):
-        db_user = self.scope.get("user", None)
+        db_user = self.scope["user"]
         if db_user and db_user.is_authenticated:
-            # (CHANGED) Utiliser l'id plutôt que le username
             user_id = db_user.id
-            user_obj = await database_sync_to_async(CustomUser.objects.get)(pk=user_id)
+            user_obj = await database_sync_to_async(CustomUser.objects.get)(id=user_id)
             if user_obj:
                 print(f"Enregistrement des statistiques pour {user_obj.username}")
                 if self.player_id in go_message:

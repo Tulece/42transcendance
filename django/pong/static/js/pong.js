@@ -48,7 +48,7 @@ window.initPong = function () {
               console.log(`Partie trouvée : ${data.game_id}`);
               lobbySocket.close();
               role = data.role;
-              connectToGame(data.game_id, data.role);
+              connectToGame(data.game_id, data.role, data.mode);
           } else if (data.type === "waiting") {
               displayWaitingMessage(data.message, -1);
           }
@@ -58,8 +58,8 @@ window.initPong = function () {
       lobbySocket.onerror = (error) => console.error("Erreur WebSocket (lobby) :", error);
   }
 
-  function connectToGame(gameId, role) {
-      gameSocket = new WebSocket(`wss://${host}/ws/game/${gameId}/?player_id=${role}&mode=solo`);
+  function connectToGame(gameId, role, mode) {
+      gameSocket = new WebSocket(`wss://${host}/ws/game/${gameId}/?player_id=${role}&mode=${mode}`);
       gameSocket.onopen = () => {
           console.log(`Connecté à la partie : ${gameId}, rôle : ${role}`);
           game_running = true;
@@ -192,14 +192,14 @@ window.initPong = function () {
     role = params.get("role");
     matchId = params.get("match_id"); // récupérer le match_id
     if (gameId && role) {
-      connectToGame(gameId, role);
+      connectToGame(gameId, role, 'tournament');
     } else {
       console.error("Game ID ou rôle manquant en mode tournoi.");
     }
   } else if (mode === 'private' && gameId) {
       console.log("private mode detected");
       role = params.get("role");
-      connectToGame(gameId, roleParam);
+      connectToGame(gameId, roleParam, 'private');
   } else {
     console.log("no mode detected");
     connectToLobby();

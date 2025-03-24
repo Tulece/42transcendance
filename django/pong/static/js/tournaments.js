@@ -1,35 +1,33 @@
 // static/js/tournaments.js
-
-document.addEventListener("DOMContentLoaded", () => {
-	// Gestion du formulaire de création de tournoi
-	const createForm = document.getElementById("createTournamentForm");
-	if (createForm) {
-	  createForm.addEventListener("submit", async (e) => {
-		e.preventDefault();
-		const formData = new FormData(createForm);
-		try {
-		  const response = await fetch("/tournaments/create/", {
-			method: "POST",
-			body: formData,
-			credentials: "include",
-			headers: {
-                "X-Requested-With": "XMLHttpRequest"  // <-- Ajout de cet en-tête
-                      }
-		  });
-		  const data = await response.json();
-		  if (response.ok && data.success) {
-			alert(data.message);
-			navigateTo("/tournaments/list/");
-		  } else {
-			console.error("Erreur:", data.error);
-			alert(data.error || "Erreur lors de la création du tournoi.");
+document.addEventListener("submit", async (e) => {
+	const form = e.target;
+	if (form && form.id === "createTournamentForm") {
+	  e.preventDefault();
+	  const formData = new FormData(form);
+	  try {
+		const response = await fetch("/tournaments/create/", {
+		  method: "POST",
+		  body: formData,
+		  credentials: "include",
+		  headers: {
+			"X-Requested-With": "XMLHttpRequest"
 		  }
-		} catch (error) {
-		  console.error("Network error:", error);
+		});
+		const data = await response.json();
+		if (response.ok && data.success) {
+		  alert(data.message);
+		  navigateTo("/tournaments/list/");
+		} else {
+		  console.error("Erreur:", data.error);
+		  alert(data.error || "Erreur lors de la création du tournoi.");
 		}
-	  });
+	  } catch (error) {
+		console.error("Network error:", error);
+	  }
 	}
+  });
 
+  document.addEventListener("DOMContentLoaded", () => {
 	// Gestion du clic sur le bouton "Rejoindre"
 	const joinButtons = document.querySelectorAll(".join-tournament");
 	joinButtons.forEach((button) => {
@@ -62,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	// en regardant si on a #tournament-list-container
 	const listContainer = document.getElementById("tournament-list-container");
 	if (listContainer) {
-	  initGlobalTournamentsWS(); // (ADDED) On connecte le WebSocket global des tournois
+	  initGlobalTournamentsWS(); // On connecte le WebSocket global des tournois
 	}
 
 	// Initialisation du canal WebSocket pour le détail d'un tournoi
@@ -123,7 +121,6 @@ document.addEventListener("DOMContentLoaded", () => {
 	  console.error("Erreur refreshTournamentList:", err);
 	}
   }
-
 
   // Initialise le WebSocket pour recevoir les mises à jour du tournoi (détail)
   function initTournamentSocket(tournamentId) {

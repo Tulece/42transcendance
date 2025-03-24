@@ -41,23 +41,25 @@ def create_tournament_view(request):
         if len(player_ids) < 2:
             error_message = "Un tournoi doit comporter au minimum 2 joueurs."
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return JsonResponse({"success": False, "error": error_message}, status=400)
-            return render(request, "base.html", {
-                "initial_fragment": "tournaments/create_tournament.html",
-                "error": error_message,
-                "users": CustomUser.objects.filter(online_status=True)
-            })
+                return JsonResponse({"success": False, "error": error_message})
+            else:
+                return render(request, "base.html", {
+                    "initial_fragment": "tournaments/create_tournament.html",
+                    "error": error_message,
+                    "users": CustomUser.objects.filter(online_status=True)
+                }, status=400)
 
         players = CustomUser.objects.filter(id__in=player_ids, online_status=True)
         if players.count() < 2:
             error_message = "Vous devez sélectionner au moins 2 joueurs connectés."
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return JsonResponse({"success": False, "error": error_message}, status=400)
-            return render(request, "base.html", {
-                "initial_fragment": "tournaments/create_tournament.html",
-                "error": error_message,
-                "users": CustomUser.objects.filter(online_status=True)
-            })
+            else:
+                return render(request, "base.html", {
+                    "initial_fragment": "tournaments/create_tournament.html",
+                    "error": error_message,
+                    "users": CustomUser.objects.filter(online_status=True)
+                })
 
         tournament = lobby.create_tournament(name=name, player_ids=[player.id for player in players])
 
@@ -92,6 +94,7 @@ def create_tournament_view(request):
             }, status=201)
 
         return redirect("/tournaments/list/")
+
 
 
 @require_GET

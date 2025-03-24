@@ -20,35 +20,48 @@
     async function navigateTo(url, pushState = true) {
         try {
             handlePageUnload(location.pathname);
-            const response = await fetch(url, {
+
+            // Ajoute systématiquement le paramètre 'fragment=1' pour forcer le rendu fragmentaire
+            const ajaxUrl = url.includes('?') ? `${url}&fragment=1` : `${url}?fragment=1`;
+
+            const response = await fetch(ajaxUrl, {
                 headers: { "X-Requested-With": "XMLHttpRequest" },
-                credentials: "include",
+                credentials: "include"
             });
 
             if (response.status === 403) {
                 alert("Vous devez être connecté pour accéder à cette page !");
                 return;
             }
-
             if (!response.ok) {
-                console.error("Erreur fetch URL:", url, "status =", response.status);
+                console.error("Erreur fetch URL:", ajaxUrl, "status =", response.status);
                 return;
             }
 
             if (pushState) {
+                // Conserve l'URL sans le paramètre dans l'historique
                 history.pushState(null, "", url);
             }
 
             const htmlSnippet = await response.text();
-            const appDiv = document.getElementById("app");
-            appDiv.innerHTML = htmlSnippet;
+
+            // Extraction du contenu du fragment
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlSnippet, "text/html");
+            const newContent = doc.getElementById("content");
+            if (newContent) {
+                document.getElementById("content").innerHTML = newContent.innerHTML;
+            } else {
+                document.getElementById("app").innerHTML = htmlSnippet;
+            }
 
             handlePageSpecificScripts(url);
-
         } catch (error) {
             console.error("Erreur réseau :", error);
         }
     }
+
+
 
     function handlePageUnload(oldUrl) {
         if (!oldUrl) return;
@@ -89,9 +102,8 @@
         } else if (url.includes("/account")) {
             loadScriptOnce("/static/js/account.js", () => {
                 console.log("Script de la page compte chargé.");
-                if (window.initFriendshipActions) {
-                    console.log("PASSED APP.JS !!");
-                    window.initFriendshipActions();
+                if (window.initAccount) {
+                    window.initAccount();
                 }
             });
         }

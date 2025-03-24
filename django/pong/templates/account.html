@@ -10,8 +10,18 @@
 
         <div class="text-center mb-3">
             {% if viewed_user.id == user.id %}
-                <img src="{{ viewed_user.avatar_url }}" alt="Avatar" class="rounded-circle border border-secondary avatar-clickable" width="120" height="120" id="profile-avatar" onclick="document.getElementById('avatar-upload').click();" style="object-fit: cover; object-position: center;">
-                <input type="file" id="avatar-upload" name="avatar" style="display: none;" accept="image/*" onchange="uploadAvatar(this.files[0])">
+              <input type="file" id="avatar-upload" name="avatar" style="display: none;" accept="image/*">
+
+              <label for="avatar-upload" style="cursor: pointer;">
+                <img
+                  src="{{ viewed_user.avatar_url }}"
+                  alt="Avatar"
+                  class="rounded-circle border border-secondary avatar-clickable"
+                  width="120"
+                  height="120"
+                  id="profile-avatar"
+                  style="object-fit: cover; object-position: center;">
+              </label>
             {% else %}
                 <img src="{{ viewed_user.avatar_url }}" alt="Avatar" class="rounded-circle border border-secondary" width="120" height="120" style="object-fit: cover; object-position: center;">
             {% endif %}
@@ -21,7 +31,7 @@
             <strong>Nom d'utilisateur :</strong>
             {% if viewed_user.id == user.id %}
                 <span data-viewed-username="{{ viewed_user.username }}">{{ viewed_user.username }}</span>
-                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="openUsernameModal()">
+                <button class="btn btn-sm btn-outline-secondary ms-2" id ="user-modal-btn">
                     <i class="bi bi-pencil-square"></i> Edit
                 </button>
             {% else %}
@@ -34,23 +44,20 @@
             <p><strong>Email :</strong> {{ user.email }}</p>
         {% endif %}
 
-        <p><strong>Display name :</strong> {{ viewed_user.display_name|default:"(non renseigné)" }}</p>
-
         {% if viewed_user.id == user.id and not user.is_42_user %}
         <div class="d-flex align-items-center mb-3">
             <label for="a2f" class="form-label me-2">Activer l'authentification 2FA :</label>
             <input type="checkbox" id="a2f" class="form-check-input me-2"
-                {% if user.is_a2f_enabled %}checked{% endif %}
-                onchange="toggleA2F()">
+                {% if user.is_a2f_enabled %}checked{% endif %}>
             <span id="a2f-status" class="{% if user.is_a2f_enabled %}text-success{% else %}text-danger{% endif %}">
                 {% if user.is_a2f_enabled %}Activé{% else %}Désactivé{% endif %}
             </span>
         </div>
-        <button id="save-btn" class="btn btn-primary w-100 mt-3" onclick="saveChanges()">Enregistrer</button>
+        <button id="save-btn" class="btn btn-primary w-100 mt-3">Enregistrer</button>
         {% endif %}
 
         {% if viewed_user.id == user.id and not user.is_42_user %}
-        <button id="change-password-btn" class="btn btn-secondary w-100 mt-2" onclick="openPasswordModal()">Change Password</button>
+        <button id="change-password-btn" class="btn btn-secondary w-100 mt-2">Change Password</button>
         {% endif %}
 
         {% if viewed_user.id != user.id %}
@@ -122,7 +129,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-        <button type="button" class="btn btn-primary" onclick="changePassword()">Submit</button>
+        <button id="passwordReg" type="button" class="btn btn-primary">Submit</button>
       </div>
     </div>
   </div>
@@ -147,7 +154,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-        <button type="button" class="btn btn-primary" onclick="changeUsername()">Enregistrer</button>
+        <button id="usernameReg" type="button" class="btn btn-primary">Enregistrer</button>
       </div>
     </div>
   </div>

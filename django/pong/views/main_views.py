@@ -259,11 +259,10 @@ def login_view(request):
 
 
 def home_view(request):
-    """Gère la page d'accueil et les fragments AJAX pour la SPA."""
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, 'home.html')
-    context = {"initial_fragment": "home.html"}
-    return render(request, 'base.html', context)
+    return render(request, 'base.html', { "initial_fragment": "home.html" })
+
 
 def register_view(request):
     """Gère l'inscription d'un utilisateur"""
@@ -364,8 +363,9 @@ def account_view(request, username=None):
         viewed_user = get_object_or_404(User, username=username)
 
     is_friend = request.user.friends.filter(id=viewed_user.id).exists()
+
     if request.headers.get("Accept") == "application/json":
-        friend_list = [] # On send la liste si c'est mon profil ou si c'est un friend
+        friend_list = []  # On envoie la liste si c'est mon profil ou si c'est un friend
         if viewed_user == request.user or is_friend:
             friend_list = [
                 {
@@ -385,11 +385,15 @@ def account_view(request, username=None):
     context = {
         "viewed_user": viewed_user,
         "is_friend": is_friend,
-    } # Struct. qui contient les data à transmettre au html.
+    }
 
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    # Si la requête est AJAX ou si le paramètre "fragment" est présent, on renvoie uniquement le fragment HTML
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('fragment') == '1':
         return render(request, 'account.html', context)  # Fragment AJAX
-    return render(request, 'base.html', {"initial_fragment": "account.html", "viewed_user":viewed_user})
+
+    # Sinon, on renvoie la page complète avec le layout de base
+    return render(request, 'base.html', {"initial_fragment": "account.html", "viewed_user": viewed_user})
+
 
 def chat_view(request):
     if not request.user.is_authenticated:

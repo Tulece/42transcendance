@@ -4,6 +4,7 @@ from .lobby import Lobby
 import random
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+# from .blockchain import store_tournament_result
 
 
 class TournamentLobby:
@@ -86,6 +87,15 @@ class TournamentLobby:
         match.winner = winner
         match.is_active = False
         match.save()
+
+        # --------------------------
+        # Appel à la blockchain
+        # try:
+        #     receipt = store_tournament_result(match.tournament.id, match.id, winner.id)
+        #     print("Transaction blockchain réussie, receipt :", receipt)
+        # except Exception as e:
+        #     print("Erreur lors du stockage sur la blockchain :", e)
+        # --------------------------
 
         tournament = match.tournament
         current_round = match.round_number

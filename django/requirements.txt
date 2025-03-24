@@ -9,3 +9,4 @@ websockets
 pyotp
 Pillow
 requests
+web3==6.19.0
