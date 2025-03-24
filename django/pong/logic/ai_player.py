@@ -5,7 +5,7 @@ from .game import CANVAS_HEIGHT, CANVAS_WIDTH, PADDLE_SIZE, PADDLE_WIDTH, DEFAUL
 
 
 class AIPlayer:
-    instance_count = 0  # Compteur d'instances (Used to id each playing IA);
+    instance_count = 0
 
     def __init__(self, host, game_id):
         self.ws = f"ws://web:8000/ws/game/{game_id}/?player_id=player2"
@@ -58,7 +58,6 @@ class AIPlayer:
                     self.running = False
                     break
                 elif data.get("type") == "position_update":
-                    # async with self.lock:
                     self.latest_message = data
 
         except asyncio.CancelledError:
@@ -71,7 +70,6 @@ class AIPlayer:
         while self.running:
             message = None
             time_to_sleep = 0
-            # async with self.lock:
             if self.latest_message is not None:
                 message = self.latest_message.copy()
                 self.latest_message = None
