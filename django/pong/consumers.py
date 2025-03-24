@@ -159,77 +159,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.user_list(data)
                 return
             elif action == "invite_to_game":
-                target_username = data.get('target_username')
-
-                # # Check if invitation already sent & running
-                # if any(inv["to"] == target_username for inv in INVITATIONS.values()):
-                #     await self.send(json.dumps({
-                #         "type": "error",
-                #         "message": f"{target_username} a déjà une invitation en attente."
-                #     }))
-                #     return
-                print("Action invite_to_game detected", flush = True)
-
-                try:
-                    target_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)
-                except CustomUser.DoesNotExist:
-                    print(f"Erreur : Utilisateur {target_username} introuvable.", flush=True)
-                    return
-                lobby_instance = Lobby.get_instance()
-                # existing_game_id = lobby_instance.get_game_id_by_player(target_username)
-                # if existing_game_id:
-                #     game_id = existing_game_id
-                # else:
-                game_id = await lobby_instance.API_start_game_async(self.user.username, target_username)
-                # Vérifier si la partie existe bien dans le lobby
-                if game_id not in lobby_instance.active_games:
-                    print(f"Erreur : La partie {game_id} n'a pas été ajoutée au lobby.")
-                    await self.send(json.dumps({
-                        "type": "error",
-                        "message": "Erreur lors de la création de la partie."
-                    }))
-                    return
-                invite_id = str(uuid.uuid4()) # Stocker l'invit'
-                expiration = time.time() + 30
-                INVITATIONS[invite_id] = { # To stock these info in a dict.
-                    "from": self.user.username,
-                    "from_id": self.user.id,
-                    "to": target_username,
-                    "to_id": target_user.id,
-                    "game_id": game_id,
-                    "expires_at": expiration
-                }
-                # Notif' le dest. (send to the group dest)
-                target_group = f"user_{target_user.id}"
-                await self.channel_layer.group_send(
-                    target_group,
-                    {
-                        "type": "private_message",
-                        "sender_id": self.user.id,
-                        "sender": self.user.username,
-                        "message": "",
-                        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                        "invitation": {
-                            "invite_id": invite_id,
-                            "game_id": game_id,
-                            "expires_at": expiration,
-                        },
-                        "invite_type": "pong_invite",
-                    }
-                )
-
-                print(f"✅ Envoi de l'invitation à {target_username} avec game_id={game_id}", flush=True)
-
-                # Validation envoi
-                await self.send(json.dumps({
-                    "type": "system",
-                    "message": (
-                        f"Invitation à jouer envoyée à {target_username}. "
-                        f'<a href="/game?game_id={game_id}&mode=private&invite_id={invite_id}&role=player1" '
-                        f'target="_blank" style="color:blue;" class="spa-link">[lancer le jeu]</a>'
-                    ),
-                    "invite_id": invite_id
-                }))
+                await self.invite_to_game(data)
+                return
 
             message = data.get("message", "")
             target_username = data.get("target_username")
@@ -416,7 +347,75 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "action": action,
             "username": username
         }))
+    
+    async def invite_to_game(self, data):
+        target_username = data.get("target_username")
+                
+        try:
+            target_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)
+        except CustomUser.DoesNotExist:
+            print(f"Erreur : Utilisateur {target_username} introuvable.", flush=True)
+            return
+                
+        lobby_instance = Lobby.get_instance()
+        existing_game_id = lobby_instance.get_game_id_by_player(target_username)
 
+        if existing_game_id:
+              game_id = existing_game_id
+        else:
+            game_id = await lobby_instance.API_start_game_async(self.scope["user"].username, target_username)
+                
+        # Vérifier si la partie existe bien dans le lobby
+        if game_id not in lobby_instance.active_games:
+            print(f"Erreur : La partie {game_id} n'a pas été ajoutée au lobby.")
+            await self.send(json.dumps({
+                "type": "error",
+                "message": "Erreur lors de la création de la partie."
+            }))
+            return
+
+        invite_id = str(uuid.uuid4()) # Stocker l'invit'
+        expiration = time.time() + 30
+        INVITATIONS[invite_id] = { # To stock these info in a dict.
+            "from": self.user.username,
+            "from_id": self.user.id,
+            "to": target_username,
+            "to_id": target_user.id,
+            "game_id": game_id,
+            "expires_at": expiration
+        }
+
+        # send to the group dest
+        target_group = f"user_{target_user.id}"
+        await self.channel_layer.group_send(
+            target_group,
+            {
+                "type": "private_message",
+                "sender_id": self.user.id,
+                "sender": self.user.username,
+                "message": "",
+                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                "invitation": {
+                    "invite_id": invite_id,
+                    "game_id": game_id,
+                    "expires_at": expiration,
+                },
+            "invite_type": "pong_invite", # Spécifier un mess. privé différent (spé. au pong)
+            }
+        )
+
+            # Validation envoi
+        await self.send(json.dumps({
+            "type": "system",
+            "message": (
+                f"Invitation à jouer envoyée à {target_username}. "
+                f'<a href="/game?game_id={game_id}&mode=private&invite_id={invite_id}&role=player1" '
+                f'target="_blank" style="color:blue;">[lancer le jeu]</a>'
+            ),
+            "invite_id": invite_id
+        }))
+        
+    
 
 
 

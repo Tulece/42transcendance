@@ -146,12 +146,13 @@ window.initChat = async () => {
       } else if (data.type === "user_list") {
         if (data.action === "removed") {
           myFriends.delete(data.username);
-        } else if (data.action === "added") {
+        }
+        if (data.action === "added") {
             myFriends.add(data.username)
         }
-	if (data.users) {
-            updateUserList(data.users, data.blocked_users || []);
-	}
+        if (data.users) {
+          updateUserList(data.users, data.blocked_users || []);
+        }
       } else if (data.type === "game_invitation") {
         showGameInvitation(data);
       } else if (data.type === "invitation_expired") {

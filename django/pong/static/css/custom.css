@@ -1,0 +1,416 @@
+.navbar-custom {
+    background-color: #DDD0C8 !important
+}
+
+.navbar-custom .nav-link {
+    color: #323232!important;
+}
+
+.navbar-custom .nav-link:hover {
+    font-style: bold;
+    /* color: #FFD700 !important; Or au survol */
+}
+
+#login-link {
+    color: #323232!important;
+}
+
+#login-link:hover {
+    /* color: #45A049 !important; */
+    font-style: bold;
+}
+
+#logout-btn {
+    background-color: maroon !important;
+    color: #FFFFFF !important;
+    border-color: maroon;
+}
+
+#logout-btn:hover {
+    background-color: #B71C1C !important;
+}
+
+/* 📌 Personnalisation du texte "Non connecté" */
+#user-display {
+    color: #323232!important;
+}
+
+.dropdown-menu {
+    background-color: #DDD0C8!important;
+}
+
+.dropdown-menu .dropdown-item {
+    color: #323232 !important;
+}
+
+.dropdown-menu .dropdown-item:hover {
+    /* background-color: #7289DA !important;
+    color: #FFFFFF !important; */
+    font-style: bold;
+}
+
+
+
+/* 📌 Fond du footer */
+#fh5co-footer {
+    background-color: #DDD0C8  !important;
+    color: #E0E1DD !important;
+    padding: 40px 0;
+}
+
+/* 📌 Titres du footer */
+.fh5co-footer-widget h3 {
+    color: #323232 !important;
+    font-weight: bold;
+}
+
+/* 📌 Liens du footer */
+.fh5co-footer-widget p.fh5co-links a,
+.fh5co-footer-widget p.fh5co-links {
+    color: #323232 !important;
+    font-style: bold;
+    text-decoration: none !important;
+    transition: color 0.3s ease-in-out;
+}
+
+.fh5co-footer-widget ul.fh5co-links li a:hover {
+    font-style: bold;
+}
+
+/* 📌 Icônes des réseaux sociaux */
+.fh5co-social li a {
+    color: #323232 !important;
+    font-size: 20px;
+    transition: color 0.3s ease-in-out;
+}
+
+.fh5co-social li a:hover {
+    font-style: bold;
+}
+
+/* 📌 Copyright */
+.fh5co-copyright {
+    background-color: #DDD0C8 !important;
+    text-align: center;
+    padding: 15px 0;
+}
+
+.fh5co-copyright p {
+    color: #323232 !important;
+}
+
+
+/* 📌 Section Hero */
+#fh5co-hero {
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+#fh5co-hero .fh5co-overlay {
+    background: none !important;
+    opacity: 0 !important;
+}
+
+/* 📌 Texte principal */
+.fh5co-intro h2 {
+    color: #323232 !important;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.fh5co-intro p {
+    color: #323232 !important;
+}
+
+/* 📌 Bouton "Commencer" */
+.btn-white {
+    background-color: #323232 !important;
+    color: #DDD0C8 !important;
+    border: 2px solid #323232;
+    transition: background 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+.btn-white:hover {
+    font-style: bold;
+}
+
+/* 📌 Section "Our Team" */
+#fh5co-projects {
+    background-color: #DDD0C8 !important; 
+    padding: 60px 0;
+}
+
+.fh5co-text {
+    background-color: #DDD0C8 !important; /* Fond adapté */
+    color: #323232 !important; /* Texte lisible */
+    padding: 15px;
+    border-radius: 0 0 10px 10px;
+    text-align: center;
+}
+
+
+
+.fh5co-lead {
+    color: #323232 !important;
+    font-weight: bold;
+}
+
+.fh5co-sub-lead {
+    color: #323233 !important;
+}
+
+/* 📌 Cartes des membres de l'équipe */
+.fh5co-project-item {
+    display: flex; 
+    flex-direction: column; /* Force le texte sous l'image */
+    align-items: center; 
+    height: auto; /* Ajuste la hauteur dynamiquement */
+}
+
+.fh5co-project-item:hover {
+    transform: scale(1.05);
+}
+
+.fh5co-project-item img {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    display: block;
+}
+
+.fh5co-text {
+    background-color: #DDD0C8 !important;
+    color: #323232 !important;
+    padding: 15px;
+    border-radius: 0 0 10px 10px;
+    text-align: center;
+    width: 100%;
+}
+
+.fh5co-project-item .fh5co-text p {
+    color: #000 !important;
+}
+.fh5co-project-item .fh5co-text h2 {
+    color: #323232 !important;
+}
+.fh5co-project-item .fh5co-text h2 a {
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+
+/* 📌 Conteneur principal du chat */
+#chat-wrapper {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    padding: 0;
+    transition: transform 0.3s ease-in-out;
+}
+
+#chat-wrapper .card {
+    border: 1px solid #B0B0B0 !important; /* Bordure grise légère */
+    border-radius: 8px !important; /* Coins arrondis pour un look plus propre */
+    background-color: #DDD0C8 !important; /* Remet la couleur de fond uniquement sur le chat */
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Légère ombre pour délimiter */
+}
+
+
+/* 📌 Titre du chat */
+#chat-wrapper .card-header {
+    background-color: #582900 !important;
+}
+
+.card-header h5 {
+    color: white;
+    text-transform: uppercase;
+}
+
+#chat-wrapper .card-body {
+    background-color: #DDD0C8 !important;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+#chat-wrapper .card-footer {
+    background-color: #DDD0C8 !important;
+    border-top: 1px solid #B0B0B0 !important;
+}
+
+/* 📌 Bouton réduire */
+#chat-toggle {
+    background-color: maroon !important;
+    color: white !important;
+    border: none;
+}
+
+#chat-toggle:hover {
+    font-style: bold;
+}
+
+/* 📌 Liste des utilisateurs connectés */
+#user-list-container {
+    background-color: #DDD0C8!important;
+    border-right: 1px solid #B0B0B0 !important;
+    overflow:hidden;
+    position: relative;
+}
+
+.list-group-item {
+    background-color: #DDD0C8 !important;
+    border: 0px solid #B0B0B0 !important;
+    padding: 5px;
+}
+
+.btn-danger {
+    background-color: maroon !important;
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #9A1B1B;
+}
+
+/* 📌 Message Area */
+#message-area {
+    background-color: #F8F9FA !important; /* Fond gris Bootstrap */
+    border-top: 1px solid #DDD !important;
+}
+
+/* 📌 Messages individuels */
+.message {
+    color: #323232 !important;
+    border-radius: 8px;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+}
+
+/* 📌 Messages système */
+.message.system {
+    background-color: #FFF3CD !important; /* Jaune clair */
+    color: #856404 !important; /* Marron foncé */
+}
+
+.message.username {
+    font-weight: bold;
+}
+
+/* 📌 Input du chat */
+#message-input {
+    background-color: #FFFFFF !important;
+    border: 1px solid #B0B0B0 !important;
+    color: #323232 !important;
+}
+
+/* 📌 Boutons du chat */
+#send-message-btn {
+    background-color: #323232 !important;
+    color: #DDD0C8 !important;
+    border: none;
+}
+
+#send-message-btn:hover {
+    font-style: bold;
+}
+
+#send-private-btn {
+    background-color: #323232 !important;
+    color: #DDD0C8 !important;
+}
+
+#send-private-btn:hover {
+    font-style: bold;
+}
+
+#invite-to-game-btn {
+    background-color: maroon !important;
+    color: white !important;
+    border: none;
+}
+
+#send-message-btn:focus, 
+#send-private-btn:focus, 
+#invite-to-game-btn:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+
+#invite-to-game-btn:hover {
+    font-style: bold;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    #chat-wrapper {
+        width: 500px;
+        height: 400px;
+    }
+}
+
+@media (max-width: 992px) {
+    #chat-wrapper {
+        width: 450px;
+        height: 350px;
+    }
+}
+
+@media (max-width: 768px) {
+    #chat-wrapper {
+        width: 400px;
+        height: 300px;
+    }
+}
+
+@media (max-width: 576px) {
+    #chat-wrapper {
+        width: 350px;
+        height: 250px;
+    }
+}
+
+#save-btn {
+    background-color: maroon !important;
+    color: white !important;
+    border: none;
+}
+
+#save-btn:hover {
+    background-color: #6F3C1A !important;
+}
+
+#change-password-btn {
+    background-color: #6F3C1A !important;
+    color: white !important;
+    border: none;
+}
+
+#change-password-btn:hover {
+    background-color: maroon !important;
+}
+
+
+button[type="submit"] {
+    background-color: maroon;
+    color: white !important;
+    border: none;
+}
+
+button[type="submit"]:hover {
+    background-color: #6F3C1A;
+}
+
+
+#login-form-container {
+    background-color: ;
+}
+
+.btn-42 {
+    background-color: maroon !important;
+    color: white !important;
+    border: none;
+    transition: background 0.3s ease-in-out;
+}
+
+.btn-42:hover {
+    background-color: #DDD0C8  !important;
+}

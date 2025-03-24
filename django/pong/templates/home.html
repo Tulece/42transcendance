@@ -1,21 +1,66 @@
-<div class="d-flex align-items-center justify-content-center vh-100"> 
-    <!-- d-flex: appliqué sur le conteneur parent pour rendre son contenu flexible et positionnable.
-     align-items-center: Centre verticalement les enfants d'un élément flex.
-     justify-content-center: centre horizontalement les enfants d'un élément flex.
-     vh-100: define une hauteur de 100% de la hauteur de la fenêtre/
-    -->
+{% load static %}
+<section id="fh5co-hero" class="js-fullheight" 
+    style="background-image: url('{% static 'images/background.png' %}');">
+    <div class="fh5co-overlay"></div>
     <div class="container">
-        <div class="row gy-4 gy-md-0 align-items-center text-center"> <!-- gy-4 gy-md-0 : tant que nos colonnes sont les unes en dessous des autres, il y a espacement sinon non !-->
-            <div class="col-12 col-md-6 py-3">
-                <h1 class="display-4 fw-bold mb-4 text-md-start text-center">Bienvenue sur Proxyjeza</h1>
-                <p class="fs-5">Explorez notre application et commencez à jouer à Pong !</p>
+        <div class="fh5co-intro js-fullheight">
+            <h2 class="display-4 fw-bold">Bienvenue sur Proxyjeza</h2>
+            <p class="fs-5">Explorez notre application et commencez à jouer à Pong !</p>
+            <a href="{% url 'game' %}" class="btn btn-white">Commencer</a>
+        </div>
+    </div>
+</section>
+
+<section id="fh5co-projects">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <h2 class="fh5co-lead animate-box">Our Team</h2>
+                <p class="fh5co-sub-lead animate-box">Far far away, behind the word mountains, far from our planet, there live the transcendence group. </p>
             </div>
-            <div class="col-12 col-md-6">
-                <img src="../../media/site.jpg" alt="Présentation site" class="img-fluid rounded shadow">
-                <!-- img-fluid: rend l'image responsive (s'adapte à la taille du parent) -->
-                <!-- rounded: arrondit légèrement les coins -->
-                <!-- shadow: ajoute une ombre légère -->
+        </div>
+        <div class="row justify-content-center gap-4 mt-4">
+            <div class="col-md-4 col-sm-6 col-xxs-12 animate-box d-flex flex-column align-items-center">
+                <a href="{% static 'images/anporced.jpg' %}" class="fh5co-project-item image-popup">
+                    <img src="{% static 'images/anporced.jpg' %}" alt="Image" class="img-responsive">
+                    <div class="fh5co-text text-center">
+                        <h2>Antoine Proceddu</h2>
+                        <p>Far far away, behind the word mountains, far from the countries Vokalia..</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-4 col-sm-6 col-xxs-12 animate-box d-flex flex-column align-items-center">
+                <a href="{% static 'images/tgibert.jpg' %}" class="fh5co-project-item image-popup">
+                    <img src="{% static 'images/tgibert.jpg' %}" alt="Image" class="img-responsive">
+                    <div class="fh5co-text text-center">
+                        <h2>Teddy Gibert</h2>
+                        <p>Far far away, behind the word mountains, far from the countries Vokalia..</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="row justify-content-center gap-4 mt-4"> <!-- mt-4 : espacement vertical entre les 2 -->
+            <div class="col-md-4 col-sm-6 col-xxs-12 animate-box d-flex flex-column align-items-center">
+                <a href="{% static 'images/jo.jpg' %}" class="fh5co-project-item image-popup">
+                    <img src="{% static 'images/jo.jpg' %}" alt="Image" class="img-responsive">
+                    <div class="fh5co-text text-center">
+                        <h2>Mathis Macia</h2>
+                        <p>Far far away, behind the word mountains, far from the countries Vokalia..</p>
+                    </div>
+                </a>
+            </div>
+    
+            <div class="col-md-4 col-sm-6 col-xxs-12 animate-box d-flex flex-column align-items-center">
+                <a href="{% static 'images/jeguerin.jpg' %}" class="fh5co-project-item image-popup">
+                    <img src="{% static 'images/jeguerin.jpg' %}" alt="Image" class="img-responsive">
+                    <div class="fh5co-text text-center">
+                        <h2>Jézabel Guérin</h2>
+                        <p>Far far away, behind the word mountains, far from the countries Vokalia..</p>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
-</div>
+</section>
