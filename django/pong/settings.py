@@ -216,9 +216,32 @@ OAUTH42 = {
     'SCOPE': 'public',
 }
 
-
-# # --- Configuration Blockchain ---
-# BLOCKCHAIN_NODE_URL = 'http://localhost:8545'  # Exemple : Ganache en local
-# BLOCKCHAIN_CONTRACT_ADDRESS = '0xYourContractAddressHere'
-# BLOCKCHAIN_ACCOUNT_ADDRESS = '0xYourAccountAddressHere'
-# BLOCKCHAIN_PRIVATE_KEY = '0xYourPrivateKeyHere'
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'pong.blockchain': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'pong.views': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}

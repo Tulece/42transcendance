@@ -1,5 +1,6 @@
 import uuid
 from ..models import Tournament, TournamentMatch, CustomUser, TournamentParticipation
+from ..blockchain.tournament_contract import store_tournament_result
 from .lobby import Lobby
 import random
 from channels.layers import get_channel_layer
@@ -126,6 +127,15 @@ class TournamentLobby:
                 if final_match and final_match.winner:
                     channel_layer = get_channel_layer()
                     message = f"Le tournoi est terminé ! Le gagnant final est {final_match.winner.username}."
+                    
+                    # Store tournament result in blockchain
+                    if final_match and final_match.winner:
+                        blockchain_id = store_tournament_result(
+                            tournament.name,
+                            final_match.winner.username
+                        )
+                        if blockchain_id:
+                            message += f" Tournament stored in blockchain with ID: {blockchain_id}"
                     for player in tournament.players.all():
                         async_to_sync(channel_layer.group_send)(
                             f"user_{player.id}",

@@ -46,6 +46,8 @@ from .views.tournament_views import (
     list_tournaments_view,
     report_match_result_view,
     choose_tournament_alias_view,
+    get_blockchain_tournament,
+    blockchain_tournaments_view,
 )
 
 INVITATIONS = {} # CHECK SI ON MET PAS ATTRIBUT DE CLASSE !!!
@@ -90,7 +92,8 @@ urlpatterns = [
     path('update-avatar/', update_avatar_view, name='update_avatar'),
     path('change-password/', change_password_view, name='change_password'),
     path('change-username/', change_username_view, name='change_username'),
-
+    path('api/blockchain/tournament/<int:tournament_id>/', get_blockchain_tournament, name='blockchain_tournament'),
+    path('tournaments/blockchain/', blockchain_tournaments_view, name='blockchain_tournaments'),
 ]
 
 if settings.DEBUG:

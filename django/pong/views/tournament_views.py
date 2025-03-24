@@ -1,12 +1,12 @@
-# tournament_views.py
-
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from ..models import Tournament, TournamentMatch, CustomUser, TournamentParticipation
+from ..models import Tournament, TournamentMatch, CustomUser, TournamentParticipation
 from ..logic.tournament_lobby import TournamentLobby
+from ..logic.lobby import Lobby
 from django.views.decorators.csrf import csrf_exempt
-from pong.logic.lobby import Lobby
+from ..blockchain.tournament_contract import get_tournament_info
 from asgiref.sync import sync_to_async
 import json
 from channels.layers import get_channel_layer
@@ -254,6 +254,7 @@ def choose_tournament_alias_view(request, tournament_id):
         participation.save()
         # Si la requête est AJAX, on renvoie le JSON avec l'URL de redirection
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            from django.urls import reverse
             redirect_url = reverse("tournament_detail_json", args=[tournament.id])
             return JsonResponse({
                 "success": True,
@@ -263,6 +264,53 @@ def choose_tournament_alias_view(request, tournament_id):
         else:
             # Sinon, on redirige directement vers la page du tournoi
             return redirect("tournament_detail_json", tournament_id=tournament.id)
+    
+    # GET request
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return render(request, "tournaments/choose_alias.html", {
+            "tournament": tournament
+        })
+    else:
+        return render(request, "base.html", {
+            "initial_fragment": "tournaments/choose_alias.html",
+            "tournament": tournament
+        })
 
-    return render(request, "tournaments/choose_alias.html", {"tournament": tournament})
 
+@csrf_exempt
+def get_blockchain_tournament(request, tournament_id):
+    """
+    Get tournament info from blockchain
+    Args:
+        tournament_id: ID of tournament in blockchain
+    Returns:
+        JSON with tournament info
+    """
+    try:
+        name, winner = get_tournament_info(tournament_id)
+        if name:
+            return JsonResponse({
+                'success': True,
+                'data': {
+                    'tournament_id': tournament_id,
+                    'name': name,
+                    'winner': winner
+                }
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Tournament not found in blockchain'
+            }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@require_GET
+def blockchain_tournaments_view(request):
+    """
+    Render the blockchain tournaments page
+    """
+    return render(request, 'tournaments/blockchain_tournaments.html')
