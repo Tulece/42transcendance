@@ -6,12 +6,10 @@ until nc -z "$POSTGRES_HOST" 5432; do
   sleep 1
 done
 
-# Appliquer les migrations
 echo "Applying database migrations..."
 python manage.py makemigrations pong
 python manage.py migrate
 
-# Créer le superutilisateur
 echo "Creating superuser if not exists..."
 python manage.py shell <<EOF
 from django.contrib.auth import get_user_model
@@ -35,5 +33,4 @@ until python manage.py check; do
     sleep 1
 done
 
-# Lancer le serveur
 exec daphne --proxy-headers -b 0.0.0.0 -p 8000 pong.asgi:application

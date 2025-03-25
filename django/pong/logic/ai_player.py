@@ -18,12 +18,10 @@ class AIPlayer:
         self.latest_message = None
         self.next_estimation = {'x': 0, 'y':0, 'fbi':0}
         self.lock = asyncio.Lock()
-        print(f"Instance AIPlayer créée : ID={AIPlayer.instance_count}", flush=True)
 
     async def connect(self):
         try:
             async with websockets.connect(self.ws) as websocket:
-                print("IA connectée au serveur", flush=True)
                 self.websocket = websocket
                 listener_task = asyncio.create_task(self.listen(websocket))
                 processer_task = asyncio.create_task(self.process())
@@ -33,7 +31,6 @@ class AIPlayer:
                 )
 
                 if listener_task in done:
-                    print("Arrêt du traitement car WebSocket fermé.", flush=True)
                     self.running = False
                 elif processer_task in done:
                     print("Le traitement a terminé en premier, arrêt de l'IA.", flush=True)
@@ -46,7 +43,6 @@ class AIPlayer:
             print(f"Erreur dans la connexion : {e}", flush=True)
         finally:
             self.running = False
-            print("Déconnexion propre de l'IA.", flush=True)
 
     async def listen(self, websocket):
         try:
@@ -54,7 +50,6 @@ class AIPlayer:
                 data = json.loads(message)
 
                 if data.get("type") == "game_over":
-                    print("Fin de la partie détectée, arrêt de l'IA.", flush=True)
                     self.running = False
                     break
                 elif data.get("type") == "position_update":
@@ -74,7 +69,6 @@ class AIPlayer:
                 message = self.latest_message.copy()
                 self.latest_message = None
             if message is not None:
-                print(f"Traitement des données : {message}", flush=True)
                 self.update_positions(message)
 
                 time_to_sleep = await self.define_and_send(self.websocket)
@@ -114,7 +108,6 @@ class AIPlayer:
                 self.next_estimation['y'] = act_pos['y']
                 return
             if frames >= 59 or act_pos['x'] - BALL_RADIUS <= (CANVAS_WIDTH // 100 ) + PADDLE_WIDTH:
-                # return to the center either if opponent has to hit the ball (and i can't predict the trajectory) or if impact will be in more than sixty frames (ans i'll i new information)
                 self.next_estimation['fbi'] = frames
                 self.next_estimation['x'] = act_pos['x']
                 self.next_estimation['y'] = CANVAS_HEIGHT // 2
@@ -148,7 +141,6 @@ class AIPlayer:
         if actions:
             i = 0
             total_wait = 0
-            print(f"Actions envoyées : {actions} \n\n Ball position : {self.ball_position} \n\n Next_estimation : {self.next_estimation}", flush=True)
             while i < len(actions):
                 if isinstance(actions[i], int):
                     await asyncio.sleep((actions[i])/ 60)

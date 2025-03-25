@@ -1,4 +1,4 @@
-/* Police d'icônes RS */
+/*icônes RS */
 @font-face {
   font-family: 'icomoon';
   src: url("../fonts/icomoon/icomoon.eot?srf3rx");
@@ -26,7 +26,7 @@ body.fh5co-overflow {
   overflow-x: auto;
 }
 
-/* link styles */
+/*link styles */
 a {
   color: maroon;
   -webkit-transition: 0.5s;
@@ -73,7 +73,7 @@ p, figure {
   border-color: maroon;
 }
 
-/* section home */
+/*home */
 #fh5co-hero {
   background-color: transparent;
   background-size: cover;
@@ -98,7 +98,7 @@ p, figure {
   z-index: 9;
 }
 
-/* section footer*/
+/*footer*/
 #fh5co-footer {
   background-color: #DDD0C8 !important;
   color: #E0E1DD !important;
@@ -175,7 +175,7 @@ p, figure {
 }
 
 
-/* Style section "our team" */
+/*our team */
 #fh5co-projects .fh5co-lead {
   font-size: 50px;
   font-weight: 300;
@@ -329,8 +329,6 @@ p, figure {
   -o-transform: translateX(-275px);
   transform: translateX(-275px);
 }
-
-/*# sourceMappingURL=style.css.map */
 
 
   

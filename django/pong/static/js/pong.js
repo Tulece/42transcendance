@@ -1,7 +1,6 @@
 window.initPong = function () {
   if (window.pongInitialized) return;
   window.pongInitialized = true;
-  console.log("Initialisation du jeu Pong...");
 
   let canvas, ctx;
   let lobbySocket = null;
@@ -23,9 +22,7 @@ window.initPong = function () {
         return;
     }
     ctx = canvas.getContext("2d");
-    console.log("setupCanvas : ctx initialisé avec succès :", ctx);
 
-    // Rendre ctx et canvas accessibles globalement
     window.ctx = ctx;
     window.canvas = canvas;
   }
@@ -36,7 +33,6 @@ window.initPong = function () {
       lobbySocket = new WebSocket(`wss://${host}/ws/matchmaking/`);
 
       lobbySocket.onopen = () => {
-          console.log("Connexion au lobby établie.");
           const params = new URLSearchParams(window.location.search);
           const mode = params.get("mode");
           lobbySocket.send(JSON.stringify({ action: "find_game", mode: mode }));
@@ -45,7 +41,6 @@ window.initPong = function () {
       lobbySocket.onmessage = (event) => {
           const data = JSON.parse(event.data);
           if (data.type === "game_found") {
-              console.log(`Partie trouvée : ${data.game_id}`);
               lobbySocket.close();
               role = data.role;
               connectToGame(data.game_id, data.role, data.mode);
@@ -61,7 +56,6 @@ window.initPong = function () {
   function connectToGame(gameId, role, mode) {
       gameSocket = new WebSocket(`wss://${host}/ws/game/${gameId}/?player_id=${role}&mode=${mode}`);
       gameSocket.onopen = () => {
-          console.log(`Connecté à la partie : ${gameId}, rôle : ${role}`);
           game_running = true;
           if (role === "local") initializeGameControls(role);
           else initializeGameControls();
@@ -81,7 +75,6 @@ window.initPong = function () {
   }
 
   function handleGameMessage(data, role) {
-      console.log("Message reçu :", data);
 
       if (data.type === "position_update") {
         ball.x = data.ball_position.x;
@@ -111,11 +104,14 @@ window.initPong = function () {
               fetch(`/tournaments/match/${matchId}/report_result/`, {
                   method: "POST",
                   credentials: "include",
-                  headers: { "Content-Type": "application/json" },
+                  headers: {
+					"Content-Type": "application/json",
+					"X-Requested-With": "XMLHttpRequest",
+					"X-CSRFToken": getCSRFToken()
+				},
                   body: JSON.stringify({ "winner_id": winner })
               }).then(response => response.json())
                   .then(result => {
-                      console.log("Résultat du report:", result);
                       const tournamentId = params.get("tournament_id");
                       navigateTo(tournamentId ? `/tournaments/${tournamentId}/` : "/");
                   })
@@ -139,7 +135,6 @@ window.initPong = function () {
           document.addEventListener("keydown", onKeyDown);
           document.addEventListener("keyup", onKeyUp);
       }
-      console.log("Écouteurs d'événements ajoutés.");
   }
 
   function destroyGameControls() {
@@ -147,7 +142,6 @@ window.initPong = function () {
       document.removeEventListener("keyup", onKeyUp);
       document.removeEventListener("keydown", localOnKeyDown);
       document.removeEventListener("keyup", localOnKeyUp);
-      console.log("Écouteurs d'événements supprimés.");
   }
 
   function destroyGameSocket() {
@@ -155,7 +149,6 @@ window.initPong = function () {
           gameSocket.close();
           gameSocket = null;
       }
-      console.log("GameSocket détruit.");
   }
 
   function destroyLobbySocket() {
@@ -163,7 +156,6 @@ window.initPong = function () {
           lobbySocket.close();
           lobbySocket = null;
       }
-      console.log("LobbySocket détruit.");
   }
 
   function resetCanvas() {
@@ -173,7 +165,6 @@ window.initPong = function () {
   }
 
   window.destroyPong = function () {
-      console.log("destroyPong() appelé.");
       destroyGameControls();
       destroyLobbySocket();
       destroyGameSocket();
@@ -190,27 +181,25 @@ window.initPong = function () {
   if (mode === "tournament") {
     console.log("tournament mode detected");
     role = params.get("role");
-    matchId = params.get("match_id"); // récupérer le match_id
+    matchId = params.get("match_id");
     if (gameId && role) {
       connectToGame(gameId, role, 'tournament');
     } else {
       console.error("Game ID ou rôle manquant en mode tournoi.");
     }
   } else if (mode === 'private' && gameId) {
-      console.log("private mode detected");
       role = params.get("role");
       connectToGame(gameId, roleParam, 'private');
   } else {
-    console.log("no mode detected");
     connectToLobby();
   }
 
   function onKeyDown(e) {
+    e.preventDefault();
     if (!key_pressed[e.key] && game_running) {
       key_pressed[e.key] = true;
       if (e.key === "ArrowUp") sendAction("move_up");
       if (e.key === "ArrowDown") sendAction("move_down");
-      if (e.key === "Escape") sendAction("pause_game");
     }
   }
 
@@ -224,14 +213,14 @@ window.initPong = function () {
   }
 
   function localOnKeyDown(e) {
-      if (!key_pressed[e.key] && game_running) {
+      e.preventDefault();
+      if (!key_pressed[e.key] && game_running) { 
           key_pressed[e.key] = true;
 
           if (e.code === "KeyW") sendAction("move_up", "player1");
           if (e.code === "KeyS") sendAction("move_down", "player1");
           if (e.key === "ArrowUp") sendAction("move_up", "player2");
           if (e.key === "ArrowDown") sendAction("move_down", "player2");
-          if (e.key === "Escape") sendAction("pause_game");
       }
   }
 

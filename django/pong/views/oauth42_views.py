@@ -26,11 +26,6 @@ logger = logging.getLogger(__name__)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def auth_42_login(request):
-    """
-    Redirects the user to 42's OAuth authorization page.
-    Uses the base URL (http://localhost:8000) as the redirect URI
-    as required by 42's OAuth configuration.
-    """
     redirect_uri = settings.OAUTH42['REDIRECT_URI']
     auth_url = f"{settings.OAUTH42['AUTH_URL']}?client_id={settings.OAUTH42['CLIENT_ID']}&redirect_uri={redirect_uri}&response_type=code"
     return redirect(auth_url)
@@ -38,14 +33,6 @@ def auth_42_login(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def auth_42_callback(request):
-    """
-    Handles the callback from 42's OAuth service.
-    Exchanges the authorization code for an access token,
-    retrieves user info, and creates or updates the user.
-    
-    This function is designed to work both as a direct endpoint 
-    and when called from the root_view function for the base URL callback.
-    """
     code = request.GET.get('code')
     error = request.GET.get('error')
 
@@ -75,9 +62,8 @@ def auth_42_callback(request):
 
     access_token = token_info.get('access_token')
     refresh_token = token_info.get('refresh_token')
-    expires_in = token_info.get('expires_in', 7200)  # Default to 2 hours if not provided
+    expires_in = token_info.get('expires_in', 7200)
 
-    # Get user info using the access token
     headers = {'Authorization': f'Bearer {access_token}'}
     try:
         user_response = requests.get(f"{settings.OAUTH42['API_URL']}/me", headers=headers)
@@ -89,7 +75,6 @@ def auth_42_callback(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-    # Get or create user
     intra_id = user_info.get('id')
     email = user_info.get('email')
     username = user_info.get('login')
@@ -104,37 +89,29 @@ def auth_42_callback(request):
         user = CustomUser.objects.filter(intra_id=intra_id).first()
         
         if user:
-            # Update existing user
             user.access_token = access_token
             user.refresh_token = refresh_token
             user.token_expires_at = datetime.datetime.now() + datetime.timedelta(seconds=expires_in)
             user.save()
         else:
-            # Create new user - for new users, we'll try to get their avatar
             avatar_url = user_info.get('image', {}).get('link')
             avatar_image = None
             
-            # Only try to download avatar if we have a valid URL
             if avatar_url:
                 try:
-                    # Validate URL format
                     parsed_url = urlparse(avatar_url)
                     if not parsed_url.scheme or not parsed_url.netloc:
                         raise ValueError("Invalid URL format")
                     
-                    # Download the avatar image
                     avatar_response = requests.get(avatar_url, timeout=10)
                     avatar_response.raise_for_status()
                     
-                    # Prepare the file path and content
                     avatar_filename = f"{username}.jpg"
                     avatar_content = ContentFile(avatar_response.content)
                     logger.info(f"Successfully downloaded avatar for user {username}")
                     
                 except (requests.exceptions.RequestException, ValueError) as e:
-                    # Log the error but continue with user creation
                     logger.warning(f"Failed to download avatar for user {username}: {str(e)}")
-            # Create the user
             user = CustomUser.objects.create(
                 username=username,
                 email=email,
@@ -145,7 +122,6 @@ def auth_42_callback(request):
                 token_expires_at=datetime.datetime.now() + datetime.timedelta(seconds=expires_in)
             )
             
-            # Set the avatar if we successfully downloaded it
             if avatar_url and 'avatar_content' in locals():
                 try:
                     fs = FileSystemStorage(location='media/avatars/')
@@ -166,15 +142,12 @@ def auth_42_callback(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-    # Log the user in to Django's session system
     django_login(request, user)
     
-    # Generate JWT token
     refresh = RefreshToken.for_user(user)
     access_token = str(refresh.access_token)
 
-    # Create cookies
-    response = HttpResponseRedirect('/')  # Redirect to home page instead of using undefined FRONTEND_URL
+    response = HttpResponseRedirect('/')
     response.set_cookie(
         'access_token',
         access_token,
@@ -184,7 +157,6 @@ def auth_42_callback(request):
         secure=settings.DEBUG is False
     )
     
-    # Add refresh token cookie
     response.set_cookie(
         'refresh_token',
         str(refresh),
@@ -199,23 +171,12 @@ def auth_42_callback(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def root_view(request):
-    """
-    Handle both the home page and OAuth callback at the root level.
-    If there's a 'code' parameter in the request, handle it as an OAuth callback.
-    Otherwise, redirect to the home view.
-    
-    This view is necessary because the 42 OAuth service only accepts 
-    http://localhost:8000 as a valid redirect URI, not a more specific path.
-    """
     code = request.GET.get('code')
     error = request.GET.get('error')
     
     if code or error:
-        # If there's a code or error parameter, handle it as an OAuth callback
-        # Pass request._request which is the original HttpRequest, not the DRF Request
         return auth_42_callback(request._request)
     else:
-        # Otherwise, redirect to the home view
         from pong.views.main_views import home_view
         return home_view(request)
 

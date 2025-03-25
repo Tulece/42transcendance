@@ -13,7 +13,6 @@ from rest_framework.response import Response
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.middleware.csrf import get_token
 from django.contrib.auth import authenticate, login as django_login, logout
-from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlparse
 import json
 import pyotp
@@ -26,7 +25,6 @@ from django.core.files.base import ContentFile
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_a2f(request):
-    """Met à jour le statut de l'A2F pour l'utilisateur authentifié"""
     user = request.user
     is_a2f_enabled = request.data.get("is_a2f_enabled")
 
@@ -38,7 +36,6 @@ def update_a2f(request):
 
     return JsonResponse({"success": True, "message": "Paramètres de l'A2F mis à jour."})
 
-# Modèle pour stocker les codes OTP temporaires
 class OTPStore:
     _store = {}
 
@@ -59,19 +56,15 @@ class OTPStore:
             del cls._store[user_id]
 
 def generate_and_send_otp(user):
-    """Génère et envoie un code OTP par email"""
     try:
         secret = pyotp.random_base32()
-        totp = pyotp.TOTP(secret, interval=300)  # 5 minutes
+        totp = pyotp.TOTP(secret, interval=300)
         otp_code = totp.now()
 
         subject = 'Code de vérification pour votre connexion'
         message = f'Votre code de vérification est : {otp_code}\nCe code est valide pendant 5 minutes.'
         from_email = settings.EMAIL_HOST_USER
         recipient_list = [user.email]
-
-        print(f"Tentative d'envoi d'email à {user.email}")  # Debug, à enlever en production
-        print(f"From: {from_email}")  # Debug, à enlever en production
 
         send_mail(
             subject,
@@ -89,7 +82,6 @@ def generate_and_send_otp(user):
         return False
 
 def verify_otp(user_id, otp_code):
-    """Vérifie le code OTP"""
     otp_data = OTPStore.get_otp(user_id)
     if not otp_data:
         return False
@@ -108,16 +100,11 @@ def verify_otp(user_id, otp_code):
     return is_valid
 
 def safe_next_url(next_url: str):
-    """
-    Ne garde que le path (ex: /game), ignore toute query string
-    qui entraînerait un double-encodage (ex: ?csrfmiddlewaretoken=...).
-    """
     parsed = urlparse(next_url)
     return parsed.path or "/"
 
-@csrf_exempt
+
 def login_view(request):
-    """Vue de login avec A2F et gestion améliorée des erreurs"""
     if request.method == "GET":
         raw_next = request.GET.get("next", "/")
         next_url = safe_next_url(raw_next)
@@ -151,7 +138,6 @@ def login_view(request):
                 "error": "Données JSON invalides"
             }, status=400)
 
-        # Vérifications initiales
         if not username or not password:
             return JsonResponse({
                 "success": False,
@@ -171,9 +157,7 @@ def login_view(request):
                 "error": "Cet utilisateur n'a pas d'adresse email configurée"
             }, status=400)
 
-        # Si la 2FA n'est pas activée, connecter l'utilisateur directement
         if not user.is_a2f_enabled:
-            # Connecter l'utilisateur sans demander de code OTP
             django_login(request, user)
             refresh = RefreshToken.for_user(user)
 
@@ -183,12 +167,11 @@ def login_view(request):
                 "redirect": next_url
             })
 
-            # Configuration des cookies JWT
             response.set_cookie(
                 "access_token",
                 str(refresh.access_token),
                 httponly=True,
-                secure=False,  # Mettre à True en production avec HTTPS
+                secure=True,
                 samesite="Lax",
                 max_age=3600
             )
@@ -196,13 +179,12 @@ def login_view(request):
                 "refresh_token",
                 str(refresh),
                 httponly=True,
-                secure=False,  # Mettre à True en production avec HTTPS
+                secure=True,
                 samesite="Lax",
                 max_age=7 * 24 * 3600
             )
             return response
 
-        # Première étape : envoi de l'OTP si aucun code fourni
         if not otp_code:
             if generate_and_send_otp(user):
                 return JsonResponse({
@@ -216,7 +198,6 @@ def login_view(request):
                     "error": "Erreur lors de l'envoi du code de vérification. Vérifiez la configuration email."
                 }, status=500)
 
-        # Vérification du code OTP fourni
         if verify_otp(user.id, otp_code):
             django_login(request, user)
             refresh = RefreshToken.for_user(user)
@@ -227,12 +208,11 @@ def login_view(request):
                 "redirect": next_url
             })
 
-            # Configuration des cookies JWT
             response.set_cookie(
                 "access_token",
                 str(refresh.access_token),
                 httponly=True,
-                secure=False,  # Mettre à True en production avec HTTPS
+                secure=True,
                 samesite="Lax",
                 max_age=3600
             )
@@ -240,7 +220,7 @@ def login_view(request):
                 "refresh_token",
                 str(refresh),
                 httponly=True,
-                secure=False,  # Mettre à True en production avec HTTPS
+                secure=True,
                 samesite="Lax",
                 max_age=7 * 24 * 3600
             )
@@ -251,7 +231,6 @@ def login_view(request):
                 "error": "Code de vérification incorrect ou expiré"
             }, status=401)
 
-    # Méthode non autorisée
     return JsonResponse({
         "success": False,
         "error": "Méthode non autorisée"
@@ -265,14 +244,12 @@ def home_view(request):
 
 
 def register_view(request):
-    """Gère l'inscription d'un utilisateur"""
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
         email = request.POST.get("email")
         avatar = request.FILES.get("avatar")
 
-        # Validation des données
         if not username or not password or not email:
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({"error": "Tous les champs sont obligatoires."}, status=400)
@@ -291,13 +268,11 @@ def register_view(request):
             }
             return render(request, "base.html", context)
 
-        # Sauvegarde de l'avatar
         avatar_name = None
         if avatar:
             fs = FileSystemStorage(location='media/avatars/')
             avatar_name = fs.save(f"{username}.jpg", avatar)
 
-        # Création de l'utilisateur
         user = User.objects.create(
             username=username,
             email=email,
@@ -305,10 +280,8 @@ def register_view(request):
             avatar_url = '/media/avatars/' + avatar_name if avatar_name else '/media/avatars/default.jpg'
         )
 
-        # Génération des tokens JWT (optionnel si on veut auto-connecter l’utilisateur après l’inscription)
         refresh = RefreshToken.for_user(user)
 
-        # Réponse pour les requêtes AJAX (SPA)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 "success": True,
@@ -320,10 +293,8 @@ def register_view(request):
                 "redirect": "/"
             }, status=201)
 
-        # Redirection normale pour les requêtes non AJAX
         return redirect('/')
 
-    # Gestion des requêtes GET
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, 'register.html')
 
@@ -349,9 +320,7 @@ def game_view(request):
         })
 
 def account_view(request, username=None):
-    """Access to account"""
     if not request.user.is_authenticated:
-        # Si la requête est AJAX, renvoyer 403 ; sinon rediriger vers home
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return HttpResponseForbidden("Vous devez être connecté pour voir ce profil.")
         else:
@@ -365,7 +334,7 @@ def account_view(request, username=None):
     is_friend = request.user.friends.filter(id=viewed_user.id).exists()
 
     if request.headers.get("Accept") == "application/json":
-        friend_list = []  # On envoie la liste si c'est mon profil ou si c'est un friend
+        friend_list = []
         if viewed_user == request.user or is_friend:
             friend_list = [
                 {
@@ -387,11 +356,9 @@ def account_view(request, username=None):
         "is_friend": is_friend,
     }
 
-    # Si la requête est AJAX ou si le paramètre "fragment" est présent, on renvoie uniquement le fragment HTML
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('fragment') == '1':
         return render(request, 'account.html', context)  # Fragment AJAX
 
-    # Sinon, on renvoie la page complète avec le layout de base
     return render(request, 'base.html', {"initial_fragment": "account.html", "viewed_user": viewed_user})
 
 
@@ -402,14 +369,13 @@ def chat_view(request):
         else:
             return redirect('/')
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render(request, "chat.html")  # Fragment AJAX
+        return render(request, "chat.html")
     return render(request, "base.html", {"initial_fragment": "chat.html"})
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])  # Géré par DRF : session OU JWT
+@permission_classes([IsAuthenticated])
 def get_user_info(request):
-    """Endpoint DRF protégé par la permission IsAuthenticated."""
     user = request.user
     return Response({
         "username": user.username,
@@ -417,7 +383,6 @@ def get_user_info(request):
     })
 
 class CookieTokenRefreshView(TokenRefreshView):
-    """Vue pour actualiser le token d'accès à partir du refresh token en cookie"""
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get("refresh_token")
         if not refresh_token:
@@ -427,13 +392,12 @@ class CookieTokenRefreshView(TokenRefreshView):
         response = super().post(request, *args, **kwargs)
 
         if response.status_code == 200:
-            # Met à jour le cookie d'access token
             access_token = response.data.get("access")
             response.set_cookie(
                 "access_token",
                 access_token,
                 httponly=True,
-                secure=False,  # True si HTTPS
+                secure=True,
                 samesite="Lax",
                 max_age=3600
             )
@@ -441,17 +405,15 @@ class CookieTokenRefreshView(TokenRefreshView):
         return response
 
 class ProtectedView(APIView):
-    """Exemple de vue DRF protégée par IsAuthenticated"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         return Response({"message": "Données sécurisées accessibles uniquement aux utilisateurs authentifiés."})
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])  # Session ou JWT
+@permission_classes([IsAuthenticated])
 def logout_view(request):
-    """Se déconnecter : supprime la session et les cookies JWT"""
-    logout(request)  # Supprime la session Django
+    logout(request)  # Supp la session Django
     response = JsonResponse({"success": True, "message": "Déconnexion réussie !"})
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
@@ -487,7 +449,6 @@ def get_player_matches(request, username):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_avatar_view(request):
-    """API pour mettre à jour l'avatar de l'utilisateur, en écrasant l'ancien fichier."""
     if 'avatar' not in request.FILES:
         return JsonResponse({"success": False, "error": "No image file provided"}, status=400)
 
@@ -502,20 +463,16 @@ def update_avatar_view(request):
     try:
         user = request.user
 
-        # Construire le nom de fichier (ex: "anporced.jpg")
         file_ext = os.path.splitext(avatar_file.name)[1].lower() or '.jpg'
         avatar_filename = f"{user.username}{file_ext}"
 
         fs = FileSystemStorage(location='media/avatars/')
 
-        # Supprimer l'ancien fichier si besoin (pour éviter que fs.save() renomme)
         if fs.exists(avatar_filename):
             fs.delete(avatar_filename)
 
-        # Sauvegarder le nouveau fichier sous le même nom
         fs.save(avatar_filename, avatar_file)
 
-        # Mettre à jour l'URL stockée en base
         user.avatar_url = f"/media/avatars/{avatar_filename}"
         user.save()
 
@@ -535,7 +492,6 @@ def update_avatar_view(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_password_view(request):
-    """API pour changer le mot de passe de l'utilisateur"""
     user = request.user
     if user.is_42_user:
         return JsonResponse({"success": False, "error": "42 users cannot change their password."}, status=403)
@@ -557,7 +513,6 @@ def change_password_view(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_username_view(request):
-    """API pour changer le nom d'utilisateur"""
     user = request.user
     new_username = request.data.get('new_username')
     if not new_username:

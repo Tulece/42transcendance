@@ -1,4 +1,4 @@
-<!-- account.html - Version fusionnée -->
+<!-- account.html -->
 {% load static %}
 <div class="container mt-4">
     <div class="card shadow-lg p-4">
@@ -71,7 +71,7 @@
             <h3>Demandes d'amis reçues</h3>
             <div id="friend-requests-list"></div>
         </div>
-        {% endif %}
+        {% endif %} 
 
         {% if viewed_user.id == user.id or is_friend %}
         <div class="mt-3" id="friend-list-section">
@@ -101,7 +101,7 @@
     }
 </style>
 
-<!-- Modal de changement de mot de passe -->
+<!-- Modale MDP-->
 <div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -136,7 +136,7 @@
   </div>
 </div>
 
-<!-- Modal d'édition du nom d'utilisateur -->
+<!-- Modale nom user -->
 <div class="modal fade" id="usernameModal" tabindex="-1" aria-labelledby="usernameModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">

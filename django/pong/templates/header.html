@@ -2,12 +2,11 @@
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container d-flex align-items-center justify-content-between flex-wrap">
 
-            <!-- Titre -->
             <div class="d-flex align-items-center order-1 order-lg-1">
                 <a class="navbar-brand me-auto p-3" href="/">
                     ProxyFeatures
                 </a>
-                <!-- Bouton hamburger (visible uniquement sur petits écrans) -->
+                <!-- Btn hamburger -->
                 <button
                     class="navbar-toggler d-lg-none"
                     type="button"
@@ -21,7 +20,6 @@
                 </button>
             </div>
 
-            <!-- Menu principal -->
             <div class="collapse navbar-collapse order-3 order-lg-2" id="navbarContent">
                 <ul class="navbar-nav mx-lg-auto mb-2 mb-lg-0">
                     <li class="nav-item">
@@ -49,12 +47,14 @@
                     <li class="nav-item">
                         <a href="/account" class="nav-link spa-link">Mon compte</a>
                     </li>
-                    <!-- Nouveaux liens pour les tournois -->
                     <li class="nav-item">
                         <a href="/tournaments/create/" class="nav-link spa-link">Créer un tournoi</a>
                     </li>
                     <li class="nav-item">
                         <a href="/tournaments/list/" class="nav-link spa-link">Tournois en cours</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/tournaments/blockchain/" class="nav-link spa-link">Tournois Blockchain</a>
                     </li>
                 </ul>
             </div>
@@ -78,14 +78,9 @@
 </div>
 
 
-  <style>
-    /*
-       Par défaut, Bootstrap ouvre le menu dropdown au clic.
-       Si tu souhaites l’ouvrir au survol (hover) comme avant,
-       tu peux décommenter la règle ci-dessous (hack CSS) :
-    */
+<style>
 
-    .navbar-nav .nav-item.dropdown:hover .dropdown-menu {
-      display: block;
-    }
-  </style>
+  .navbar-nav .nav-item.dropdown:hover .dropdown-menu {
+    display: block;
+  }
+</style>

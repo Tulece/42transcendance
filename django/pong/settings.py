@@ -22,18 +22,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Créez les répertoires nécessaires
 os.makedirs(os.path.join(MEDIA_ROOT, 'avatars'), exist_ok=True)
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
+# `??` SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-cl7b%(d&25z_gcb6e+_gq4q$lh^w40wmjfbcci@%-&t8ju7nd%'
 
-# SECURITY WARNING: don't run with debug turned on in production!
+#  ??SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['transcendence.dev', '146.19.168.104']
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -188,18 +183,11 @@ EMAIL_HOST_PASSWORD = 'nnle uutz gqpn zduu'
 
 AUTH_USER_MODEL = 'pong.CustomUser'
 
-# 42 OAuth Configuration
-# CLIENT_ID and CLIENT_SECRET must be set in environment variables
-# Example in .env file:
-# OAUTH42_CLIENT_ID=your-client-id
-# OAUTH42_CLIENT_SECRET=your-client-secret
-# OAUTH42_REDIRECT_URI=http://localhost:8000
 OAUTH42_CLIENT_ID = os.getenv('OAUTH42_CLIENT_ID')
 OAUTH42_CLIENT_SECRET = os.getenv('OAUTH42_CLIENT_SECRET')
 
 if not OAUTH42_CLIENT_ID or not OAUTH42_CLIENT_SECRET:
     if DEBUG:
-        # Only show warning in development mode
         import warnings
         warnings.warn(
             "OAUTH42_CLIENT_ID or OAUTH42_CLIENT_SECRET environment variables are not set. "
@@ -216,7 +204,6 @@ OAUTH42 = {
     'SCOPE': 'public',
 }
 
-# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

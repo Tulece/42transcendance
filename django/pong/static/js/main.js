@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     "use strict";
 
-    // Détection iPad & iPhone
     function isiPad() {
         return navigator.platform.indexOf("iPad") !== -1;
     }
@@ -10,7 +9,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return navigator.platform.indexOf("iPhone") !== -1 || navigator.platform.indexOf("iPod") !== -1;
     }
 
-    // Aller à la section suivante
     function gotToNextSection() {
         let el = document.querySelector('.fh5co-learn-more');
         if (el) {
@@ -20,16 +18,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Disparition du loader
     function loaderPage() {
         let loader = document.querySelector(".fh5co-loader");
         if (loader) {
             loader.style.opacity = 0;
-            setTimeout(() => loader.style.display = "none", 500); // Simule fadeOut()
+            setTimeout(() => loader.style.display = "none", 500);
         }
     }
 
-    // FullHeight ajusté selon l'écran
     function fullHeight() {
         if (!isiPad() && !isiPhone()) {
             let elements = document.querySelectorAll(".js-fullheight");
@@ -41,7 +37,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Changer la couleur du bouton menu au scroll
     function toggleBtnColor() {
         let hero = document.getElementById('fh5co-hero');
         let navToggle = document.querySelector('.fh5co-nav-toggle');
@@ -57,7 +52,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Scroll vers la section suivante
     function ScrollNext() {
         document.body.addEventListener("click", function (event) {
             let link = event.target.closest(".scroll-btn");
@@ -74,7 +68,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Click en dehors du menu mobile pour le fermer
     function mobileMenuOutsideClick() {
         document.addEventListener("click", function (event) {
             let menu = document.getElementById("fh5co-offcanvas");
@@ -87,17 +80,14 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Affichage du menu offcanvas
     function offcanvasMenu() {
         console.log("offcanvas");
     }
 
-    // Gestion du menu burger
     function burgerMenu() {
         console.log("burgerMenu");
     }
 
-    // Scroll en haut de la page
     function goToTop() {
         let elements = document.querySelectorAll(".js-gotop");
         elements.forEach(el => {
@@ -111,7 +101,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Gestion des animations
     function contentWayPoint() {
         let elements = document.querySelectorAll('.animate-box');
         let observer = new IntersectionObserver((entries) => {
@@ -125,7 +114,6 @@ document.addEventListener("DOMContentLoaded", function () {
         elements.forEach(el => observer.observe(el));
     }
 
-    // Appeler les fonctions après le chargement
     gotToNextSection();
     loaderPage();
     fullHeight();

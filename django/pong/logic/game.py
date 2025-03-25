@@ -21,7 +21,6 @@ DEFAULT_PLAYER_ONE_STATE = {
     'y': (CANVAS_HEIGHT / 2) - (PADDLE_SIZE / 2),
     'dy': 0,
     'speed': PLAYER_SPEED,
-    # Note : on ne remet pas 'lifepoints' ici pour ne pas les réinitialiser
 }
 
 DEFAULT_PLAYER_TWO_STATE = {
@@ -67,7 +66,6 @@ class Game:
         self.waiting_countdown = 0
         self.channel_layer = get_channel_layer()
         self.ignore_match_act = False
-        print(f"Appel de create_match_entry pour la partie {game_id} avec {player1} et {player2}.", flush=True)
 
 
     @classmethod
@@ -75,12 +73,11 @@ class Game:
         game = cls(game_id, player1, player2)
         await game.create_match_entry(player1, player2, game_id)
         return game
-    
+
 
     @database_sync_to_async
     def create_match_entry(self, player1, player2, game_id):
-        print(f"Création de l'entrée de match pour {game_id}.", flush=True)
-        
+
         try:
             user1 = CustomUser.objects.get(username=player1)
         except CustomUser.DoesNotExist:
@@ -102,7 +99,6 @@ class Game:
 
 
     async def start(self):
-        """Démarre la boucle de jeu."""
         self.running = True
         self.reset_pos()
         try:
@@ -131,7 +127,7 @@ class Game:
             self.players['player2']['disconnected']):
             self.game_over = True
         elif self.resetting:
-            self.send_game_state()  # Sans await ici
+            self.send_game_state()
             self.resetting = False
             self.paused = False
         else:
@@ -139,7 +135,6 @@ class Game:
 
 
     async def send_game_state(self):
-        # Si l'un des joueurs n'est pas encore connecté, envoyer un message d'attente
         if (not self.players["player1"]["connected"] or (not self.players["player2"]["connected"] and not self.game_id.startswith("aaaa"))):
              await self.channel_layer.group_send(
                  self.game_id,
@@ -151,11 +146,9 @@ class Game:
                      }
                  }
              )
-             # On attend brièvement avant de reprendre la boucle pour éviter de saturer
              await asyncio.sleep(UPDATE_INTERVAL)
              return
 
-        # Si le jeu est terminé, envoyer le message correspondant
         if self.game_over:
              if self.players['player1']['lifepoints'] <= 0:
                  reason, player = "lifepoints", "player1"
@@ -231,7 +224,6 @@ class Game:
         try:
             match = SimpleMatch.objects.get(game_id=game_id)
             if match.winner is None:
-                print(f"Match {match.id} terminé, enregistrement du vainqueur.")
                 match.winner = "Player 1" if loser == "player2" else "Player 2"
                 match.save()
             else:
@@ -243,25 +235,8 @@ class Game:
     async def register_match_winner(self, loser, game_id):
         await self.set_match_winner(game_id, loser)
 
-    @database_sync_to_async
-    def set_match_winner(self, game_id, loser):
-        try:
-            match = SimpleMatch.objects.get(game_id=game_id)
-            if match.winner is None:
-                print(f"Match {match.id} terminé, enregistrement du vainqueur.")
-                match.winner = "Player 1" if loser == "player2" else "Player 2"
-                match.save()
-            else:
-                print("Le match a déjà un vainqueur.")
-        except SimpleMatch.DoesNotExist:
-            print("Match introuvable dans la DB.")
-
-
-    async def register_match_winner(self, loser, game_id):
-        await self.set_match_winner(game_id, loser)
 
     async def send_game_over(self, reason, player):
-        print("send_game_over called", flush=True)
         await self.channel_layer.group_send(
             self.game_id,
             {
@@ -298,12 +273,8 @@ class Game:
             print(f"[Game {self.game_id}] {player_id} CONNECTÉ !", flush=True)
         else:
             print(f"[Game {self.game_id}] Erreur : {player_id} non trouvé", flush=True)
-        # if player_id in self.players:
-        #     self.players[player_id]['connected'] = True
-        #     print(f"[Game {self.game_id}] {player_id} connecté.", flush=True)
 
     def reset_pos(self):
-        # Réinitialise uniquement la position et la vitesse, sans toucher aux points de vie.
         pos1 = DEFAULT_PLAYER_ONE_STATE.copy()
         pos2 = DEFAULT_PLAYER_TWO_STATE.copy()
         self.players['player1']['x'] = pos1['x']
@@ -314,7 +285,6 @@ class Game:
         self.players['player2']['dy'] = pos2['dy']
         self.ball_state.update(DEFAULT_BALL_STATE)
         self.randomize_ball_direction()
-        # Lance un compte à rebours pour remettre le jeu en route
         asyncio.create_task(self.countdown_task(3))
 
     async def countdown_task(self, countdown_seconds=3):

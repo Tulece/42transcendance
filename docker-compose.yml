@@ -47,7 +47,6 @@ services:
     volumes:
       # On monte la conf Nginx
       - ./nginx/conf.d:/etc/nginx/conf.d
-      # (Facultatif) on peut monter un dossier pour les certs
       - ./certs:/etc/nginx/certs
     ports:
       - "80:80"

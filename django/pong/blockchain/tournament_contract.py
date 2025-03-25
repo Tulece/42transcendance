@@ -23,7 +23,6 @@ def store_tournament_result(tournament_name, winner_name):
         if not private_key:
             raise Exception("CONTRACT_PRIVATE_KEY not found")
         
-        # Remove % if present
         private_key = private_key.rstrip("%")
         
         account = w3.eth.account.from_key(private_key)
@@ -45,11 +44,9 @@ def store_tournament_result(tournament_name, winner_name):
         
         signed = w3.eth.account.sign_transaction(tx, private_key)
         tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
-        logger.info(f"Transaction sent: {tx_hash.hex()}")
         
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
         
-        # Get tournament ID from event logs
         for log in receipt["logs"]:
             try:
                 decoded = contract.events.TournamentCreated().process_log(log)
@@ -70,7 +67,6 @@ def get_tournament_info(tournament_id):
         w3, contract = get_contract()
         name, _ = contract.functions.getTournament(tournament_id).call()
         
-        # Parse winner name from tournament name
         if " - Winner: " in name:
             tournament_name, winner = name.split(" - Winner: ")
         else:

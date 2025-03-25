@@ -44,7 +44,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     f"user_{from_id}",
                     {
                         "type": "invitation_expired",
-                        "invite_id": key, #UUID from invitation
+                        "invite_id": key,
                     }
                 )
                 await self.channel_layer.group_send(
@@ -55,12 +55,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
-            # Wait for 1s
             await asyncio.sleep(1)
 
     async def invitation_expired(self, event):
         invite_id = event["invite_id"]
-        # On relaie au frontend
         await self.send(json.dumps({
             "type": "invitation_expired",
             "invite_id": invite_id
@@ -71,7 +69,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.user = await database_sync_to_async(CustomUser.objects.get)(id=self.scope['user'].id)
 
         if not self.user or not self.user.is_authenticated:
-            print("Utilisateur non authentifié. Fermeture de la connexion.")
             await self.close(code=4003)
             return
 
@@ -80,11 +77,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         self.username = self.user.username or "Anonyme"
 
-        # Charger les utilisateurs bloqués
         self.blocked_users_ids = await self.get_blocked_users_ids()
 
         await self.accept()
-        print(f"Connexion WebSocket acceptée pour l'utilisateur : {self.username}")
 
         asyncio.create_task(self.start_cleanup_task())
 
@@ -94,23 +89,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "blocked_users": blocked_users
         }))
 
-        # Vérifier et définir les groupes
         self.room_group_name = "chat_room"
 
         self.personal_group = f"user_{self.user.id}"
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        print(f"Utilisateur {self.username} ajouté au groupe {self.room_group_name}", flush = True)
 
         await self.channel_layer.group_add(self.personal_group, self.channel_name)
 
-        # Diffuser la liste actualisée
         await self.channel_layer.group_send(
             self.room_group_name,
             {"type": "broadcast_user_list"}
         )
 
-        # Envoi d’un message de bienvenue
         await self.send(json.dumps({
             "type": "welcome",
             "message": f"Bienvenue, {self.username} !"
@@ -126,12 +117,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if hasattr(self, "personal_group"):
             await self.channel_layer.group_discard(self.personal_group, self.channel_name)
-        # Diffuser la liste actualisée aux utilisateurs
         await self.channel_layer.group_send(
             self.room_group_name,
             {"type": "broadcast_user_list"}
         )
-        print(f"Déconnexion de l'utilisateur {getattr(self, 'username', 'Inconnu')} - code: {close_code}")
 
     async def receive(self, text_data):
         try:
@@ -141,7 +130,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             data = json.loads(text_data)
             action = data.get("action")
-            print(f"🔍 Reçu action={action}, username_to_block={data.get('username_to_block')}, username_to_unblock={data.get('username_to_unblock')}, invite_target={data.get('target_username')}")
 
             if action == "block_user":
                 username_to_block = data.get("username_to_block")
@@ -180,7 +168,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
         except Exception as e:
-            print(f"Erreur lors du traitement du message : {e}", flush=True)
             await self.send(json.dumps({
                 "type": "error",
                 "message": "Erreur lors du traitement du message."
@@ -189,7 +176,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def chat_message(self, event):
         sender_id = event["sender_id"]
         if sender_id in self.blocked_users_ids:
-            print(f"Message ignoré car l'utilisateur {sender_id} est bloqué.")
             return
 
         sender = event["sender"]
@@ -220,11 +206,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def get_blocked_users(self):
         return list(self.user.blocked_users.values("username"))
 
-    # (CHANGED) set_user_online_state reçoit un user_id
     @database_sync_to_async
     def set_user_online_state(self, user_id, state: bool):
         try:
-            user_obj = CustomUser.objects.get(id=user_id)  # get par l'ID
+            user_obj = CustomUser.objects.get(id=user_id)
             user_obj.online_status = state
             user_obj.save()
         except CustomUser.DoesNotExist:
@@ -251,7 +236,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }))
             return
 
-        #Check si expéditeur is blocked
         is_blocked = await database_sync_to_async(found_user.blocked_users.filter(id=self.user.id).exists)()
         if is_blocked:
             await self.send(json.dumps({
@@ -296,13 +280,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "game_id": invitation_data["game_id"],
                 "invite_id": invitation_data["invite_id"],
                 "expires_at": invitation_data["expires_at"],
+                "timestamp": event["timestamp"]
             }))
             return
 
         sender_id = event["sender_id"]
         sender = event["sender"]
-        message = event["message"]
+        message = event.get("message", "")
         timestamp = event["timestamp"]
+
+        # if message.strip() == "":
+        #     return
 
         await self.send(json.dumps({
             "type": "private_message",
@@ -347,16 +335,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "action": action,
             "username": username
         }))
-    
+
     async def invite_to_game(self, data):
         target_username = data.get("target_username")
-                
+
         try:
             target_user = await database_sync_to_async(CustomUser.objects.get)(username=target_username)
         except CustomUser.DoesNotExist:
             print(f"Erreur : Utilisateur {target_username} introuvable.", flush=True)
             return
-                
+
         lobby_instance = Lobby.get_instance()
         existing_game_id = lobby_instance.get_game_id_by_player(target_username)
 
@@ -364,19 +352,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
               game_id = existing_game_id
         else:
             game_id = await lobby_instance.API_start_game_async(self.scope["user"].username, target_username)
-                
-        # Vérifier si la partie existe bien dans le lobby
+
         if game_id not in lobby_instance.active_games:
-            print(f"Erreur : La partie {game_id} n'a pas été ajoutée au lobby.")
             await self.send(json.dumps({
                 "type": "error",
                 "message": "Erreur lors de la création de la partie."
             }))
             return
 
-        invite_id = str(uuid.uuid4()) # Stocker l'invit'
+        invite_id = str(uuid.uuid4())
         expiration = time.time() + 30
-        INVITATIONS[invite_id] = { # To stock these info in a dict.
+        INVITATIONS[invite_id] = {
             "from": self.user.username,
             "from_id": self.user.id,
             "to": target_username,
@@ -400,11 +386,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "game_id": game_id,
                     "expires_at": expiration,
                 },
-            "invite_type": "pong_invite", # Spécifier un mess. privé différent (spé. au pong)
+            "invite_type": "pong_invite",
             }
         )
 
-            # Validation envoi
         await self.send(json.dumps({
             "type": "system",
             "message": (
@@ -414,8 +399,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             ),
             "invite_id": invite_id
         }))
-        
-    
+
+
 
 
 
@@ -427,11 +412,9 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         self.user = await database_sync_to_async(CustomUser.objects.get)(id=self.scope['user'].id)
 
         await self.accept()
-        print(f"Joueur {self.player_id} connecté au lobby.", flush=True)
 
     async def disconnect(self, close_code):
         self.lobby.remove_player_from_queue(self)
-        print(f"Joueur {self.player_id} déconnecté du lobby.", flush=True)
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -464,7 +447,6 @@ class LobbyConsumer(AsyncWebsocketConsumer):
 
             ratio = user.wins / user.match_played if user.match_played > 0 else 0.5
             self.lobby.add_player_to_queue(self, ratio)
-            print(f"Joueur {self.player_id} en attente d'une partie (Ratio : {ratio}).", flush=True)
 
     async def handle_quit_queue(self):
         if self.waiting_task:
@@ -475,7 +457,6 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             "type": "queue_left",
             "message": "Vous avez quitté la file d'attente."
         }))
-        print(f"Joueur {self.player_id} a quitté la file d'attente.", flush=True)
 
 
 
@@ -484,12 +465,8 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.game_id = self.scope['url_route']['kwargs']['game_id']
         self.lobby = Lobby.get_instance()
 
-        print(f"[PongConsumer] Tentative de connexion pour game_id: {self.game_id}")
-        print(f"[PongConsumer] Jeux actifs: {list(self.lobby.active_games.keys())}")
-
         self.game = self.lobby.get_game(self.game_id)
         if not self.game:
-            print(f"[PongConsumer] Game {self.game_id} introuvable, fermeture de la connexion.")
             await self.close()
             return
 
@@ -501,25 +478,23 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.is_ai = query_params.get('mode', ['human'])[0] == 'solo' and self.player_id == 'player2'
 
         if not self.player_id or self.player_id not in ["player1", "player2"] and not self.player_id == 'local':
-            print(f"[PongConsumer] Paramètre player_id invalide : {self.player_id}")
             await self.close()
             return
 
         await self.channel_layer.group_add(self.game_id, self.channel_name)
         await self.accept()
-        print(f"[PongConsumer] Joueur {self.player_id} connecté à la partie {self.game_id}.", flush=True)
         self.game.set_player_connected(self.player_id)
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.game_id, self.channel_name)
         player = getattr(self, "player_id", "unknown")
-        print(f"[PongConsumer] Joueur {player} déconnecté de la partie {self.game_id}.", flush=True)
         if self.game:
-            Lobby.get_instance().remove_game(self.game_id)
             if hasattr(self, "player_id"):
                 self.game.handle_player_disconnect(self.player_id)
             else:
                 self.game.handle_player_disconnect("unknown")
+            if self.game.game_over:
+                Lobby.get_instance().remove_game(self.game_id)
 
     async def receive(self, text_data):
         try:
@@ -545,7 +520,6 @@ class PongConsumer(AsyncWebsocketConsumer):
             user_id = db_user.id
             user_obj = await database_sync_to_async(CustomUser.objects.get)(id=user_id)
             if user_obj:
-                print(f"Enregistrement des statistiques pour {user_obj.username}")
                 if self.player_id in go_message:
                     user_obj.loses += 1
                 else:
@@ -562,11 +536,9 @@ class TournamentConsumer(AsyncWebsocketConsumer):
         self.group_name = f'tournament_{self.tournament_id}'
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
-        print(f"Client connecté au tournoi {self.tournament_id}")
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        print(f"Client déconnecté du tournoi {self.tournament_id}")
 
     async def tournament_update(self, event):
         message = event['message']
@@ -574,17 +546,12 @@ class TournamentConsumer(AsyncWebsocketConsumer):
 
 class TournamentsGlobalConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # On rejoint le groupe "tournaments"
         self.group_name = "tournaments"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
-        print("Client connecté au flux global de tournois")
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
-        print("Client déconnecté du flux global de tournois")
 
     async def tournament_update(self, event):
-        # event['message'] contient { "action": "new_tournament", ... }
-        # On le renvoie tel quel au front
         await self.send(text_data=json.dumps(event["message"]))

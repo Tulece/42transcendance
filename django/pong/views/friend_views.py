@@ -84,7 +84,6 @@ def delete_friend(request, username):
     friend_to_remove = get_object_or_404(CustomUser, username=username)
     
     if friend_to_remove not in current_user.friends.all():
-        print(f"[DEBUG] ❌ {current_user.username} et {friend_to_remove.username} ne sont PAS amis en BDD.")
         return Response({"message": "Cet utilisateur n'est pas dans votre liste d'amis."}, status=status.HTTP_400_BAD_REQUEST)
     
     current_user.friends.remove(friend_to_remove)

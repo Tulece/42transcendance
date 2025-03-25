@@ -2,7 +2,6 @@
 (function () {
     let currentPage = null;
 
-    // Gérer les clics sur les liens de navigation SPA
     document.addEventListener("click", function (event) {
         const link = event.target.closest(".spa-link");
         if (!link) return;
@@ -12,7 +11,6 @@
         navigateTo(url);
     });
 
-    // Gérer la navigation par les boutons Précédent/Suivant du navigateur
     window.addEventListener("popstate", function () {
         navigateTo(location.pathname, false);
     });
@@ -21,7 +19,6 @@
         try {
             handlePageUnload(location.pathname);
 
-            // Ajoute systématiquement le paramètre 'fragment=1' pour forcer le rendu fragmentaire
             const ajaxUrl = url.includes('?') ? `${url}&fragment=1` : `${url}?fragment=1`;
 
             const response = await fetch(ajaxUrl, {
@@ -39,13 +36,11 @@
             }
 
             if (pushState) {
-                // Conserve l'URL sans le paramètre dans l'historique
                 history.pushState(null, "", url);
             }
 
             const htmlSnippet = await response.text();
 
-            // Extraction du contenu du fragment
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlSnippet, "text/html");
             const newContent = doc.getElementById("content");
@@ -84,10 +79,9 @@
                 if (window.initPong) window.initPong();
             });
         } else if (url.includes("/chat")) {
-            // Check si le chat était déjà init => Réinitialisation to go on /chat/ page
             if (window.chatInitialized) {
                 console.warn("Chat déjà initialisé, réinitialisation...");
-                window.hideChat(); // Nettoie le chat avant de le réinitialiser
+                window.hideChat();
             }
 
             loadScriptOnce("/static/js/chat.js", () => {
@@ -97,16 +91,20 @@
             });
         } else if (url.includes("/login")) {
             loadScriptOnce("/static/js/login.js", () => {
-                console.log("Script de connexion chargé.");
             });
         } else if (url.includes("/account")) {
             loadScriptOnce("/static/js/account.js", () => {
-                console.log("Script de la page compte chargé.");
                 if (window.initAccount) {
                     window.initAccount();
                 }
             });
-        }
+        } else if (url.includes("/tournaments/blockchain")) {
+			loadScriptOnce("/static/js/blockchain_tournaments.js", () => {
+				if (window.initBlockchainTournamentPage) {
+					window.initBlockchainTournamentPage();
+				}
+			});
+		}
     }
 
     function loadScriptOnce(src, callback) {
@@ -120,7 +118,6 @@
         }
     }
 
-    // Charger la page initiale lors du chargement du DOM
     document.addEventListener("DOMContentLoaded", async function () {
         await updateUserInfo(); // Check authentification + chat
 
@@ -131,12 +128,11 @@
         }
     });
 
-    // Exposer navigateTo pour un accès global (optionnel)
     window.navigateTo = navigateTo;
 })();
 
 
-// ----- En-dessous, les fonctions globales -----
+// ----- Fonctions globales -----
 
 async function fetchUserInfo() {
     try {
@@ -167,16 +163,15 @@ function updateHeaderUserInfo(userInfo) {
     const logoutBtn = document.getElementById("logout-btn");
     let registerItem = document.getElementById("register-link");
 
-    const navbar = document.querySelector(".navbar-nav"); // Récupère la liste des liens de navigation
+    const navbar = document.querySelector(".navbar-nav");
 
     if (userInfo) {
-        // Utilisateur connecté
         userDisplay.textContent = `Bonjour, ${userInfo.username}`;
-        loginLink.style.display = "none"; // Cache "Connexion"
-        logoutBtn.style.display = "inline"; // Affiche "Déconnexion"
+        loginLink.style.display = "none";
+        logoutBtn.style.display = "inline";
 
         if (registerItem) {
-            registerItem.style.display = "none";  // Cache "S'inscrire" au lieu de le supprimer
+            registerItem.style.display = "none";
         }
 
         logoutBtn.onclick = async () => {
@@ -191,7 +186,6 @@ function updateHeaderUserInfo(userInfo) {
                     credentials: "include",
                 });
                 if (response.ok) {
-                    console.log("Déconnexion réussie.");
                     updateHeaderUserInfo(null);
                     await updateUserInfo();
                     if (window.hideChat) window.hideChat();
@@ -203,25 +197,23 @@ function updateHeaderUserInfo(userInfo) {
             }
         };
     } else {
-        // Utilisateur déconnecté
+        // User déconnecté
         userDisplay.textContent = "Non connecté";
         loginLink.style.display = "inline";
         logoutBtn.style.display = "none";
 
         if (!registerItem) {
-            // Recrée "S'inscrire" dynamiquement en le plaçant au bon endroit
             registerItem = document.createElement("li");
             registerItem.className = "nav-item";
             registerItem.id = "register-link";
             registerItem.innerHTML = `<a href="/register" class="nav-link spa-link">S'inscrire</a>`;
 
-            // Trouver "Mon compte" pour insérer "S'inscrire" juste avant
             const accountItem = document.querySelector("a[href='/account']")?.parentElement;
             if (navbar && accountItem) {
                 navbar.insertBefore(registerItem, accountItem);
             }
         } else {
-            registerItem.style.display = "block"; // Réaffiche "S'inscrire"
+            registerItem.style.display = "block";
         }
     }
 }
@@ -233,9 +225,9 @@ async function updateUserInfo() {
             method: "GET",
             headers: {
                 "X-Requested-With": "XMLHttpRequest",
-                "Authorization": `Bearer ${getAccessToken()}`, // Inclure le token d'accès si besoin
+                "Authorization": `Bearer ${getAccessToken()}`,
             },
-            credentials: "include", // Inclure les cookies
+            credentials: "include",
         });
 
         if (response.ok) {
@@ -246,19 +238,12 @@ async function updateUserInfo() {
             if (chatWrapper) chatWrapper.style.display = "block";
 
             if (window.initChat && !window.chatInitialized) {
-                console.log("Initialisation du chat ...");
                 window.initChat();
             }
         }
-        // else if (response.status === 403) {
-        //     console.info("Utilisateur non connecté.");
-        //     updateHeaderUserInfo(null);
-        //     if (window.hideChat) window.hideChat();
-        // }
         else {
-            console.info("Utilisateur non connecté.");
             updateHeaderUserInfo(null);
-            if (window.hideChat) window.hideChat(); // Désactive if user déconnecté.
+            if (window.hideChat) window.hideChat();
         }
     } catch (error) {
         console.error("Erreur réseau lors de la récupération des informations utilisateur :", error);
@@ -275,7 +260,6 @@ function getAccessToken() {
     return cookieValue || null;
 }
 
-// Exposer updateUserInfo globalement
 function getCSRFToken() {
     const csrfMetaTag = document.querySelector('meta[name="csrf-token"]');
     if (csrfMetaTag) {

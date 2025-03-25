@@ -8,7 +8,6 @@
 
 .navbar-custom .nav-link:hover {
     font-style: bold;
-    /* color: #FFD700 !important; Or au survol */
 }
 
 #login-link {
@@ -16,7 +15,6 @@
 }
 
 #login-link:hover {
-    /* color: #45A049 !important; */
     font-style: bold;
 }
 
@@ -30,7 +28,7 @@
     background-color: #B71C1C !important;
 }
 
-/* 📌 Personnalisation du texte "Non connecté" */
+/*"Non connecté" */
 #user-display {
     color: #323232!important;
 }
@@ -44,27 +42,25 @@
 }
 
 .dropdown-menu .dropdown-item:hover {
-    /* background-color: #7289DA !important;
-    color: #FFFFFF !important; */
     font-style: bold;
 }
 
 
 
-/* 📌 Fond du footer */
+/*footer */
 #fh5co-footer {
     background-color: #DDD0C8  !important;
     color: #E0E1DD !important;
     padding: 40px 0;
 }
 
-/* 📌 Titres du footer */
+/*Titres */
 .fh5co-footer-widget h3 {
     color: #323232 !important;
     font-weight: bold;
 }
 
-/* 📌 Liens du footer */
+/*Liens*/
 .fh5co-footer-widget p.fh5co-links a,
 .fh5co-footer-widget p.fh5co-links {
     color: #323232 !important;
@@ -77,7 +73,7 @@
     font-style: bold;
 }
 
-/* 📌 Icônes des réseaux sociaux */
+/*RS */
 .fh5co-social li a {
     color: #323232 !important;
     font-size: 20px;
@@ -88,7 +84,6 @@
     font-style: bold;
 }
 
-/* 📌 Copyright */
 .fh5co-copyright {
     background-color: #DDD0C8 !important;
     text-align: center;
@@ -100,7 +95,7 @@
 }
 
 
-/* 📌 Section Hero */
+/* accueil */
 #fh5co-hero {
     background-size: cover;
     background-position: center;
@@ -112,7 +107,6 @@
     opacity: 0 !important;
 }
 
-/* 📌 Texte principal */
 .fh5co-intro h2 {
     color: #323232 !important;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
@@ -122,7 +116,7 @@
     color: #323232 !important;
 }
 
-/* 📌 Bouton "Commencer" */
+/* Bouton Commencer */
 .btn-white {
     background-color: #323232 !important;
     color: #DDD0C8 !important;
@@ -134,15 +128,15 @@
     font-style: bold;
 }
 
-/* 📌 Section "Our Team" */
+/*Our Team */
 #fh5co-projects {
     background-color: #DDD0C8 !important; 
     padding: 60px 0;
 }
 
 .fh5co-text {
-    background-color: #DDD0C8 !important; /* Fond adapté */
-    color: #323232 !important; /* Texte lisible */
+    background-color: #DDD0C8 !important;
+    color: #323232 !important;
     padding: 15px;
     border-radius: 0 0 10px 10px;
     text-align: center;
@@ -159,12 +153,12 @@
     color: #323233 !important;
 }
 
-/* 📌 Cartes des membres de l'équipe */
+/*équipe */
 .fh5co-project-item {
     display: flex; 
-    flex-direction: column; /* Force le texte sous l'image */
+    flex-direction: column;
     align-items: center; 
-    height: auto; /* Ajuste la hauteur dynamiquement */
+    height: auto;
 }
 
 .fh5co-project-item:hover {
@@ -199,7 +193,7 @@
 }
 
 
-/* 📌 Conteneur principal du chat */
+/*Chat */
 #chat-wrapper {
     background-color: transparent !important;
     box-shadow: none !important;
@@ -208,14 +202,13 @@
 }
 
 #chat-wrapper .card {
-    border: 1px solid #B0B0B0 !important; /* Bordure grise légère */
-    border-radius: 8px !important; /* Coins arrondis pour un look plus propre */
-    background-color: #DDD0C8 !important; /* Remet la couleur de fond uniquement sur le chat */
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Légère ombre pour délimiter */
+    border: 1px solid #B0B0B0 !important;
+    border-radius: 8px !important;
+    background-color: #DDD0C8 !important;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 
-/* 📌 Titre du chat */
 #chat-wrapper .card-header {
     background-color: #582900 !important;
 }
@@ -236,7 +229,7 @@
     border-top: 1px solid #B0B0B0 !important;
 }
 
-/* 📌 Bouton réduire */
+/*réduire */
 #chat-toggle {
     background-color: maroon !important;
     color: white !important;
@@ -247,7 +240,6 @@
     font-style: bold;
 }
 
-/* 📌 Liste des utilisateurs connectés */
 #user-list-container {
     background-color: #DDD0C8!important;
     border-right: 1px solid #B0B0B0 !important;
@@ -270,13 +262,12 @@
     background-color: #9A1B1B;
 }
 
-/* 📌 Message Area */
 #message-area {
-    background-color: #F8F9FA !important; /* Fond gris Bootstrap */
+    background-color: #F8F9FA !important;
     border-top: 1px solid #DDD !important;
 }
 
-/* 📌 Messages individuels */
+/*individuels */
 .message {
     color: #323232 !important;
     border-radius: 8px;
@@ -284,24 +275,22 @@
     margin-bottom: 6px;
 }
 
-/* 📌 Messages système */
+/*système */
 .message.system {
-    background-color: #FFF3CD !important; /* Jaune clair */
-    color: #856404 !important; /* Marron foncé */
+    background-color: #FFF3CD !important;
+    color: #856404 !important;
 }
 
 .message.username {
     font-weight: bold;
 }
 
-/* 📌 Input du chat */
 #message-input {
     background-color: #FFFFFF !important;
     border: 1px solid #B0B0B0 !important;
     color: #323232 !important;
 }
 
-/* 📌 Boutons du chat */
 #send-message-btn {
     background-color: #323232 !important;
     color: #DDD0C8 !important;
@@ -339,7 +328,6 @@
     font-style: bold;
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
     #chat-wrapper {
         width: 500px;

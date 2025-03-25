@@ -51,7 +51,6 @@ window.initAccount = async function () {
         })
         .then(res => res.json())
         .then(data => {
-            console.log("Matches info:", data);
             const matchesContainer = document.getElementById("matches-list");
             if (!matchesContainer) return;
 
@@ -183,11 +182,9 @@ window.initAccount = async function () {
 		})
 		.then(res => res.json())
 		.then(data => {
-			console.log("🔄 Rechargement du profil avec :", data);
 			const status = document.getElementById("online-status");
 			if (status) {
 				status.style.display = "inline-block";
-				// Si le profil affiché correspond à l'utilisateur connecté, on force l'indicateur à vert
 				if (profileUsername === window.currentUsername) {
 					status.style.backgroundColor = "green";
 					status.title = "Vous êtes en ligne";
@@ -240,7 +237,6 @@ window.initAccount = async function () {
 						friendInfoDiv.appendChild(circle);
 
 						if (profileUsername === window.currentUsername) {
-							console.log("BUTTON PASSED");
 							const deleteBtn = document.createElement("button");
 							deleteBtn.classList.add("btn", "btn-danger", "btn-sm", "delete-friend-btn");
 							deleteBtn.textContent = "❌";
@@ -270,7 +266,6 @@ window.initAccount = async function () {
         deleteButtons.forEach(button => {
             button.addEventListener("click", function () {
                 const usernameToRemove = this.dataset.username;
-                console.log("UsernameToRemove: ", usernameToRemove);
 
                 if (confirm(`Voulez-vous vraiment supprimer ${usernameToRemove} de votre liste d'amis ?`)) {
                     fetch(`/api/friends/delete/${usernameToRemove}/`, {
@@ -285,9 +280,7 @@ window.initAccount = async function () {
                     .then(response => response.json())
                     .then(data => {
                         alert(data.message);
-                        console.log("🔄 Rafraîchissement de la liste des amis après suppression...");
-                        loadProfileInfo(window.currentProfileUsername); // Pour refresh la liste
-                        console.log("✅ Rafraîchissement effectué !");
+                        loadProfileInfo(window.currentProfileUsername);
                     })
                     .catch(error => console.error("Erreur lors de la suppression de l'ami :", error));
                 }
@@ -308,13 +301,6 @@ window.initAccount = async function () {
             profileUsername = pathParts[1];
         }
 
-        console.log("CurrentUser: ", window.currentUsername);
-
-        console.log("ProfileUsername: ", profileUsername);
-        console.log("PathParts[0]: ", pathParts[0]);
-        if (pathParts[1])
-            console.log("PathParts[1]: ", pathParts[1]);
-
         if (!profileUsername)
             return;
 
@@ -326,12 +312,11 @@ window.initAccount = async function () {
         const currentUser = window.currentUsername || null;
 
         if (currentUser && profileUsername === currentUser) {
-            console.log("PASSED INIT TO LOAD !!");
             loadReceivedFriendRequests();
             return;
         }
 
-        // Else, c'est le profil d'un autre user
+        //profil d'un autre user
         const sendBtn = document.getElementById("send-friend-request");
         const cancelBtn = document.getElementById("cancel-friend-request");
         let currentRequestId = null;
@@ -348,7 +333,6 @@ window.initAccount = async function () {
             })
             .then(response => response.json())
             .then(data => {
-                console.log("Friendship status data:", data);
                 if (sendBtn) sendBtn.style.display = "none";
                 if (cancelBtn) cancelBtn.style.display = "none";
 
@@ -374,7 +358,7 @@ window.initAccount = async function () {
                     headers: {
                         "X-Requested-With": "XMLHttpRequest",
                         "Content-Type": "application/json",
-                        "X-CSRFToken": getCSRFToken()  // Ajout du CSRF token ici
+                        "X-CSRFToken": getCSRFToken()
                     }
                 })
                 .then(response => response.json())
@@ -409,7 +393,6 @@ window.initAccount = async function () {
         fetchFriendshipStatus();
     }
 
-    //The end of Jezangelion
     a2fbox = document.getElementById('a2f');
     if (a2fbox) {
         a2fbox.addEventListener('change', () => {
@@ -432,7 +415,7 @@ window.initAccount = async function () {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')  // Assure-toi d'avoir un token CSRF valide
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: JSON.stringify({
                     is_a2f_enabled: isA2FEnabled
@@ -487,11 +470,9 @@ window.initAccount = async function () {
             .then(response => response.ok ? response.json() : Promise.reject('Upload failed'))
             .then(data => {
                 if (data.success) {
-                    // 1) Mettre à jour la balise <img> pour pointer vers le nouvel avatar
                     const profileAvatar = document.getElementById('profile-avatar');
                     if (profileAvatar) {
                         profileAvatar.src = data.avatar_url + '?' + new Date().getTime();
-                        // Le petit '?timestamp' aide à forcer le rafraîchissement si cache agressif
                     }
                     alert("Avatar mis à jour !");
                 } else {
@@ -506,7 +487,6 @@ window.initAccount = async function () {
     }
 
 
-    // Ouvre la modal pour modifier le nom d'utilisateur
     userModalBtn = document.getElementById('user-modal-btn');
     if (userModalBtn) {
         userModalBtn.addEventListener('click', () => {
@@ -521,7 +501,6 @@ window.initAccount = async function () {
         });
     }
 
-    // Valide et soumet le changement de nom d'utilisateur
     userModal = document.getElementById('usernameReg');
     if (userModal) {
         userModal.addEventListener('click', () => {
@@ -543,15 +522,12 @@ window.initAccount = async function () {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Mettre à jour l'affichage du nom d'utilisateur dans la page
-                    // ex: on a <span data-viewed-username="...">
                     const viewedUsernameEl = document.querySelector('[data-viewed-username]');
                     if (viewedUsernameEl) {
-                        viewedUsernameEl.textContent = data.username; // nouveau username
+                        viewedUsernameEl.textContent = data.username;
                         viewedUsernameEl.setAttribute('data-viewed-username', data.username);
                     }
                     alert('Nom d’utilisateur mis à jour !');
-                    // Fermer la modal
                     const usernameModalEl = document.getElementById('usernameModal');
                     if (usernameModalEl) {
                         bootstrap.Modal.getInstance(usernameModalEl).hide();
@@ -568,7 +544,7 @@ window.initAccount = async function () {
         });
     }
 
-    // Ouvre la modal de changement de mot de passe
+    // Ouvre la modal de changement de mdp
     passwordBtn = document.getElementById("change_password_btn");
     if (passwordBtn) {
         passwordBtn.addEventListener('click', () => {

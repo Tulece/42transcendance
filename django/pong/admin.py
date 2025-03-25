@@ -6,7 +6,7 @@ from .models import CustomUser, Tournament, TournamentMatch, SimpleMatch, Tourna
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
 
-    # Champs à afficher dans le formulaire d'édition d'utilisateur
+    # Champs form d'édition du user
     fieldsets = UserAdmin.fieldsets + (
         ('Informations personnalisées', {
             'fields': (
@@ -25,7 +25,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
-    # Champs affichés dans la liste des utilisateurs
+    # Champs liste des users
     list_display = (
         'username',
         'email',
@@ -39,7 +39,6 @@ class CustomUserAdmin(UserAdmin):
         'date_joined',
     )
 
-    # Filtres disponibles
     list_filter = (
         'is_staff',
         'is_active',
@@ -48,7 +47,6 @@ class CustomUserAdmin(UserAdmin):
         'is_a2f_enabled',
     )
 
-    # Recherche par ces champs
     search_fields = (
         'username',
         'email',
@@ -56,7 +54,6 @@ class CustomUserAdmin(UserAdmin):
         'intra_id',
     )
 
-    # Gestion des relations ManyToManyField
     filter_horizontal = ('blocked_users',)
 
 class TournamentParticipationInline(admin.TabularInline):
@@ -68,7 +65,6 @@ class TournamentAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'created_at', 'is_active')
     search_fields = ('name',)
     list_filter = ('is_active', 'created_at',)
-    # Utilisation de l'inline pour gérer la relation via le modèle intermédiaire
     inlines = [TournamentParticipationInline]
 
 @admin.register(TournamentMatch)

@@ -54,7 +54,6 @@
                 let result = {};
                 try {
                     const text = await response.text();
-                    console.log("Response text:", text);
                     result = JSON.parse(text);
                 } catch(e) {
                     console.error("Erreur lors du parsing de la réponse :", e);

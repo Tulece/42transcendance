@@ -6,7 +6,7 @@
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next_url|default:"/" }}">
             <div class="mb-3">
-                <label for="username" class="form-label">Nom d'utilisateur</label> <!-- form-label: add un style uniforme pour les labels des champs-->
+                <label for="username" class="form-label">Nom d'utilisateur</label>
                 <input
                     type="text"
                     name="username"
@@ -41,7 +41,7 @@
                 >
                 <div class="form-text">Veuillez entrer le code reçu par email</div>
             </div>
-            <button type="submit" class="btn btn-success w-100">Se connecter</button> <!-- w-100: le btn occupe toute la largeur -->
+            <button type="submit" class="btn btn-success w-100">Se connecter</button>
         </form>
 
         <div class="mt-3">

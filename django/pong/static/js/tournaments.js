@@ -10,7 +10,8 @@ document.addEventListener("submit", async (e) => {
 		  body: formData,
 		  credentials: "include",
 		  headers: {
-			"X-Requested-With": "XMLHttpRequest"
+			"X-Requested-With": "XMLHttpRequest",
+			"X-CSRFToken": getCSRFToken()
 		  }
 		});
 		const data = await response.json();
@@ -28,7 +29,6 @@ document.addEventListener("submit", async (e) => {
   });
 
   document.addEventListener("DOMContentLoaded", () => {
-	// Gestion du clic sur le bouton "Rejoindre"
 	const joinButtons = document.querySelectorAll(".join-tournament");
 	joinButtons.forEach((button) => {
 	  button.addEventListener("click", async (e) => {
@@ -56,14 +56,11 @@ document.addEventListener("submit", async (e) => {
 	  });
 	});
 
-	// (ADDED) Vérifier si on est sur la page "list_tournaments"
-	// en regardant si on a #tournament-list-container
 	const listContainer = document.getElementById("tournament-list-container");
 	if (listContainer) {
-	  initGlobalTournamentsWS(); // On connecte le WebSocket global des tournois
+	  initGlobalTournamentsWS();
 	}
 
-	// Initialisation du canal WebSocket pour le détail d'un tournoi
 	const tournamentContainer = document.getElementById("tournamentContainer");
 	if (tournamentContainer && tournamentContainer.dataset.tournamentId) {
 	  const tournamentId = tournamentContainer.dataset.tournamentId;
@@ -71,7 +68,6 @@ document.addEventListener("submit", async (e) => {
 	}
   });
 
-  // (ADDED) Connecte la page "Liste des tournois" au WS global
   function initGlobalTournamentsWS() {
 	const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 	const ws = new WebSocket(`${protocol}://${window.location.host}/ws/tournamentsGlobal/`);
@@ -82,10 +78,7 @@ document.addEventListener("submit", async (e) => {
 
 	ws.onmessage = (event) => {
 	  const data = JSON.parse(event.data);
-	  console.log("[TournamentsGlobalWS] Reçu:", data);
 	  if (data.action === "new_tournament") {
-		console.log("Nouveau tournoi détecté:", data.tournament_name);
-		// On rafraîchit la liste via AJAX
 		refreshTournamentList();
 	  }
 	};
@@ -99,7 +92,6 @@ document.addEventListener("submit", async (e) => {
 	};
   }
 
-  // (ADDED) Rafraîchit la liste via un fetch AJAX
   async function refreshTournamentList() {
 	try {
 	  const resp = await fetch("/tournaments/list/", {
@@ -112,7 +104,6 @@ document.addEventListener("submit", async (e) => {
 	  }
 	  const htmlSnippet = await resp.text();
 
-	  // On remplace tout le bloc #tournament-list-container
 	  const container = document.getElementById("tournament-list-container");
 	  if (container) {
 		container.innerHTML = htmlSnippet;
@@ -122,7 +113,6 @@ document.addEventListener("submit", async (e) => {
 	}
   }
 
-  // Initialise le WebSocket pour recevoir les mises à jour du tournoi (détail)
   function initTournamentSocket(tournamentId) {
 	const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 	const tournamentSocket = new WebSocket(
@@ -133,9 +123,7 @@ document.addEventListener("submit", async (e) => {
 	};
 	tournamentSocket.onmessage = function (event) {
 	  const data = JSON.parse(event.data);
-	  console.log("WebSocket - Mise à jour reçue :", data);
 	  if (data.success) {
-		console.log("Rafraîchissement du tournoi...");
 		loadTournamentDetail(tournamentId);
 	  } else {
 		console.warn("Mise à jour non valide reçue :", data);
@@ -149,7 +137,6 @@ document.addEventListener("submit", async (e) => {
 	};
   }
 
-  // Charge le détail du tournoi via AJAX
   async function loadTournamentDetail(tournamentId) {
 	try {
 	  const resp = await fetch(`/tournaments/${tournamentId}/`, {
@@ -179,7 +166,6 @@ document.addEventListener("submit", async (e) => {
 	}
   }
 
-  // Affiche la liste des matchs du tournoi
   function displayTournament(tournamentData) {
 	const container = document.getElementById("tournamentContainer");
 	if (!container) return;
@@ -205,7 +191,6 @@ document.addEventListener("submit", async (e) => {
 	  li.innerHTML = content;
 	  matchList.appendChild(li);
 	});
-	// Activation des boutons
 	document.querySelectorAll(".start-match-btn").forEach((btn) => {
 	  btn.addEventListener("click", () => {
 		const matchId = btn.dataset.matchId;
@@ -215,13 +200,16 @@ document.addEventListener("submit", async (e) => {
 	});
   }
 
-  // Lance une partie en appelant la vue start_match_game_view
   async function startMatch(matchId, tournamentId) {
 	try {
 	  const resp = await fetch(`/tournaments/match/${matchId}/start_game/`, {
 		method: "POST",
 		credentials: "include",
-		headers: { "Content-Type": "application/json" },
+		headers: {
+			"Content-Type": "application/json",
+			"X-Requested-With": "XMLHttpRequest",
+			"X-CSRFToken": getCSRFToken()
+		  },
 		body: JSON.stringify({})
 	  });
 	  const data = await resp.json();

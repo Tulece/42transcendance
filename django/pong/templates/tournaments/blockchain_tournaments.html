@@ -1,60 +1,21 @@
-{% extends 'base.html' %}
-
-{% block content %}
 <div class="container mt-5">
-    <h2>Tournois en Blockchain</h2>
-    
-    <!-- Formulaire de recherche -->
-    <div class="mb-4">
-        <input type="number" id="tournamentId" class="form-control" placeholder="ID du tournoi">
-        <button onclick="searchTournament()" class="btn btn-primary mt-2">Rechercher</button>
-    </div>
+	<h2>Tournois en Blockchain</h2>
 
-    <!-- Résultat -->
-    <div id="result" class="mt-4">
-        <div class="card d-none" id="tournamentCard">
-            <div class="card-body">
-                <h5 class="card-title" id="tournamentName"></h5>
-                <p class="card-text">
-                    Gagnant: <span id="tournamentWinner"></span><br>
-                    ID Blockchain: <span id="tournamentBlockchainId"></span>
-                </p>
-            </div>
-        </div>
-        <div class="alert alert-danger d-none" id="errorMessage"></div>
-    </div>
+	<div class="mb-4">
+		<input type="number" id="tournamentId" class="form-control" placeholder="ID du tournoi">
+		<button onclick="searchTournament()" class="btn btn-primary mt-2">Rechercher</button>
+	</div>
 
-    <script>
-    function searchTournament() {
-        const id = document.getElementById('tournamentId').value;
-        if (!id) return;
-
-        // Reset display
-        document.getElementById('tournamentCard').classList.add('d-none');
-        document.getElementById('errorMessage').classList.add('d-none');
-
-        // Call API
-        fetch(`/api/blockchain/tournament/${id}/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Show tournament info
-                    document.getElementById('tournamentCard').classList.remove('d-none');
-                    document.getElementById('tournamentName').textContent = data.data.name;
-                    document.getElementById('tournamentWinner').textContent = data.data.winner;
-                    document.getElementById('tournamentBlockchainId').textContent = data.data.tournament_id;
-                } else {
-                    throw new Error(data.error);
-                }
-            })
-            .catch(error => {
-                // Show error
-                const errorDiv = document.getElementById('errorMessage');
-                errorDiv.textContent = `Erreur: ${error.message || 'Tournoi non trouvé'}`;
-                errorDiv.classList.remove('d-none');
-            });
-    }
-    </script>
-</div>
-{% endblock %}
-
+	<div id="result" class="mt-4">
+		<div class="card d-none" id="tournamentCard">
+			<div class="card-body">
+				<h5 class="card-title" id="tournamentName"></h5>
+				<p class="card-text">
+					Gagnant: <span id="tournamentWinner"></span><br>
+					ID Blockchain: <span id="tournamentBlockchainId"></span>
+				</p>
+			</div>
+		</div>
+		<div class="alert alert-danger d-none" id="errorMessage"></div>
+	</div>
+  </div>

@@ -34,7 +34,6 @@
 
             if (response.ok) {
                 if (data.requires_otp) {
-                    // Affiche le champ OTP
                     waitingForOTP = true;
                     otpContainer.style.display = "block";
                     loginError.textContent = data.message;
@@ -50,7 +49,6 @@
                 loginError.style.color = "red";
                 loginError.style.display = "block";
                 if (data.error.includes("Code de vérification")) {
-                    // Réinitialise le champ OTP en cas d'erreur
                     document.getElementById("otp_code").value = "";
                 }
             }
