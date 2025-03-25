@@ -1,4 +1,3 @@
-
 from web3 import Web3
 import os
 import json
@@ -27,7 +26,6 @@ def store_tournament_result(tournament_name, winner_name):
         
         account = w3.eth.account.from_key(private_key)
         
-        # Use zero address for winner since we store winner name in tournament name
         winner_address = "0x0000000000000000000000000000000000000000"
         full_name = f"{tournament_name} - Winner: {winner_name}"
         

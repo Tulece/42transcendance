@@ -545,7 +545,7 @@ window.initAccount = async function () {
     }
 
     // Ouvre la modal de changement de mdp
-    passwordBtn = document.getElementById("change_password_btn");
+    passwordBtn = document.getElementById("change-password-btn");
     if (passwordBtn) {
         passwordBtn.addEventListener('click', () => {
             const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
