@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, re_path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from rest_framework.decorators import api_view, permission_classes
@@ -76,7 +76,7 @@ urlpatterns = [
     path('update-avatar/', update_avatar_view, name='update_avatar'),
     path('change-password/', change_password_view, name='change_password'),
     path('change-username/', change_username_view, name='change_username'),
-    path('api/blockchain/tournament/<int:tournament_id>/', get_blockchain_tournament, name='blockchain_tournament'),
+    re_path(r'^api/blockchain/tournament/(?P<tournament_id>-?\d+)/$', get_blockchain_tournament, name='blockchain_tournament'),
     path('tournaments/blockchain/', blockchain_tournaments_view, name='blockchain_tournaments'),
 ]
 

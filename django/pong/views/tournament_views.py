@@ -268,7 +268,17 @@ def choose_tournament_alias_view(request, tournament_id):
 
 def get_blockchain_tournament(request, tournament_id):
     try:
+        # Vérification que l'ID du tournoi est >= 0
+        tournament_id = int(tournament_id)
+        if tournament_id < 0:
+            return JsonResponse({
+                'success': False,
+                'error': 'The minimum is 0'
+            })
+
+        # Récupération des informations du tournoi sur la blockchain
         name, winner = get_tournament_info(tournament_id)
+
         if name:
             return JsonResponse({
                 'success': True,
@@ -278,21 +288,18 @@ def get_blockchain_tournament(request, tournament_id):
                     'winner': winner
                 }
             })
-        elif (tournament_id < 0):
-            return JsonResponse({
-                'success': False,
-                'error': 'The minimum is 0'
-            }, status=404)
         else:
             return JsonResponse({
                 'success': False,
                 'error': 'Tournament not found in blockchain'
             }, status=404)
+
     except Exception as e:
         return JsonResponse({
             'success': False,
             'error': str(e)
         }, status=500)
+
 
 @require_GET
 def blockchain_tournaments_view(request):
