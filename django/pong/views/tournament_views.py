@@ -267,11 +267,6 @@ def choose_tournament_alias_view(request, tournament_id):
 
 
 def get_blockchain_tournament(request, tournament_id):
-    if (tournament_id < 0)
-        return JsonResponse({
-            'success': False,
-            'error': 'The minimum is 0'
-        }, status=404)
     try:
         name, winner = get_tournament_info(tournament_id)
         if name:
@@ -283,6 +278,11 @@ def get_blockchain_tournament(request, tournament_id):
                     'winner': winner
                 }
             })
+        elif (tournament_id < 0):
+            return JsonResponse({
+                'success': False,
+                'error': 'The minimum is 0'
+            }, status=404)
         else:
             return JsonResponse({
                 'success': False,

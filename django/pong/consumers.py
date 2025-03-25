@@ -127,7 +127,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if not text_data:
                 await self.send(json.dumps({"type": "error", "message": "Message vide"}))
                 return
-
             data = json.loads(text_data)
             action = data.get("action")
 
@@ -289,9 +288,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event.get("message", "")
         timestamp = event["timestamp"]
 
-        # if message.strip() == "":
-        #     return
-
         await self.send(json.dumps({
             "type": "private_message",
             "username": sender,
@@ -302,15 +298,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def block_user(self, username):
         blocked_user = await self.toggle_block_user_in_db(username, block=True)
         self.blocked_users_ids = await self.get_blocked_users_ids()
-        await self.send_blocked_users_list()
-        await self.send_user_list()
         await self.send(json.dumps({"type": "system", "message": f"Vous avez bloqué {blocked_user.username}"}))
 
     async def unblock_user(self, username):
         unblocked_user = await self.toggle_block_user_in_db(username, block=False)
         self.blocked_users_ids = await self.get_blocked_users_ids()
-        await self.send_blocked_users_list()
-        await self.send_user_list()
         await self.send(json.dumps({"type": "system", "message": f"Vous avez débloqué {unblocked_user.username}"}))
 
     async def broadcast_user_list(self, event):
@@ -346,12 +338,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         lobby_instance = Lobby.get_instance()
-        existing_game_id = lobby_instance.get_game_id_by_player(target_username)
-
-        if existing_game_id:
-              game_id = existing_game_id
-        else:
-            game_id = await lobby_instance.API_start_game_async(self.scope["user"].username, target_username)
+        game_id = await lobby_instance.API_start_game_async(self.scope["user"].username, target_username)
 
         if game_id not in lobby_instance.active_games:
             await self.send(json.dumps({

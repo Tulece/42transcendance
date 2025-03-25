@@ -370,7 +370,7 @@ def chat_view(request):
             return redirect('/')
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, "chat.html")
-    return render(request, "base.html", {"initial_fragment": "chat.html"})
+    return redirect('/')
 
 
 @api_view(['GET'])

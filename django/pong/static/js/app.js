@@ -274,10 +274,3 @@ function getCSRFToken() {
 
 window.getCSRFToken = getCSRFToken;
 
-document.addEventListener("DOMContentLoaded", function () {
-    const confirmInviteBtn = document.getElementById("confirmInvite");
-
-    confirmInviteBtn.addEventListener("click", function () {
-        document.getElementById("invite-to-game-btn").click();
-    });
-});

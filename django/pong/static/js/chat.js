@@ -296,7 +296,7 @@ window.initChat = async () => {
           })
         );
       } else {
-        addSystemMessage("WebSocket non connecté.");
+          addSystemMessage("WebSocket non connecté.");
       }
     });
 
