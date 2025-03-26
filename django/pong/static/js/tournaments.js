@@ -1,34 +1,45 @@
 // static/js/tournaments.js
-document.addEventListener("submit", async (e) => {
-	const form = e.target;
-	if (form && form.id === "createTournamentForm") {
-	  e.preventDefault();
-	  const formData = new FormData(form);
-	  try {
-		const response = await fetch("/tournaments/create/", {
-		  method: "POST",
-		  body: formData,
-		  credentials: "include",
-		  headers: {
-			"X-Requested-With": "XMLHttpRequest",
-			"X-CSRFToken": getCSRFToken()
+
+// Empêche l'attachement multiple de l'écouteur de soumission
+if (!window.__tournamentsSubmitListenerAdded) {
+	document.addEventListener("submit", async (e) => {
+	  const form = e.target;
+	  if (form && form.id === "createTournamentForm") {
+		e.preventDefault();
+		const submitButton = form.querySelector('button[type="submit"]');
+		if (submitButton) submitButton.disabled = true;
+		const formData = new FormData(form);
+		try {
+		  const response = await fetch("/tournaments/create/", {
+			method: "POST",
+			body: formData,
+			credentials: "include",
+			headers: {
+			  "X-Requested-With": "XMLHttpRequest",
+			  "X-CSRFToken": getCSRFToken()
+			}
+		  });
+		  const data = await response.json();
+		  if (response.ok && data.success) {
+			alert(data.message);
+			navigateTo("/tournaments/list/");
+		  } else {
+			console.error("Erreur:", data.error);
+			alert(data.error || "Erreur lors de la création du tournoi.");
 		  }
-		});
-		const data = await response.json();
-		if (response.ok && data.success) {
-		  alert(data.message);
-		  navigateTo("/tournaments/list/");
-		} else {
-		  console.error("Erreur:", data.error);
-		  alert(data.error || "Erreur lors de la création du tournoi.");
+		} catch (error) {
+		  console.error("Network error:", error);
+		  alert("Erreur réseau lors de la création du tournoi.");
+		} finally {
+		  if (submitButton) submitButton.disabled = false;
 		}
-	  } catch (error) {
-		console.error("Network error:", error);
 	  }
-	}
-  });
+	});
+	window.__tournamentsSubmitListenerAdded = true;
+  }
 
   document.addEventListener("DOMContentLoaded", () => {
+	// Gestion des boutons de jointure de tournoi
 	const joinButtons = document.querySelectorAll(".join-tournament");
 	joinButtons.forEach((button) => {
 	  button.addEventListener("click", async (e) => {
@@ -206,10 +217,10 @@ document.addEventListener("submit", async (e) => {
 		method: "POST",
 		credentials: "include",
 		headers: {
-			"Content-Type": "application/json",
-			"X-Requested-With": "XMLHttpRequest",
-			"X-CSRFToken": getCSRFToken()
-		  },
+		  "Content-Type": "application/json",
+		  "X-Requested-With": "XMLHttpRequest",
+		  "X-CSRFToken": getCSRFToken()
+		},
 		body: JSON.stringify({})
 	  });
 	  const data = await resp.json();
