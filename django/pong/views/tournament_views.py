@@ -24,7 +24,9 @@ def create_tournament_view(request):
             return redirect('/')
 
     if request.method == 'GET':
-        users = CustomUser.objects.filter(online_status=True)
+        users = list(CustomUser.objects.filter(online_status=True))
+        if request.user.is_authenticated and request.user not in users:
+            users.append(request.user)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return render(request, "tournaments/create_tournament.html", {"users": users})
         else:

@@ -1,6 +1,6 @@
 // app.js
 (function () {
-    let currentPage = null;
+    let currentPage = window.location.pathname;
 
     document.addEventListener("click", function (event) {
         const link = event.target.closest(".spa-link");
@@ -12,12 +12,21 @@
     });
 
     window.addEventListener("popstate", function () {
+        if (currentPage.includes("/game") && typeof window.destroyPong === "function") {
+            window.destroyPong();
+        }
+        currentPage = location.pathname;
         navigateTo(location.pathname, false);
     });
 
     async function navigateTo(url, pushState = true) {
+        if (currentPage.includes("/game") && typeof window.destroyPong === "function") {
+            window.destroyPong();
+        }
+        currentPage = url;
+
         try {
-            handlePageUnload(location.pathname);
+            handlePageUnload(currentPage);
 
             const ajaxUrl = url.includes('?') ? `${url}&fragment=1` : `${url}?fragment=1`;
 
@@ -56,8 +65,6 @@
         }
     }
 
-
-
     function handlePageUnload(oldUrl) {
         if (!oldUrl) return;
 
@@ -83,15 +90,13 @@
                 console.warn("Chat déjà initialisé, réinitialisation...");
                 window.hideChat();
             }
-
             loadScriptOnce("/static/js/chat.js", () => {
                 if (window.initChat) {
                     window.initChat();
                 }
             });
         } else if (url.includes("/login")) {
-            loadScriptOnce("/static/js/login.js", () => {
-            });
+            loadScriptOnce("/static/js/login.js", () => {});
         } else if (url.includes("/account")) {
             loadScriptOnce("/static/js/account.js", () => {
                 if (window.initAccount) {
@@ -99,12 +104,12 @@
                 }
             });
         } else if (url.includes("/tournaments/blockchain")) {
-			loadScriptOnce("/static/js/blockchain_tournaments.js", () => {
-				if (window.initBlockchainTournamentPage) {
-					window.initBlockchainTournamentPage();
-				}
-			});
-		}
+            loadScriptOnce("/static/js/blockchain_tournaments.js", () => {
+                if (window.initBlockchainTournamentPage) {
+                    window.initBlockchainTournamentPage();
+                }
+            });
+        }
     }
 
     function loadScriptOnce(src, callback) {
@@ -119,7 +124,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", async function () {
-        await updateUserInfo(); // Check authentification + chat
+        await updateUserInfo();
 
         if (location.pathname === "/" || location.pathname === "") {
             navigateTo("/", false);
@@ -197,7 +202,6 @@ function updateHeaderUserInfo(userInfo) {
             }
         };
     } else {
-        // User déconnecté
         userDisplay.textContent = "Non connecté";
         loginLink.style.display = "inline";
         logoutBtn.style.display = "none";
@@ -217,7 +221,6 @@ function updateHeaderUserInfo(userInfo) {
         }
     }
 }
-
 
 async function updateUserInfo() {
     try {
@@ -273,4 +276,3 @@ function getCSRFToken() {
 }
 
 window.getCSRFToken = getCSRFToken;
-
