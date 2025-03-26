@@ -527,11 +527,19 @@ window.initAccount = async function () {
                         viewedUsernameEl.textContent = data.username;
                         viewedUsernameEl.setAttribute('data-viewed-username', data.username);
                     }
+
+                    window.currentUsername = data.username;
+                    window.currentProfileUsername = data.username;
+
                     alert('Nom d’utilisateur mis à jour !');
                     const usernameModalEl = document.getElementById('usernameModal');
                     if (usernameModalEl) {
                         bootstrap.Modal.getInstance(usernameModalEl).hide();
                     }
+
+                    loadProfileInfo(data.username);
+                    loadPlayerMatches(data.username);
+
                 } else {
                     document.getElementById('username-error').textContent = data.error || 'Échec du changement de nom d\'utilisateur.';
                     document.getElementById('username-error').style.display = 'block';

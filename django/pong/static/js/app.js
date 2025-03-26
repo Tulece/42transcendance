@@ -12,10 +12,6 @@
     });
 
     window.addEventListener("popstate", function () {
-        if (currentPage.includes("/game") && typeof window.destroyPong === "function") {
-            window.destroyPong();
-        }
-        currentPage = location.pathname;
         navigateTo(location.pathname, false);
     });
 
